@@ -37,3 +37,31 @@ func TestHandleFeeds_ReturnsList(t *testing.T) {
 		t.Fatalf("expected at least 2 feeds, got %d", len(feeds))
 	}
 }
+
+func TestHandleFeeds_ReturnsAutoReadingMode(t *testing.T) {
+	h := setupHandler(t)
+
+	if _, err := h.DB.AddFeed(&models.Feed{
+		Title:           "Reader",
+		URL:             "https://example.com/reader.xml",
+		AutoReadingMode: true,
+	}); err != nil {
+		t.Fatalf("AddFeed() error = %v", err)
+	}
+
+	req := httptest.NewRequest("GET", "/api/feeds", nil)
+	w := httptest.NewRecorder()
+	fh.HandleFeeds(h, w, req)
+
+	if w.Result().StatusCode != 200 {
+		t.Fatalf("HandleFeeds() status = %d, want 200", w.Result().StatusCode)
+	}
+
+	var feeds []models.Feed
+	if err := json.NewDecoder(w.Result().Body).Decode(&feeds); err != nil {
+		t.Fatalf("Decode() error = %v", err)
+	}
+	if len(feeds) != 1 || !feeds[0].AutoReadingMode {
+		t.Fatalf("HandleFeeds() = %#v, want one feed with automatic reading enabled", feeds)
+	}
+}

@@ -41,3 +41,39 @@ func TestHandleUpdateFeed_ValidAndInvalid(t *testing.T) {
 		t.Fatalf("expected 400 for invalid payload, got %d", w2.Result().StatusCode)
 	}
 }
+
+func TestHandleUpdateFeed_PersistsAutoReadingMode(t *testing.T) {
+	h := setupHandler(t)
+
+	id, err := h.DB.AddFeed(&models.Feed{Title: "Reader", URL: "https://example.com/reader.xml"})
+	if err != nil {
+		t.Fatalf("AddFeed() error = %v", err)
+	}
+
+	body, err := json.Marshal(map[string]interface{}{
+		"id":                id,
+		"title":             "Reader",
+		"url":               "https://example.com/reader.xml",
+		"auto_reading_mode": true,
+	})
+	if err != nil {
+		t.Fatalf("Marshal() error = %v", err)
+	}
+
+	req := httptest.NewRequest("POST", "/api/feeds/update", bytes.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	w := httptest.NewRecorder()
+
+	fh.HandleUpdateFeed(h, w, req)
+	if w.Result().StatusCode != 200 {
+		t.Fatalf("HandleUpdateFeed() status = %d, want 200", w.Result().StatusCode)
+	}
+
+	feed, err := h.DB.GetFeedByID(id)
+	if err != nil {
+		t.Fatalf("GetFeedByID() error = %v", err)
+	}
+	if !feed.AutoReadingMode {
+		t.Fatal("feed update did not persist automatic reading")
+	}
+}

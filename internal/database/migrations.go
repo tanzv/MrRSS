@@ -279,6 +279,7 @@ func migrateDropUniqueConstraintOnFeeds(db *sql.DB) error {
 				xpath_item_uid TEXT DEFAULT '',
 				article_view_mode TEXT DEFAULT '',
 				auto_expand_content TEXT DEFAULT '',
+				auto_reading_mode BOOLEAN NOT NULL DEFAULT 0,
 				email_address TEXT DEFAULT '',
 				email_imap_server TEXT DEFAULT '',
 				email_imap_port INTEGER DEFAULT 993,
@@ -298,7 +299,7 @@ func migrateDropUniqueConstraintOnFeeds(db *sql.DB) error {
 					discovery_completed, script_path, hide_from_timeline, proxy_url, proxy_enabled, refresh_interval,
 					is_image_mode, type, xpath_item, xpath_item_title, xpath_item_content, xpath_item_uri,
 					xpath_item_author, xpath_item_timestamp, xpath_item_time_format, xpath_item_thumbnail,
-					xpath_item_categories, xpath_item_uid, article_view_mode, auto_expand_content,
+					xpath_item_categories, xpath_item_uid, article_view_mode, auto_expand_content, auto_reading_mode,
 					email_address, email_imap_server, email_imap_port, email_username, email_password,
 					email_folder, email_last_uid, is_freshrss_source, freshrss_stream_id
 				)
@@ -326,6 +327,7 @@ func migrateDropUniqueConstraintOnFeeds(db *sql.DB) error {
 					COALESCE(xpath_item_uid, '') as xpath_item_uid,
 					COALESCE(article_view_mode, '') as article_view_mode,
 					COALESCE(auto_expand_content, '') as auto_expand_content,
+					COALESCE(auto_reading_mode, 0) as auto_reading_mode,
 					COALESCE(email_address, '') as email_address,
 					COALESCE(email_imap_server, '') as email_imap_server,
 					COALESCE(email_imap_port, 993) as email_imap_port,

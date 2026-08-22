@@ -155,6 +155,9 @@ func applyAdditionalMigrations(db *DB) error {
 	// Migration: Add auto_expand_content column to feeds table for per-feed content expansion override
 	_, _ = db.Exec(`ALTER TABLE feeds ADD COLUMN auto_expand_content TEXT DEFAULT 'global'`)
 
+	// Migration: Add auto_reading_mode column to feeds table for per-feed reader mode
+	_, _ = db.Exec(`ALTER TABLE feeds ADD COLUMN auto_reading_mode BOOLEAN NOT NULL DEFAULT 0`)
+
 	// Migration: Add is_freshrss_source column to feeds table to mark feeds from FreshRSS
 	_, _ = db.Exec(`ALTER TABLE feeds ADD COLUMN is_freshrss_source BOOLEAN DEFAULT 0`)
 

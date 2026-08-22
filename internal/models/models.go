@@ -34,6 +34,7 @@ type Feed struct {
 	XPathItemUid        string `json:"xpath_item_uid"`         // XPath to extract item unique ID
 	ArticleViewMode     string `json:"article_view_mode"`      // Article view mode override ('global', 'webpage', 'rendered')
 	AutoExpandContent   string `json:"auto_expand_content"`    // Auto expand content mode ('global', 'enabled', 'disabled')
+	AutoReadingMode     bool   `json:"auto_reading_mode"`      // Enter RSS reader mode automatically for this feed
 	// Email/Newsletter support
 	EmailAddress    string `json:"email_address,omitempty"`     // Email address for newsletter subscriptions
 	EmailIMAPServer string `json:"email_imap_server,omitempty"` // IMAP server address

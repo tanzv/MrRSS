@@ -285,7 +285,7 @@ func (db *DB) GetFeedsByTag(tagID int64) ([]models.Feed, error) {
 			f.xpath_item, f.xpath_item_title, f.xpath_item_content, f.xpath_item_uri,
 			f.xpath_item_author, f.xpath_item_timestamp, f.xpath_item_time_format,
 			f.xpath_item_thumbnail, f.xpath_item_categories, f.xpath_item_uid,
-			f.article_view_mode, f.auto_expand_content,
+			f.article_view_mode, f.auto_expand_content, f.auto_reading_mode,
 			f.email_address, f.email_imap_server, f.email_imap_port,
 			f.email_username, f.email_password, f.email_folder, f.email_last_uid,
 			f.is_freshrss_source, f.freshrss_stream_id
@@ -312,7 +312,7 @@ func (db *DB) GetFeedsByTag(tagID int64) ([]models.Feed, error) {
 			&feed.XPathItemTitle, &feed.XPathItemContent, &feed.XPathItemUri, &feed.XPathItemAuthor,
 			&feed.XPathItemTimestamp, &feed.XPathItemTimeFormat, &feed.XPathItemThumbnail,
 			&feed.XPathItemCategories, &feed.XPathItemUid, &feed.ArticleViewMode,
-			&feed.AutoExpandContent, &feed.EmailAddress, &feed.EmailIMAPServer,
+			&feed.AutoExpandContent, &feed.AutoReadingMode, &feed.EmailAddress, &feed.EmailIMAPServer,
 			&feed.EmailIMAPPort, &feed.EmailUsername, &feed.EmailPassword, &feed.EmailFolder,
 			&feed.EmailLastUID, &feed.IsFreshRSSSource, &feed.FreshRSSStreamID,
 		)

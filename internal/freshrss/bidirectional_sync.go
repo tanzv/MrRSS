@@ -531,6 +531,7 @@ func (s *BidirectionalSyncService) createFeedsFromSubscriptions(ctx context.Cont
 					existingFeed.XPathItemUid,
 					existingFeed.ArticleViewMode,
 					existingFeed.AutoExpandContent,
+					existingFeed.AutoReadingMode,
 					existingFeed.EmailAddress,
 					existingFeed.EmailIMAPServer,
 					existingFeed.EmailUsername,

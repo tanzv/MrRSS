@@ -18,7 +18,8 @@ func initSchema(db *sql.DB) error {
 		category TEXT DEFAULT '',
 		image_url TEXT DEFAULT '',
 		last_updated DATETIME,
-		last_error TEXT DEFAULT ''
+		last_error TEXT DEFAULT '',
+		auto_reading_mode BOOLEAN NOT NULL DEFAULT 0
 	);
 
 	CREATE TABLE IF NOT EXISTS articles (

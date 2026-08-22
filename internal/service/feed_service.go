@@ -64,6 +64,7 @@ func (s *feedService) UpdateFeed(ctx context.Context, feed *models.Feed) error {
 		feed.XPathItemUid,
 		feed.ArticleViewMode,
 		feed.AutoExpandContent,
+		feed.AutoReadingMode,
 		feed.EmailAddress,
 		feed.EmailIMAPServer,
 		feed.EmailUsername,
