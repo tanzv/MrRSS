@@ -46,7 +46,8 @@ async function handleClick() {
 }
 
 .btn-primary {
-  @apply bg-accent text-white border-none hover:bg-accent-hover;
+  @apply bg-accent border-none hover:bg-accent-hover;
+  color: var(--accent-foreground);
 }
 
 .btn-secondary {
@@ -54,7 +55,13 @@ async function handleClick() {
 }
 
 .btn-danger {
-  @apply bg-red-50 dark:bg-red-900/20 border border-red-300 dark:border-red-400 text-red-600 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-900/30;
+  @apply bg-transparent border;
+  border-color: var(--state-danger-border);
+  color: var(--state-danger-color);
+}
+
+.btn-danger:hover {
+  background-color: var(--state-danger-background);
 }
 
 @keyframes spin {

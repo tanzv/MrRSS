@@ -81,6 +81,13 @@
       "encrypted": false,
       "frontend_key": "hoverMarkAsRead"
     },
+    "mark_read_on_scroll": {
+      "type": "bool",
+      "default": false,
+      "category": "reading",
+      "encrypted": false,
+      "frontend_key": "markReadOnScroll"
+    },
     "translation_enabled": {
       "type": "bool",
       "default": false,
@@ -759,6 +766,20 @@
       "category": "reading",
       "encrypted": false,
       "frontend_key": "contentLineHeight"
+    },
+    "content_width": {
+      "type": "string",
+      "default": "comfortable",
+      "category": "reading",
+      "encrypted": false,
+      "frontend_key": "contentWidth"
+    },
+    "content_paragraph_spacing": {
+      "type": "string",
+      "default": "comfortable",
+      "category": "reading",
+      "encrypted": false,
+      "frontend_key": "contentParagraphSpacing"
     },
     "ui_font_family": {
       "type": "string",

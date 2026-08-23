@@ -36,6 +36,14 @@ function updateSetting(key: keyof SettingsData, value: any) {
     />
 
     <SettingWithToggle
+      :icon="PhCursorClick"
+      :title="t('setting.reading.markReadOnScroll')"
+      :description="t('setting.reading.markReadOnScrollDesc')"
+      :model-value="settings.mark_read_on_scroll"
+      @update:model-value="updateSetting('mark_read_on_scroll', $event)"
+    />
+
+    <SettingWithToggle
       :icon="PhEyeSlash"
       :title="t('setting.reading.showHiddenArticles')"
       :description="t('setting.reading.showHiddenArticlesDesc')"

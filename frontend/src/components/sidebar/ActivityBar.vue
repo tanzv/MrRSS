@@ -194,7 +194,9 @@ defineExpose({
   <Transition name="activity-bar-slide">
     <div
       v-if="!props.isCollapsed"
-      class="smart-activity-bar flex flex-col items-center py-3 bg-bg-tertiary border-r border-border h-full select-none shrink-0 relative z-30"
+      class="smart-activity-bar flex flex-col items-center py-3 border-r border-border h-full select-none shrink-0 relative z-30"
+      role="navigation"
+      :aria-label="t('sidebar.activity.readerNavigation')"
     >
       <!-- Logo -->
       <div class="mb-6">
@@ -205,8 +207,9 @@ defineExpose({
       <div class="w-8 h-px bg-border mb-3"></div>
 
       <!-- Navigation Items -->
-      <div
+      <nav
         class="flex-1 flex flex-col items-center gap-1 w-full overflow-y-auto overflow-x-hidden nav-items-container"
+        :aria-label="t('sidebar.activity.articleFilters')"
       >
         <TransitionGroup name="nav-item">
           <button
@@ -214,11 +217,12 @@ defineExpose({
             v-show="item.id !== 'imageGallery' || imageGalleryEnabled"
             :key="item.id"
             :class="[
-              'relative flex items-center justify-center text-text-secondary flex-shrink-0 transition-all hover:text-accent',
-              store.currentFilter === item.filterType ? 'text-accent' : '',
+              'activity-nav-button relative flex items-center justify-center text-text-secondary flex-shrink-0 transition-all hover:text-accent',
+              store.currentFilter === item.filterType ? 'is-active text-accent' : '',
             ]"
-            style="width: 44px; height: 44px"
             :title="item.label"
+            :aria-label="item.label"
+            :aria-current="store.currentFilter === item.filterType ? 'page' : undefined"
             @click="handleNavClick(item)"
           >
             <!-- Icon -->
@@ -237,21 +241,20 @@ defineExpose({
             <!-- Unread Badge (only for 'all' button) -->
             <span
               v-if="item.id === 'all' && store.unreadCounts?.total > 0"
-              class="absolute bottom-0.5 right-0.5 min-w-[14px] h-[14px] px-0.5 text-[9px] font-medium flex items-center justify-center rounded-full text-white"
-              style="background-color: #999999"
+              class="activity-unread-badge absolute bottom-0.5 right-0.5 min-w-[14px] h-[14px] px-0.5 text-[9px] font-medium flex items-center justify-center rounded-full"
             >
               {{ store.unreadCounts?.total > 99 ? '99+' : store.unreadCounts?.total }}
             </span>
           </button>
         </TransitionGroup>
-      </div>
+      </nav>
 
       <!-- Bottom Actions -->
       <div class="flex flex-col items-center gap-1 mt-auto w-full">
         <button
-          class="relative flex items-center justify-center text-text-secondary flex-shrink-0 transition-all hover:text-accent"
-          style="width: 44px; height: 44px"
+          class="activity-nav-button relative flex items-center justify-center text-text-secondary flex-shrink-0 transition-all hover:text-accent"
           :title="t('sidebar.activity.addFeed')"
+          :aria-label="t('sidebar.activity.addFeed')"
           @click="emit('add-feed')"
         >
           <PhPlus :size="24" weight="regular" class="transition-all" />
@@ -259,22 +262,28 @@ defineExpose({
 
         <!-- Feed List Button -->
         <button
-          class="relative flex items-center justify-center text-text-secondary flex-shrink-0 transition-all hover:text-accent"
-          style="width: 44px; height: 44px"
+          class="activity-nav-button relative flex items-center justify-center text-text-secondary flex-shrink-0 transition-all hover:text-accent"
           :title="
             isFeedListExpanded
               ? t('sidebar.activity.collapseFeedList')
               : t('sidebar.activity.expandFeedList')
           "
+          :aria-label="
+            isFeedListExpanded
+              ? t('sidebar.activity.collapseFeedList')
+              : t('sidebar.activity.expandFeedList')
+          "
+          :aria-expanded="isFeedListExpanded"
+          aria-controls="reader-feed-drawer"
           @click="toggleFeedList"
         >
           <PhSidebar :size="24" :weight="isFeedListExpanded ? 'fill' : 'regular'" />
         </button>
 
         <button
-          class="relative flex items-center justify-center text-text-secondary flex-shrink-0 transition-all hover:text-accent"
-          style="width: 44px; height: 44px"
+          class="activity-nav-button relative flex items-center justify-center text-text-secondary flex-shrink-0 transition-all hover:text-accent"
           :title="t('setting.tab.settings')"
+          :aria-label="t('setting.tab.settings')"
           @click="emit('settings')"
         >
           <PhGear :size="24" weight="regular" class="transition-all" />
@@ -285,9 +294,9 @@ defineExpose({
 
         <!-- Collapse Button (at the bottom) -->
         <button
-          class="relative flex items-center justify-center text-text-secondary flex-shrink-0 transition-all hover:text-accent"
-          style="width: 44px; height: 44px"
+          class="activity-nav-button relative flex items-center justify-center text-text-secondary flex-shrink-0 transition-all hover:text-accent"
           :title="t('sidebar.activity.collapseActivityBar')"
+          :aria-label="t('sidebar.activity.collapseActivityBar')"
           @click="emit('toggle-activity-bar')"
         >
           <PhTextOutdent :size="24" weight="regular" class="transition-all" />
@@ -337,9 +346,36 @@ defineExpose({
   top: 0;
   bottom: 0;
   z-index: 15;
+  background: var(--surface-rail);
   /* Prevent layout shift during animations */
   backface-visibility: hidden;
   -webkit-font-smoothing: antialiased;
+}
+
+.activity-nav-button {
+  width: 44px;
+  min-width: 44px;
+  height: 44px;
+  border-radius: 0.5rem;
+  background: transparent;
+}
+
+.activity-nav-button:hover {
+  background: var(--surface-hover);
+}
+
+.activity-nav-button.is-active {
+  background: var(--surface-selected);
+}
+
+.activity-nav-button:focus-visible {
+  outline: 2px solid var(--accent-color) !important;
+  outline-offset: 1px;
+}
+
+.activity-unread-badge {
+  background: var(--unread-badge-background);
+  color: var(--unread-badge-color);
 }
 
 /* Navigation items smooth transitions */
@@ -424,11 +460,6 @@ defineExpose({
     width: 48px;
     min-width: 48px;
   }
-
-  button[style*='width: 44px'] {
-    width: 40px !important;
-    height: 40px !important;
-  }
 }
 
 /* Mobile devices */
@@ -437,14 +468,5 @@ defineExpose({
     width: 44px;
     min-width: 44px;
   }
-
-  button[style*='width: 44px'] {
-    width: 36px !important;
-    height: 36px !important;
-  }
 }
-</style>
-
-<style>
-/* Dark mode for unread badge - keep accent color */
 </style>

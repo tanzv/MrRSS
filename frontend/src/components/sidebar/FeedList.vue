@@ -24,6 +24,7 @@ import type { FilterCondition, SavedFilter } from '@/types/filter';
 const props = defineProps<{
   isExpanded?: boolean;
   isPinned?: boolean;
+  isMobile?: boolean;
 }>();
 
 const emit = defineEmits<{
@@ -198,7 +199,12 @@ watch(
     // 2. Is currently expanded
     // 3. The change was triggered by user action (not initial load or programmatic change)
     // 4. We haven't just collapsed (prevent double-collapse)
-    if (!props.isPinned && props.isExpanded && shouldCollapseAfterSelection && newVal !== oldVal) {
+    if (
+      (!props.isPinned || props.isMobile) &&
+      props.isExpanded &&
+      shouldCollapseAfterSelection &&
+      newVal !== oldVal
+    ) {
       shouldCollapseAfterSelection = false;
       setTimeout(() => {
         emit('collapse');
@@ -215,7 +221,12 @@ watch(
     // 2. Is currently expanded
     // 3. The change was triggered by user action
     // 4. We haven't just collapsed
-    if (!props.isPinned && props.isExpanded && shouldCollapseAfterSelection && newVal !== oldVal) {
+    if (
+      (!props.isPinned || props.isMobile) &&
+      props.isExpanded &&
+      shouldCollapseAfterSelection &&
+      newVal !== oldVal
+    ) {
       shouldCollapseAfterSelection = false;
       setTimeout(() => {
         emit('collapse');
@@ -226,7 +237,7 @@ watch(
 
 // Mark that we should collapse after a feed/category is selected
 function handleFeedOrCategorySelect() {
-  if (!props.isPinned) {
+  if (!props.isPinned || props.isMobile) {
     shouldCollapseAfterSelection = true;
   }
 }
@@ -593,20 +604,24 @@ function handleFilterDragEnd() {
   >
     <div
       v-if="isExpanded || isPinned"
-      class="w-[280px] min-w-[280px] max-w-[80vw] md:w-[280px] md:min-w-[280px] flex flex-col h-full flex-shrink-0 relative border-r border-border feed-drawer-width z-20"
-      :class="[isPinned ? 'bg-bg-primary' : 'bg-bg-secondary shadow-2xl']"
+      id="reader-feed-drawer"
+      class="reader-feed-drawer w-[280px] min-w-[280px] max-w-[80vw] md:w-[280px] md:min-w-[280px] flex flex-col h-full flex-shrink-0 relative border-r border-border feed-drawer-width z-20"
+      role="navigation"
+      :aria-label="drawerTitle"
+      :class="{ 'is-pinned': isPinned }"
     >
       <!-- Drawer Header -->
       <div
         class="p-2 sm:p-4 border-b border-border flex items-center justify-between flex-shrink-0 bg-bg-primary"
       >
-        <h3 class="m-0 text-base sm:text-lg font-semibold">{{ drawerTitle }}</h3>
+        <h2 class="m-0 text-base sm:text-lg font-semibold">{{ drawerTitle }}</h2>
         <div class="flex items-center gap-1 sm:gap-2">
           <!-- Pin/Unpin Button -->
           <button
             class="text-text-secondary hover:text-text-primary hover:bg-bg-tertiary p-1 sm:p-1.5 rounded transition-colors"
             :class="isPinned ? 'text-accent' : ''"
             :title="isPinned ? t('sidebar.feedList.unpin') : t('sidebar.feedList.pin')"
+            :aria-label="isPinned ? t('sidebar.feedList.unpin') : t('sidebar.feedList.pin')"
             @click="handleTogglePin"
           >
             <PhPushPinSlash v-if="isPinned" :size="18" class="sm:w-5 sm:h-5" />
@@ -616,6 +631,8 @@ function handleFilterDragEnd() {
           <button
             class="text-text-secondary hover:text-text-primary hover:bg-bg-tertiary p-1 sm:p-1.5 rounded transition-colors"
             :title="t('common.close')"
+            :aria-label="t('common.close')"
+            data-responsive-nav-close
             @click="handleClose"
           >
             <PhX :size="18" class="sm:w-5 sm:h-5" />
@@ -635,7 +652,8 @@ function handleFilterDragEnd() {
                   v-model="searchQuery"
                   type="text"
                   :placeholder="t('common.search.searchFeeds')"
-                  class="w-full bg-bg-tertiary px-3 py-2 pl-8 text-sm focus:outline-none transition-colors"
+                  :aria-label="t('common.search.searchFeeds')"
+                  class="feed-search-input w-full bg-bg-tertiary px-3 py-2 pl-8 text-sm focus:outline-none transition-colors"
                 />
                 <PhMagnifyingGlass
                   :size="14"
@@ -644,6 +662,8 @@ function handleFilterDragEnd() {
                 <button
                   v-if="searchQuery"
                   class="absolute right-2 top-1/2 -translate-y-1/2 p-1 text-text-secondary hover:text-text-primary"
+                  :title="t('common.clear')"
+                  :aria-label="t('common.clear')"
                   @click="searchQuery = ''"
                 >
                   <PhX :size="12" />
@@ -654,6 +674,7 @@ function handleFilterDragEnd() {
                 class="text-text-secondary hover:text-accent p-1 sm:p-1.5 transition-colors flex-shrink-0"
                 :class="isEditMode ? 'text-accent' : ''"
                 :title="isEditMode ? t('common.done') : t('common.edit')"
+                :aria-label="isEditMode ? t('common.done') : t('common.edit')"
                 @click="toggleEditMode"
               >
                 <PhPencil v-if="!isEditMode" :size="16" class="sm:w-5 sm:h-5" />
@@ -772,6 +793,11 @@ function handleFilterDragEnd() {
                     ? t('sidebar.savedFilters.conditionsRequired')
                     : t('sidebar.savedFilters.saveCurrentFilter')
                 "
+                :aria-label="
+                  !hasActiveFilters
+                    ? t('sidebar.savedFilters.conditionsRequired')
+                    : t('sidebar.savedFilters.saveCurrentFilter')
+                "
                 @click="openSaveModal"
               >
                 <PhFloppyDisk :size="18" />
@@ -862,6 +888,25 @@ function handleFilterDragEnd() {
   background: var(--text-secondary);
 }
 
+.reader-feed-drawer {
+  background-color: var(--surface-panel);
+  box-shadow: var(--overlay-shadow);
+}
+
+.reader-feed-drawer.is-pinned {
+  background-color: var(--bg-primary);
+  box-shadow: none;
+}
+
+.feed-search-input {
+  background-color: var(--surface-hover);
+}
+
+.feed-search-input:focus-visible {
+  outline: 2px solid var(--accent-color) !important;
+  outline-offset: -2px;
+}
+
 /* Responsive width for feed drawer on medium screens */
 @media (max-width: 1400px) {
   .feed-drawer-width {
@@ -869,15 +914,12 @@ function handleFilterDragEnd() {
     min-width: 240px !important;
   }
 }
-</style>
 
-<style>
-.dark-mode .sidebar-hover-scrollbar:hover::-webkit-scrollbar-thumb,
-.dark-mode .sidebar-hover-scrollbar:focus-within::-webkit-scrollbar-thumb {
-  background: #444;
-}
-
-.dark-mode .sidebar-hover-scrollbar::-webkit-scrollbar-thumb:hover {
-  background: #666;
+@media (max-width: 767px) {
+  .reader-feed-drawer,
+  .feed-drawer-width {
+    width: min(300px, calc(100vw - 44px)) !important;
+    min-width: min(300px, calc(100vw - 44px)) !important;
+  }
 }
 </style>

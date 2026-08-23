@@ -211,6 +211,9 @@ onUnmounted(() => {
   <div
     :ref="(el) => emit('observeElement', el as Element | null)"
     :data-article-id="article.id"
+    role="button"
+    tabindex="0"
+    :aria-current="isActive ? 'true' : undefined"
     :class="[
       'article-card',
       article.is_read ? 'read' : '',
@@ -221,6 +224,8 @@ onUnmounted(() => {
       compactMode ? 'compact' : '',
     ]"
     @click="emit('click')"
+    @keydown.enter="emit('click')"
+    @keydown.space.prevent="emit('click')"
     @contextmenu="emit('contextmenu', $event)"
     @mouseenter="handleMouseEnter"
     @mouseleave="handleMouseLeave"
@@ -252,7 +257,7 @@ onUnmounted(() => {
     <div class="flex-1 min-w-0">
       <div class="flex items-start gap-1.5 sm:gap-2">
         <!-- Normal mode or no translation: single line title -->
-        <h4
+        <h3
           v-if="
             !article.translated_title || article.translated_title === article.title || compactMode
           "
@@ -279,14 +284,14 @@ onUnmounted(() => {
           >
             {{ article.title }}
           </span>
-        </h4>
+        </h3>
         <!-- Non-compact mode with translation: separate lines -->
         <div v-else class="flex-1">
-          <h4
+          <h3
             class="m-0 mb-0 sm:mb-0.5 text-base sm:text-base font-semibold leading-snug text-text-primary article-title"
           >
             {{ article.translated_title }}
-          </h4>
+          </h3>
           <div
             class="article-original-title sm:text-xs text-text-secondary italic mb-0.5 sm:mb-1 article-title"
           >
@@ -307,10 +312,10 @@ onUnmounted(() => {
           <PhClockCountdown
             v-if="article.is_read_later"
             :size="16"
-            class="text-blue-500"
+            class="state-read-later-icon"
             weight="fill"
           />
-          <PhStar v-if="article.is_favorite" :size="16" class="text-yellow-500" weight="fill" />
+          <PhStar v-if="article.is_favorite" :size="16" class="state-favorite-icon" weight="fill" />
           <!-- FreshRSS indicator -->
           <img
             v-if="article.freshrss_item_id"
@@ -332,19 +337,18 @@ onUnmounted(() => {
 
       <!-- Feed source name and time - shown in both normal and compact mode -->
       <div
-        class="flex justify-between items-center text-[11px] sm:text-xs text-text-secondary"
+        class="flex justify-between items-center text-xs text-text-secondary"
         :class="{
           'mt-0 sm:mt-1': !compactMode,
           'mt-0': compactMode,
         }"
       >
         <span class="flex items-center gap-1.5 truncate flex-1 min-w-0 mr-2">
-          <span class="font-medium text-accent">{{ article.feed_title }}</span>
+          <span class="font-medium text-accent-text">{{ article.feed_title }}</span>
           <template v-if="article.author && article.author !== article.feed_title">
-            <span
-              class="text-[11px] sm:text-[11px] text-text-secondary opacity-75 truncate max-w-[120px]"
-              >{{ article.author }}</span
-            >
+            <span class="text-xs text-text-secondary truncate max-w-[120px]">{{
+              article.author
+            }}</span>
           </template>
         </span>
         <div class="flex items-center gap-1 sm:gap-2 shrink-0 min-h-[14px] sm:min-h-[18px]">
@@ -353,13 +357,13 @@ onUnmounted(() => {
             <PhClockCountdown
               v-if="article.is_read_later"
               :size="14"
-              class="text-blue-500 sm:w-[18px] sm:h-[18px]"
+              class="state-read-later-icon sm:w-[18px] sm:h-[18px]"
               weight="fill"
             />
             <PhStar
               v-if="article.is_favorite"
               :size="14"
-              class="text-yellow-500 sm:w-[18px] sm:h-[18px]"
+              class="state-favorite-icon sm:w-[18px] sm:h-[18px]"
               weight="fill"
             />
             <!-- FreshRSS indicator -->
@@ -389,7 +393,7 @@ onUnmounted(() => {
 <style scoped>
 @reference "../../style.css";
 .article-card {
-  @apply py-2 px-1.5 sm:p-3 border-b border-border cursor-pointer transition-colors flex gap-2 sm:gap-3 relative border-l-2 sm:border-l-[3px] border-l-transparent;
+  @apply py-2 px-1.5 sm:p-3 border-b border-border cursor-pointer transition-colors flex gap-2 sm:gap-3 relative;
 }
 
 /* Compact mode: reduce padding */
@@ -401,11 +405,12 @@ onUnmounted(() => {
   @apply bg-bg-tertiary;
 }
 
-.article-card.active {
-  @apply bg-bg-tertiary border-l-accent;
+.article-card:focus-visible {
+  outline: 2px solid var(--accent-color);
+  outline-offset: -2px;
 }
 
-.article-card.read h4 {
+.article-card.read h3 {
   @apply text-text-secondary font-normal;
 }
 
@@ -414,15 +419,31 @@ onUnmounted(() => {
 }
 
 .article-card.favorite {
-  background-color: rgba(255, 215, 0, 0.05);
+  background-color: var(--state-favorite-background);
 }
 
 .article-card.read-later {
-  background-color: rgba(59, 130, 246, 0.05);
+  background-color: var(--state-read-later-background);
+}
+
+.article-card.active,
+.article-card.active.favorite,
+.article-card.active.read-later {
+  background-color: var(--surface-selected);
+  box-shadow: inset 0 0 0 1px var(--accent-color);
+}
+
+.state-favorite-icon {
+  color: var(--state-favorite-color);
+}
+
+.state-read-later-icon {
+  color: var(--state-read-later-color);
 }
 
 .article-card.hidden {
-  @apply opacity-60 bg-gray-100 dark:bg-gray-800;
+  @apply opacity-60;
+  background-color: var(--surface-hover);
 }
 
 .article-card.hidden:hover {
@@ -455,7 +476,7 @@ onUnmounted(() => {
 
 /* Compact mode: translated title when article is read */
 .article-card.read .read-translated-title {
-  @apply text-text-secondary opacity-75 font-normal;
+  @apply text-text-tertiary font-normal;
 }
 
 /* Compact mode: original title displayed inline */
@@ -518,13 +539,9 @@ onUnmounted(() => {
     font-size: calc(0.938rem * var(--ui-font-scale, 1)) !important;
   }
 
-  /* Smaller metadata font */
+  /* Keep metadata at the readable baseline while preserving list density. */
   .article-card .text-xs {
-    font-size: calc(0.688rem * var(--ui-font-scale, 1)) !important;
-  }
-
-  .article-card .text-\[11px\] {
-    font-size: calc(0.688rem * var(--ui-font-scale, 1)) !important;
+    font-size: calc(0.75rem * var(--ui-font-scale, 1)) !important;
   }
 
   /* Tighter spacing */
@@ -539,11 +556,7 @@ onUnmounted(() => {
   }
 
   .article-card .article-original-title {
-    font-size: calc(0.563rem * var(--ui-font-scale, 1)) !important;
-  }
-
-  .article-card .text-\[11px\] {
-    font-size: calc(0.688rem * var(--ui-font-scale, 1)) !important;
+    font-size: calc(0.75rem * var(--ui-font-scale, 1)) !important;
   }
 }
 </style>

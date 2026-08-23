@@ -6,6 +6,7 @@ import type { Article } from '@/types/models';
 import ArticleTitle from './parts/ArticleTitle.vue';
 import ArticleSummary from './parts/ArticleSummary.vue';
 import ArticleBody from './parts/ArticleBody.vue';
+import ArticleContinuation from './parts/ArticleContinuation.vue';
 import FloatingToc from './parts/FloatingToc.vue';
 import AudioPlayer from './parts/AudioPlayer.vue';
 import VideoPlayer from './parts/VideoPlayer.vue';
@@ -23,6 +24,7 @@ import { useSettings } from '@/composables/core/useSettings';
 import { useAppStore } from '@/stores/app';
 import { openInBrowser } from '@/utils/browser';
 import { proxyImagesInHtml, isMediaCacheEnabled } from '@/utils/mediaProxy';
+import { resolveReaderTypography } from '@/utils/readerTypography';
 import './ArticleContent.css';
 
 interface SummaryResult {
@@ -44,16 +46,21 @@ interface Props {
   attachImageEventListeners?: () => void;
   showTranslations?: boolean;
   showContent?: boolean;
+  isReadingMode?: boolean;
+  nextArticle?: Article;
 }
 
 const props = withDefaults(defineProps<Props>(), {
   showTranslations: true,
   attachImageEventListeners: undefined,
   showContent: true,
+  isReadingMode: false,
 });
 
 const emit = defineEmits<{
   retryLoadContent: [];
+  readingProgress: [percent: number];
+  navigateNext: [];
 }>();
 
 const { t } = useI18n();
@@ -66,6 +73,7 @@ function handleRetryLoad() {
 // Chat state
 const { settings: appSettings, fetchSettings } = useSettings();
 const store = useAppStore();
+const readerTypography = computed(() => resolveReaderTypography(appSettings.value));
 const isChatPanelOpen = ref(false);
 const articleScrollContainer = ref<HTMLElement | null>(null);
 const ARTICLE_SCROLL_POSITIONS_KEY = 'mrrssArticleScrollPositions';
@@ -162,6 +170,19 @@ const displayContent = computed(() => {
   return fullArticleContent.value || props.articleContent;
 });
 
+const shouldShowContinuation = computed(() => {
+  return Boolean(
+    props.isReadingMode &&
+    !props.isLoadingContent &&
+    props.articleContent.trim() &&
+    props.nextArticle
+  );
+});
+
+function handleNavigateNext(): void {
+  emit('navigateNext');
+}
+
 // Use composables for summary and translation
 const {
   summarySettings,
@@ -242,6 +263,40 @@ function scheduleSaveArticleScrollPosition() {
   }, 200);
 }
 
+function getReadingProgress(): number {
+  const container = articleScrollContainer.value;
+  if (!container) return 0;
+
+  const scrollRange = container.scrollHeight - container.clientHeight;
+  if (scrollRange <= 0) return 100;
+
+  return Math.min(100, Math.max(0, Math.round((container.scrollTop / scrollRange) * 100)));
+}
+
+function emitReadingProgress(): void {
+  emit('readingProgress', getReadingProgress());
+}
+
+function scheduleReadingProgress(): void {
+  void nextTick().then(() => emitReadingProgress());
+}
+
+async function focusReaderWhenReady(): Promise<void> {
+  if (!props.isReadingMode || props.isLoadingContent || !props.articleContent.trim()) return;
+
+  await nextTick();
+
+  if (!props.isReadingMode || props.isLoadingContent || !props.articleContent.trim()) return;
+
+  articleScrollContainer.value?.focus({ preventScroll: true });
+  emitReadingProgress();
+}
+
+function handleReaderScroll(): void {
+  scheduleSaveArticleScrollPosition();
+  emitReadingProgress();
+}
+
 function restoreArticleScrollPosition(articleId: number | null | undefined = props.article?.id) {
   const container = articleScrollContainer.value;
   if (!container || !articleId) return;
@@ -262,6 +317,8 @@ function restoreArticleScrollPosition(articleId: number | null | undefined = pro
       pendingScrollRestoreArticleId = null;
       pendingScrollRestoreAttempts = 0;
     }
+
+    emitReadingProgress();
   });
 }
 
@@ -960,6 +1017,7 @@ watch(
       // Re-attach image and link event listeners after rendering enhancements
       await reattachContentInteractions();
       await restorePendingArticleScrollPosition();
+      scheduleReadingProgress();
 
       // Auto-fetch full article if setting is enabled
       // Don't auto-fetch if we're already fetching
@@ -1032,6 +1090,7 @@ onMounted(async () => {
       // Re-attach image and link event listeners after rendering
       await reattachContentInteractions();
       await restorePendingArticleScrollPosition();
+      scheduleReadingProgress();
 
       // Auto-fetch full article if setting is enabled and content is already loaded
       if (
@@ -1057,6 +1116,12 @@ watch(
     }
   },
   { immediate: true }
+);
+
+watch(
+  () => [props.isReadingMode, props.article.id, props.isLoadingContent, props.articleContent],
+  () => void focusReaderWhenReady(),
+  { immediate: true, flush: 'post' }
 );
 
 // Watch for full article content changes and reattach event listeners
@@ -1101,12 +1166,21 @@ onBeforeUnmount(() => {
   <div class="relative flex-1 overflow-hidden bg-bg-primary">
     <div
       ref="articleScrollContainer"
+      data-testid="article-reader"
       class="h-full overflow-y-scroll p-3 sm:p-6 scroll-smooth"
+      tabindex="-1"
+      role="region"
+      :aria-label="t('article.readingMode.regionLabel')"
       @click="handleContainerClick"
-      @scroll="scheduleSaveArticleScrollPosition"
+      @scroll="handleReaderScroll"
     >
       <div
-        class="max-w-3xl mx-auto bg-bg-primary [container-type:inline-size]"
+        data-testid="article-reading-column"
+        class="article-reading-column bg-bg-primary"
+        :data-reader-width="readerTypography.width"
+        :data-paragraph-spacing="readerTypography.paragraphSpacing"
+        :data-reader-theme="store.theme"
+        :style="readerTypography.cssVariables"
         :class="{
           'hide-translations': !showTranslations,
           'translation-only-mode': translationSettings.translationOnlyMode,
@@ -1173,6 +1247,12 @@ onBeforeUnmount(() => {
             }}</span>
           </button>
         </div>
+
+        <ArticleContinuation
+          v-if="shouldShowContinuation && nextArticle"
+          :next-article="nextArticle"
+          @navigate-next="handleNavigateNext"
+        />
       </div>
     </div>
 
@@ -1212,5 +1292,29 @@ onBeforeUnmount(() => {
 .btn-secondary-compact:hover {
   opacity: 1;
   color: var(--text-primary);
+}
+
+.article-reading-column {
+  width: min(100%, 72ch);
+  max-width: 72ch;
+  margin-inline: auto;
+  container-type: inline-size;
+}
+
+.article-reading-column[data-reader-width='narrow'] {
+  width: min(100%, 58ch);
+  max-width: 58ch;
+}
+
+.article-reading-column[data-reader-width='wide'] {
+  width: min(100%, 88ch);
+  max-width: 88ch;
+}
+
+@media (max-width: 639px) {
+  .article-reading-column[data-reader-width] {
+    width: 100%;
+    max-width: 100%;
+  }
 }
 </style>

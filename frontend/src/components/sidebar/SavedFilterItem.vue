@@ -59,6 +59,14 @@ function handleDelete(event: Event) {
   event.stopPropagation();
   emit('delete', props.filter);
 }
+
+function handleFilterKeydown(event: KeyboardEvent) {
+  if ((event.target as HTMLElement).closest('button')) return;
+  if (event.key !== 'Enter' && event.key !== ' ') return;
+
+  event.preventDefault();
+  emit('click');
+}
 </script>
 
 <template>
@@ -71,11 +79,16 @@ function handleDelete(event: Event) {
       props.compactMode ? 'px-1 sm:px-1.5 py-0.5 sm:py-1' : 'px-2 sm:px-3 py-1.5 sm:py-2 mx-1',
       isDragging ? 'opacity-50' : '',
     ]"
+    role="button"
+    tabindex="0"
+    :aria-current="isActive ? 'page' : undefined"
+    :aria-label="filter.name"
     draggable="true"
     @click="handleClick"
     @contextmenu="handleContextMenu"
     @dragstart="handleDragStart"
     @dragend="handleDragEnd"
+    @keydown="handleFilterKeydown"
   >
     <!-- Icon and filter name -->
     <div class="flex items-center gap-0.5 sm:gap-1 flex-1 min-w-0">
@@ -94,13 +107,15 @@ function handleDelete(event: Event) {
       <button
         class="bg-transparent border-0 p-1 cursor-pointer text-text-secondary rounded transition-all duration-200 hover:bg-bg-secondary hover:text-text-primary"
         :title="t('common.edit')"
+        :aria-label="t('common.edit')"
         @click="handleEdit"
       >
         <PhPencil :size="14" />
       </button>
       <button
-        class="bg-transparent border-0 p-1 cursor-pointer text-text-secondary rounded transition-all duration-200 hover:text-red-500 hover:bg-[rgba(239,68,68,0.1)]"
+        class="state-danger-hover bg-transparent border-0 p-1 cursor-pointer text-text-secondary rounded transition-all duration-200"
         :title="t('common.delete')"
+        :aria-label="t('common.delete')"
         @click="handleDelete"
       >
         <PhTrash :size="14" />

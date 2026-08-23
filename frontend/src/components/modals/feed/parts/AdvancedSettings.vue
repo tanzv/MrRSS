@@ -10,6 +10,7 @@ interface Props {
   isImageMode: boolean;
   hideFromTimeline: boolean;
   articleViewMode: 'global' | 'webpage' | 'rendered' | 'external';
+  autoReadingMode: boolean;
   autoExpandContent: 'global' | 'enabled' | 'disabled';
   proxyMode: ProxyMode;
   proxyType: string;
@@ -27,6 +28,7 @@ const emit = defineEmits<{
   'update:isImageMode': [value: boolean];
   'update:hideFromTimeline': [value: boolean];
   'update:articleViewMode': [value: 'global' | 'webpage' | 'rendered' | 'external'];
+  'update:autoReadingMode': [value: boolean];
   'update:autoExpandContent': [value: 'global' | 'enabled' | 'disabled'];
   'update:proxyMode': [value: ProxyMode];
   'update:proxyType': [value: string];
@@ -158,6 +160,37 @@ function handleRefreshModeChange(value: string | number) {
         :options="articleViewModeOptions"
         @update:model-value="handleArticleViewModeChange"
       />
+    </div>
+
+    <!-- Automatic Reader Mode -->
+    <div class="p-3 rounded-lg bg-bg-secondary border border-border">
+      <label
+        class="flex items-center justify-between gap-3"
+        :class="props.articleViewMode === 'external' ? 'cursor-not-allowed' : 'cursor-pointer'"
+      >
+        <div>
+          <span class="font-semibold text-xs sm:text-sm text-text-primary">
+            {{ t('setting.feed.autoReadingMode') }}
+          </span>
+          <p class="text-[10px] sm:text-xs text-text-secondary mt-0.5">
+            {{ t('setting.feed.autoReadingModeDesc') }}
+          </p>
+          <p
+            v-if="props.articleViewMode === 'external'"
+            class="text-[10px] sm:text-xs text-text-secondary mt-1"
+          >
+            {{ t('setting.feed.autoReadingModeExternalDesc') }}
+          </p>
+        </div>
+        <input
+          data-testid="auto-reading-mode"
+          :checked="props.autoReadingMode"
+          :disabled="props.articleViewMode === 'external'"
+          type="checkbox"
+          class="toggle"
+          @change="emit('update:autoReadingMode', ($event.target as HTMLInputElement).checked)"
+        />
+      </label>
     </div>
 
     <!-- Auto Expand Content -->
@@ -336,5 +369,9 @@ function handleRefreshModeChange(value: string | number) {
 
 .toggle:checked::after {
   transform: translateX(20px);
+}
+
+.toggle:disabled {
+  @apply opacity-50 cursor-not-allowed;
 }
 </style>

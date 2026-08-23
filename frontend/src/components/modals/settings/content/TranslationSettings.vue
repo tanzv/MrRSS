@@ -148,6 +148,7 @@ async function clearTranslationCache() {
       >
         <ToggleControl
           :model-value="settings.translation_only_mode"
+          :aria-label="t('setting.content.translationOnlyMode')"
           @update:model-value="updateSetting('translation_only_mode', $event)"
         />
       </SubSettingItem>
@@ -610,6 +611,7 @@ async function clearTranslationCache() {
             :min="1"
             :max="60"
             :suffix="t('common.time.seconds')"
+            :aria-label="t('setting.translation.custom.timeout')"
             width="sm"
             @update:model-value="updateSetting('custom_translation_timeout', $event)"
           />

@@ -157,6 +157,12 @@ const handleDeleteCSS = async () => {
             v-if="!hasCustomCSS"
             class="btn-secondary"
             :disabled="uploading"
+            :aria-label="
+              uploading ? t('common.pagination.uploading') : t('setting.customization.cssUpload')
+            "
+            :title="
+              uploading ? t('common.pagination.uploading') : t('setting.customization.cssUpload')
+            "
             @click="handleFileUpload"
           >
             <PhUpload v-if="!uploading" :size="16" class="sm:w-5 sm:h-5" />
@@ -168,6 +174,12 @@ const handleDeleteCSS = async () => {
             v-if="hasCustomCSS"
             class="btn-danger"
             :disabled="deleteLoading"
+            :aria-label="
+              deleteLoading ? t('common.pagination.deleting') : t('setting.customization.deleteCSS')
+            "
+            :title="
+              deleteLoading ? t('common.pagination.deleting') : t('setting.customization.deleteCSS')
+            "
             @click="handleDeleteCSS"
           >
             <PhTrash v-if="!deleteLoading" :size="16" class="sm:w-5 sm:h-5" />

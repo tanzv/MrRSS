@@ -1,12 +1,15 @@
 <script setup lang="ts">
 import { PhNewspaper, PhCaretLeft, PhCaretRight } from '@phosphor-icons/vue';
 import { useArticleDetail } from '@/composables/article/useArticleDetail';
+import { useAppStore } from '@/stores/app';
 import ArticleToolbar from './ArticleToolbar.vue';
 import ArticleContent from './ArticleContent.vue';
 import ImageViewer from '../common/ImageViewer.vue';
 import FindInPage from '../common/FindInPage.vue';
 
-import { ref, onMounted, onBeforeUnmount } from 'vue';
+import { ref, onMounted, onBeforeUnmount, watch } from 'vue';
+
+const store = useAppStore();
 
 const {
   article,
@@ -19,12 +22,14 @@ const {
   imageViewerInitialIndex,
   hasPreviousArticle,
   hasNextArticle,
+  nextArticle,
   close,
   toggleRead,
   toggleFavorite,
   toggleReadLater,
   openOriginal,
   toggleContentView,
+  toggleReadingMode,
   reloadArticleContent,
   closeImageViewer,
   attachImageEventListeners,
@@ -32,6 +37,7 @@ const {
   exportToNotion,
   exportToZotero,
   handleRetryLoadContent,
+  handleReadingProgress,
   goToPreviousArticle,
   goToNextArticle,
   t,
@@ -39,6 +45,24 @@ const {
 
 const showTranslations = ref(true);
 const showFindInPage = ref(false);
+const readingProgress = ref(0);
+const readingModeAnnouncement = ref('');
+
+watch(
+  () => store.isReadingMode,
+  (isReadingMode) => {
+    readingModeAnnouncement.value = isReadingMode
+      ? t('article.readingMode.entered')
+      : t('article.readingMode.exited');
+  }
+);
+
+watch(
+  () => article.value?.id,
+  () => {
+    readingProgress.value = 0;
+  }
+);
 
 function toggleTranslations() {
   showTranslations.value = !showTranslations.value;
@@ -50,6 +74,13 @@ function openFindInPage() {
 
 function closeFindInPage() {
   showFindInPage.value = false;
+}
+
+function onReadingProgress(percent: number): void {
+  readingProgress.value = percent;
+  void handleReadingProgress(percent)?.catch((error) =>
+    console.error('Error updating article read state:', error)
+  );
 }
 
 function handleKeydown(e: KeyboardEvent) {
@@ -86,6 +117,8 @@ onBeforeUnmount(() => {
       article ? 'translate-x-0' : 'translate-x-full md:translate-x-0',
     ]"
   >
+    <span class="sr-only" aria-live="polite">{{ readingModeAnnouncement }}</span>
+
     <div
       v-if="!article"
       class="hidden md:flex flex-col items-center justify-center h-full text-text-secondary text-center px-4"
@@ -99,8 +132,11 @@ onBeforeUnmount(() => {
         :article="article"
         :show-content="showContent"
         :show-translations="showTranslations"
+        :is-reading-mode="store.isReadingMode"
+        :reading-progress="readingProgress"
         @close="close"
         @toggle-content-view="toggleContentView"
+        @toggle-reading-mode="toggleReadingMode"
         @toggle-read="toggleRead"
         @toggle-favorite="toggleFavorite"
         @toggle-read-later="toggleReadLater"
@@ -117,6 +153,7 @@ onBeforeUnmount(() => {
         <iframe
           :key="article.id"
           :src="`/api/webpage/proxy?url=${encodeURIComponent(article.url)}`"
+          :title="article.title"
           class="w-full h-full border-none"
           sandbox="allow-scripts allow-same-origin allow-popups"
         ></iframe>
@@ -131,18 +168,23 @@ onBeforeUnmount(() => {
         :attach-image-event-listeners="attachImageEventListeners"
         :show-translations="showTranslations"
         :show-content="showContent"
+        :is-reading-mode="store.isReadingMode"
+        :next-article="nextArticle"
         @retry-load-content="handleRetryLoadContent"
+        @reading-progress="onReadingProgress"
+        @navigate-next="goToNextArticle"
       />
 
       <!-- Navigation buttons -->
       <div
-        v-if="hasPreviousArticle || hasNextArticle"
+        v-if="!store.isReadingMode && (hasPreviousArticle || hasNextArticle)"
+        data-testid="article-navigation"
         class="flex items-center justify-between bg-bg-primary px-3 py-1.5"
       >
         <button
           v-if="hasPreviousArticle"
           :title="t('article.navigation.previousArticle') || 'Previous article'"
-          class="flex items-center gap-1.5 px-2 py-1 rounded text-text-secondary/70 hover:text-text-primary hover:bg-bg-secondary/50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          class="flex items-center gap-1.5 px-2 py-1 rounded text-text-secondary hover:text-text-primary hover:bg-bg-secondary/50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           @click="goToPreviousArticle"
         >
           <PhCaretLeft :size="16" />
@@ -154,7 +196,7 @@ onBeforeUnmount(() => {
         <button
           v-if="hasNextArticle"
           :title="t('article.navigation.nextArticle') || 'Next article'"
-          class="flex items-center gap-1.5 px-2 py-1 rounded text-text-secondary/70 hover:text-text-primary hover:bg-bg-secondary/50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          class="flex items-center gap-1.5 px-2 py-1 rounded text-text-secondary hover:text-text-primary hover:bg-bg-secondary/50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           @click="goToNextArticle"
         >
           <span class="text-xs">{{ t('article.navigation.nextArticle') || 'Next' }}</span>

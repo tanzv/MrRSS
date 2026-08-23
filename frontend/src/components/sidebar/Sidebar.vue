@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted, nextTick } from 'vue';
+import { ref, onMounted, onBeforeUnmount, nextTick, watch } from 'vue';
 import { PhCaretRight } from '@phosphor-icons/vue';
 import { useI18n } from 'vue-i18n';
 import ActivityBar from './ActivityBar.vue';
@@ -7,9 +7,15 @@ import FeedList from './FeedList.vue';
 
 interface Props {
   isOpen?: boolean;
+  isCompact?: boolean;
+  isMobile?: boolean;
 }
 
-defineProps<Props>();
+const props = withDefaults(defineProps<Props>(), {
+  isOpen: true,
+  isCompact: false,
+  isMobile: false,
+});
 
 const emit = defineEmits<{
   toggle: [];
@@ -21,6 +27,7 @@ const { t } = useI18n();
 const isFeedListExpanded = ref(false);
 const isFeedListPinned = ref(false);
 const activityBarRef = ref<InstanceType<typeof ActivityBar> | null>(null);
+let focusTimer: number | null = null;
 
 // Activity bar collapse state - use localStorage for persistence
 const savedActivityBarCollapsed = localStorage.getItem('ActivityBarCollapsed');
@@ -56,6 +63,16 @@ onMounted(async () => {
   }, 300);
 });
 
+watch(
+  () => props.isOpen,
+  (isOpen) => {
+    if (!isOpen && props.isMobile && isFeedListExpanded.value) {
+      isFeedListExpanded.value = false;
+      updateActivityBarState();
+    }
+  }
+);
+
 function handleFeedListExpand() {
   isFeedListExpanded.value = true;
   updateActivityBarState();
@@ -64,6 +81,9 @@ function handleFeedListExpand() {
 function handleFeedListCollapse() {
   isFeedListExpanded.value = false;
   updateActivityBarState();
+  if (props.isMobile && props.isOpen) {
+    emit('toggle');
+  }
 }
 
 function handlePinFeedList() {
@@ -95,20 +115,91 @@ function updateActivityBarState() {
   }
 }
 
-const emitShowAddFeed = () => window.dispatchEvent(new CustomEvent('show-add-feed'));
-const emitShowSettings = () => window.dispatchEvent(new CustomEvent('show-settings'));
+function emitShowAddFeed() {
+  if (props.isMobile && props.isOpen) emit('toggle');
+  window.dispatchEvent(new CustomEvent('show-add-feed'));
+}
+
+function emitShowSettings() {
+  if (props.isMobile && props.isOpen) emit('toggle');
+  window.dispatchEvent(new CustomEvent('show-settings'));
+}
+
+function handleActivityFilterSelect() {
+  if (props.isMobile && props.isOpen) emit('toggle');
+}
+
+function handleBackdropClick() {
+  if (props.isMobile) {
+    emit('toggle');
+    return;
+  }
+
+  handleFeedListCollapse();
+}
+
+function focusMobileDrawer() {
+  const focusCloseButton = () => {
+    document.querySelector<HTMLElement>('[data-responsive-nav-close]')?.focus();
+  };
+
+  if (focusTimer !== null) window.clearTimeout(focusTimer);
+  nextTick(() => {
+    if (!props.isOpen || !props.isMobile) return;
+    if (typeof window.requestAnimationFrame === 'function') {
+      window.requestAnimationFrame(focusCloseButton);
+    } else {
+      window.setTimeout(focusCloseButton, 0);
+    }
+    // The drawer is rendered through a transition; retry once after its vnode mounts.
+    focusTimer = window.setTimeout(focusCloseButton, 60);
+  });
+}
 
 function toggleActivityBar() {
   isActivityBarCollapsed.value = !isActivityBarCollapsed.value;
   saveActivityBarState();
 }
+
+watch(
+  () => props.isOpen,
+  (isOpen) => {
+    if (!isOpen && focusTimer !== null) {
+      window.clearTimeout(focusTimer);
+      focusTimer = null;
+    }
+    if (isOpen && props.isMobile && !isFeedListExpanded.value) {
+      isFeedListExpanded.value = true;
+      updateActivityBarState();
+    }
+    if (isOpen && props.isMobile) focusMobileDrawer();
+  }
+);
+
+onBeforeUnmount(() => {
+  if (focusTimer !== null) window.clearTimeout(focusTimer);
+});
 </script>
 
 <template>
   <div
     class="compact-sidebar-wrapper flex h-full relative"
-    :class="{ 'width-collapsed': isActivityBarCollapsed }"
+    :class="{
+      'width-collapsed': isActivityBarCollapsed,
+      'is-compact-shell': props.isCompact,
+      'is-mobile-shell': props.isMobile,
+      'is-shell-open': props.isOpen,
+    }"
+    :aria-hidden="props.isMobile && !props.isOpen ? 'true' : undefined"
   >
+    <button
+      v-if="props.isCompact && (props.isMobile ? props.isOpen : isFeedListExpanded)"
+      type="button"
+      class="responsive-sidebar-backdrop"
+      :aria-label="t('common.close')"
+      @click="handleBackdropClick"
+    ></button>
+
     <!-- Shared container for ActivityBar and Edge Toggle -->
     <div class="sidebar-toggle-container">
       <!-- Edge Toggle Button (visible when ActivityBar is collapsed) -->
@@ -131,6 +222,7 @@ function toggleActivityBar() {
         @settings="emitShowSettings"
         @toggle-feed-drawer="handleToggleFeedList"
         @toggle-activity-bar="toggleActivityBar"
+        @select-filter="handleActivityFilterSelect"
         @ready="handleActivityBarReady"
       />
     </div>
@@ -148,21 +240,13 @@ function toggleActivityBar() {
         <FeedList
           :is-expanded="isFeedListExpanded"
           :is-pinned="isFeedListPinned"
+          :is-mobile="props.isMobile"
           @expand="handleFeedListExpand"
           @collapse="handleFeedListCollapse"
           @pin="handlePinFeedList"
           @unpin="handleUnpinFeedList"
         />
       </div>
-    </Transition>
-
-    <!-- Overlay for mobile -->
-    <Transition name="overlay-fade">
-      <div
-        v-if="isOpen && isFeedListExpanded"
-        class="fixed inset-0 bg-black/50 z-20 md:hidden"
-        @click="emit('toggle')"
-      ></div>
     </Transition>
   </div>
 </template>
@@ -176,6 +260,15 @@ function toggleActivityBar() {
   /* Smooth width transition between collapsed/expanded states */
   transition: width 0.25s cubic-bezier(0.4, 0, 0.2, 1);
   will-change: width;
+}
+
+.responsive-sidebar-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 19;
+  border: 0;
+  background: var(--overlay-backdrop);
+  cursor: default;
 }
 
 /* Container for both ActivityBar and Edge Toggle - uses absolute positioning */
@@ -205,15 +298,15 @@ function toggleActivityBar() {
   top: 0;
   width: 16px;
   height: 100%;
-  border-right: 1px solid var(--color-border);
-  background-color: var(--color-bg-secondary);
+  border-right: 1px solid var(--border-color);
+  background-color: var(--surface-panel);
   cursor: pointer;
   z-index: 16;
   transition: background-color 0.2s;
 }
 
 .edge-toggle-button:hover {
-  background-color: var(--color-bg-tertiary);
+  background-color: var(--surface-hover);
 }
 
 /* Edge toggle fade transition - faster than container width change */
@@ -256,6 +349,26 @@ function toggleActivityBar() {
   .compact-sidebar-wrapper.width-collapsed .sidebar-toggle-container {
     width: 16px;
     min-width: 16px;
+  }
+}
+
+/* Tablet keeps the rail in flow while the feed drawer floats over content. */
+@media (min-width: 768px) and (max-width: 1279px) {
+  .compact-sidebar-wrapper.is-compact-shell {
+    width: 48px;
+    min-width: 48px;
+  }
+
+  .compact-sidebar-wrapper.is-compact-shell .feed-drawer-wrapper.pinned {
+    position: absolute;
+    left: 48px;
+    top: 0;
+    bottom: 0;
+    z-index: 30;
+  }
+
+  .compact-sidebar-wrapper.is-compact-shell .feed-drawer-wrapper.pinned.activity-bar-collapsed {
+    left: 16px;
   }
 }
 
@@ -336,6 +449,68 @@ function toggleActivityBar() {
   backface-visibility: hidden;
   -webkit-font-smoothing: antialiased;
   transform: translateZ(0);
+  box-shadow: var(--overlay-shadow, none);
+}
+
+/* Mobile navigation is an off-canvas surface and never consumes reader width. */
+@media (max-width: 767px) {
+  .compact-sidebar-wrapper.is-mobile-shell {
+    position: fixed;
+    inset: 0;
+    width: 100vw;
+    min-width: 100vw;
+    height: 100dvh;
+    z-index: 50;
+    transform: translateX(-100%);
+    pointer-events: none;
+    visibility: hidden;
+    transition:
+      transform 0.24s cubic-bezier(0.4, 0, 0.2, 1),
+      visibility 0.24s linear;
+    will-change: transform;
+  }
+
+  .compact-sidebar-wrapper.is-mobile-shell.is-shell-open {
+    transform: translateX(0);
+    pointer-events: auto;
+    visibility: visible;
+  }
+
+  .compact-sidebar-wrapper.is-mobile-shell .sidebar-toggle-container {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 44px;
+    min-width: 44px;
+    height: 100%;
+    z-index: 30;
+  }
+
+  .compact-sidebar-wrapper.is-mobile-shell .feed-drawer-wrapper,
+  .compact-sidebar-wrapper.is-mobile-shell .feed-drawer-wrapper.pinned,
+  .compact-sidebar-wrapper.is-mobile-shell .feed-drawer-wrapper:not(.pinned) {
+    position: absolute;
+    left: 44px !important;
+    top: 0;
+    bottom: 0;
+    width: min(300px, calc(100vw - 44px));
+    min-width: min(300px, calc(100vw - 44px));
+    max-width: calc(100vw - 44px);
+    z-index: 31;
+  }
+
+  .compact-sidebar-wrapper.is-mobile-shell .feed-drawer-wrapper.activity-bar-collapsed {
+    left: 44px !important;
+  }
+
+  .compact-sidebar-wrapper.is-mobile-shell .reader-feed-drawer {
+    width: min(300px, calc(100vw - 44px)) !important;
+    min-width: min(300px, calc(100vw - 44px)) !important;
+  }
+
+  .compact-sidebar-wrapper.is-mobile-shell .responsive-sidebar-backdrop {
+    z-index: 20;
+  }
 }
 
 /* Overlay transition */
@@ -353,5 +528,18 @@ function toggleActivityBar() {
 .overlay-fade-enter-to,
 .overlay-fade-leave-from {
   opacity: 1;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .compact-sidebar-wrapper,
+  .compact-sidebar-wrapper *,
+  .drawer-position-enter-active,
+  .drawer-position-leave-active,
+  .edge-toggle-fade-enter-active,
+  .edge-toggle-fade-leave-active {
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+  }
 }
 </style>

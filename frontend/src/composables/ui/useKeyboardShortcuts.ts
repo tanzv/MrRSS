@@ -1,5 +1,6 @@
 import { ref, onMounted, onBeforeUnmount } from 'vue';
 import { useAppStore } from '@/stores/app';
+import { useArticleReadTracking } from '@/composables/article/useArticleReadTracking';
 import { openInBrowser } from '@/utils/browser';
 
 interface KeyboardShortcuts {
@@ -14,6 +15,7 @@ interface KeyboardShortcuts {
   toggleReadLaterStatus: string;
   openInBrowser: string;
   toggleContentView: string;
+  toggleReadingMode: string;
   refreshFeeds: string;
   markAllRead: string;
   openSettings: string;
@@ -37,6 +39,7 @@ interface KeyboardShortcutCallbacks {
 
 export function useKeyboardShortcuts(callbacks: KeyboardShortcutCallbacks) {
   const store = useAppStore();
+  const readTracking = useArticleReadTracking();
 
   const shortcutsEnabled = ref(true);
   const shortcuts = ref<KeyboardShortcuts>({
@@ -51,6 +54,7 @@ export function useKeyboardShortcuts(callbacks: KeyboardShortcutCallbacks) {
     toggleReadLaterStatus: 'l',
     openInBrowser: 'o',
     toggleContentView: 'v',
+    toggleReadingMode: 'm',
     refreshFeeds: 'Shift+r',
     markAllRead: 'Shift+a',
     openSettings: ',',
@@ -108,14 +112,6 @@ export function useKeyboardShortcuts(callbacks: KeyboardShortcutCallbacks) {
 
     store.currentArticleId = article.id;
 
-    // Mark as read
-    if (!article.is_read) {
-      article.is_read = true;
-      fetch(`/api/articles/read?id=${article.id}&read=true`, { method: 'POST' })
-        .then(() => store.fetchUnreadCounts())
-        .catch((e) => console.error('Error marking as read:', e));
-    }
-
     // Scroll the article into view
     setTimeout(() => {
       const articleEl = document.querySelector(`[data-article-id="${article.id}"]`);
@@ -129,14 +125,9 @@ export function useKeyboardShortcuts(callbacks: KeyboardShortcutCallbacks) {
     const article = store.articles.find((a) => a.id === store.currentArticleId);
     if (!article) return;
 
-    const newState = !article.is_read;
-    article.is_read = newState;
-    fetch(`/api/articles/read?id=${article.id}&read=${newState}`, { method: 'POST' })
-      .then(() => store.fetchUnreadCounts())
-      .catch((e) => {
-        console.error('Error toggling read:', e);
-        article.is_read = !newState;
-      });
+    void readTracking
+      .setReadState(article, !article.is_read)
+      .catch((error) => console.error('Error toggling read:', error));
   }
 
   function toggleCurrentArticleFavorite(): void {
@@ -335,8 +326,11 @@ export function useKeyboardShortcuts(callbacks: KeyboardShortcutCallbacks) {
       const hasOpenModal = document.querySelector('[data-modal-open="true"]') !== null;
 
       if (!hasOpenModal) {
-        // No modals open, handle article close
-        if (store.currentArticleId) {
+        // Exit the focused reader before closing its article.
+        if (store.isReadingMode) {
+          store.setReadingMode(false);
+          e.preventDefault();
+        } else if (store.currentArticleId) {
           store.currentArticleId = null;
           e.preventDefault();
         }
@@ -390,6 +384,9 @@ export function useKeyboardShortcuts(callbacks: KeyboardShortcutCallbacks) {
         break;
       case 'toggleContentView':
         window.dispatchEvent(new CustomEvent('toggle-content-view'));
+        break;
+      case 'toggleReadingMode':
+        window.dispatchEvent(new CustomEvent('toggle-reading-mode'));
         break;
       case 'refreshFeeds':
         store.refreshFeeds();

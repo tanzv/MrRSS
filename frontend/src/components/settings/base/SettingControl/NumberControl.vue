@@ -11,6 +11,7 @@ interface Props {
   disabled?: boolean;
   error?: boolean;
   width?: string;
+  ariaLabel?: string;
 }
 
 const props = defineProps<Props>();
@@ -58,7 +59,7 @@ const widthClass = (width?: string) => {
       class="input-field number-input"
       :class="[
         widthClass(width),
-        { 'border-red-500': error, 'opacity-50 cursor-not-allowed': disabled },
+        { 'state-danger-border': error, 'opacity-50 cursor-not-allowed': disabled },
       ]"
       type="number"
       :value="inputValue"
@@ -67,6 +68,7 @@ const widthClass = (width?: string) => {
       :step="step"
       :placeholder="placeholder"
       :disabled="disabled"
+      :aria-label="ariaLabel"
       @input="
         (e) => {
           inputValue = parseFloat((e.target as HTMLInputElement).value) || 0;
@@ -92,6 +94,10 @@ const widthClass = (width?: string) => {
 
 .number-input {
   text-align: center;
+}
+
+.input-field.state-danger-border {
+  border-color: var(--state-danger-border);
 }
 
 /* Remove number input spinners */

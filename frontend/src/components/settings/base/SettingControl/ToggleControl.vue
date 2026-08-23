@@ -2,6 +2,7 @@
 interface Props {
   modelValue: boolean;
   disabled?: boolean;
+  ariaLabel?: string;
 }
 
 defineProps<Props>();
@@ -22,6 +23,7 @@ function handleChange(event: Event) {
     class="toggle"
     :checked="modelValue"
     :disabled="disabled"
+    :aria-label="ariaLabel"
     @change="handleChange"
   />
 </template>
@@ -38,7 +40,8 @@ function handleChange(event: Event) {
 
 .toggle::after {
   content: '';
-  @apply absolute top-0.5 left-0.5 w-3.5 h-3.5 bg-white rounded-full shadow-sm transition-transform;
+  @apply absolute top-0.5 left-0.5 w-3.5 h-3.5 rounded-full shadow-sm transition-transform;
+  background-color: var(--accent-foreground);
 }
 
 .toggle:checked::after {

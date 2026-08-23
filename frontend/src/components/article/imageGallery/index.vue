@@ -542,11 +542,11 @@ onUnmounted(() => {
 }
 
 .prose-content :deep(a) {
-  color: #4daafc;
+  color: var(--accent-color);
   text-decoration: underline;
 }
 
-.dark-mode .prose-content :deep(a) {
-  color: #4daafc;
+.prose-content :deep(a:hover) {
+  color: var(--accent-hover);
 }
 </style>

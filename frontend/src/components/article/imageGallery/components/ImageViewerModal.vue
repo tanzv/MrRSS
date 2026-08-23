@@ -216,7 +216,7 @@ window.addEventListener('image-wheel-navigate', ((e: CustomEvent) => {
 
 <template>
   <div
-    class="fixed inset-0 z-50 bg-black/90 flex flex-col p-4"
+    class="media-viewer-backdrop fixed inset-0 z-50 flex flex-col p-4"
     data-image-viewer="true"
     @click="emit('close')"
   >
@@ -226,7 +226,7 @@ window.addEventListener('image-wheel-navigate', ((e: CustomEvent) => {
       <div class="absolute left-0 top-0 flex items-center gap-2">
         <div
           v-if="!isVideo && allImages.length > 1"
-          class="px-2 py-1 rounded bg-black/50 text-white text-sm font-medium min-w-[60px] text-center backdrop-blur-sm"
+          class="media-control px-2 py-1 rounded text-sm font-medium min-w-[60px] text-center backdrop-blur-sm"
         >
           {{ localImageIndex + 1 }} / {{ allImages.length }}
         </div>
@@ -249,7 +249,7 @@ window.addEventListener('image-wheel-navigate', ((e: CustomEvent) => {
         <!-- Zoom controls (only for images) -->
         <template v-if="!isVideo">
           <button
-            class="px-2 py-1.5 rounded bg-black/50 hover:bg-black/70 text-white transition-all duration-200 hover:scale-105 active:scale-95"
+            class="media-control px-2 py-1.5 rounded transition-all duration-200 hover:scale-105 active:scale-95"
             :disabled="viewer.scale.value <= 0.5"
             :title="t('common.imageViewer.zoomOut')"
             @click="viewer.zoomOut"
@@ -257,12 +257,12 @@ window.addEventListener('image-wheel-navigate', ((e: CustomEvent) => {
             <PhMagnifyingGlassMinus :size="20" />
           </button>
           <span
-            class="px-2 py-1.5 rounded bg-black/50 text-white text-sm font-medium min-w-[60px] text-center"
+            class="media-control px-2 py-1.5 rounded text-sm font-medium min-w-[60px] text-center"
           >
             {{ Math.round(viewer.scale.value * 100) }}%
           </span>
           <button
-            class="px-2 py-1.5 rounded bg-black/50 hover:bg-black/70 text-white transition-all duration-200 hover:scale-105 active:scale-95"
+            class="media-control px-2 py-1.5 rounded transition-all duration-200 hover:scale-105 active:scale-95"
             :disabled="viewer.scale.value >= 5"
             :title="t('common.imageViewer.zoomIn')"
             @click="viewer.zoomIn"
@@ -274,7 +274,7 @@ window.addEventListener('image-wheel-navigate', ((e: CustomEvent) => {
         <!-- Action buttons -->
         <button
           v-if="!isVideo"
-          class="px-2 py-1.5 rounded bg-black/50 hover:bg-black/70 text-white transition-all duration-200 hover:scale-105 active:scale-95"
+          class="media-control px-2 py-1.5 rounded transition-all duration-200 hover:scale-105 active:scale-95"
           :title="t('common.contextMenu.copyImage')"
           @click="handleViewerAction('copyImage')"
         >
@@ -282,14 +282,14 @@ window.addEventListener('image-wheel-navigate', ((e: CustomEvent) => {
         </button>
         <button
           v-if="!isVideo"
-          class="px-2 py-1.5 rounded bg-black/50 hover:bg-black/70 text-white transition-all duration-200 hover:scale-105 active:scale-95"
+          class="media-control px-2 py-1.5 rounded transition-all duration-200 hover:scale-105 active:scale-95"
           :title="t('common.contextMenu.downloadImage')"
           @click="handleViewerAction('downloadImage')"
         >
           <PhDownloadSimple :size="20" />
         </button>
         <button
-          class="px-2 py-1.5 rounded bg-black/50 hover:bg-black/70 text-white transition-all duration-200 hover:scale-105 active:scale-95"
+          class="media-control px-2 py-1.5 rounded transition-all duration-200 hover:scale-105 active:scale-95"
           :title="
             article?.is_favorite
               ? t('article.imageGallery.actionUnfavorite')
@@ -300,7 +300,7 @@ window.addEventListener('image-wheel-navigate', ((e: CustomEvent) => {
           <PhStar
             :size="20"
             :weight="article?.is_favorite ? 'fill' : 'regular'"
-            :class="article?.is_favorite ? 'text-yellow-500' : 'text-white'"
+            :class="article?.is_favorite ? 'state-favorite-text' : ''"
           />
         </button>
       </div>
@@ -308,7 +308,7 @@ window.addEventListener('image-wheel-navigate', ((e: CustomEvent) => {
       <!-- Right: Close button -->
       <div class="absolute right-0 top-0">
         <button
-          class="w-8 h-8 bg-black/50 hover:bg-black/70 rounded-full text-white flex items-center justify-center transition-colors"
+          class="media-control w-8 h-8 rounded-full flex items-center justify-center transition-colors"
           @click="emit('close')"
         >
           <PhX :size="20" />
@@ -319,12 +319,7 @@ window.addEventListener('image-wheel-navigate', ((e: CustomEvent) => {
     <!-- Navigation buttons (available for both images and videos) -->
     <template v-if="viewer.canNavigatePrevious">
       <button
-        class="absolute top-[calc(50%-64px-8px)] left-4 -translate-y-1/2 w-12 h-12 rounded text-white text-4xl flex items-center justify-center transition-all duration-200 hover:scale-110 active:scale-95 z-10"
-        style="
-          text-shadow:
-            0 1px 3px rgba(0, 0, 0, 0.8),
-            0 1px 2px rgba(0, 0, 0, 0.6);
-        "
+        class="media-viewer-nav absolute top-[calc(50%-64px-8px)] left-4 -translate-y-1/2 w-12 h-12 rounded text-4xl flex items-center justify-center transition-all duration-200 hover:scale-110 active:scale-95 z-10"
         @click.stop="previousImage"
       >
         ‹
@@ -332,12 +327,7 @@ window.addEventListener('image-wheel-navigate', ((e: CustomEvent) => {
     </template>
     <template v-if="viewer.canNavigateNext">
       <button
-        class="absolute top-[calc(50%-64px-8px)] right-4 -translate-y-1/2 w-12 h-12 rounded text-white text-4xl flex items-center justify-center transition-all duration-200 hover:scale-110 active:scale-95 z-10"
-        style="
-          text-shadow:
-            0 1px 3px rgba(0, 0, 0, 0.8),
-            0 1px 2px rgba(0, 0, 0, 0.6);
-        "
+        class="media-viewer-nav absolute top-[calc(50%-64px-8px)] right-4 -translate-y-1/2 w-12 h-12 rounded text-4xl flex items-center justify-center transition-all duration-200 hover:scale-110 active:scale-95 z-10"
         @click.stop="nextImage"
       >
         ›
@@ -414,9 +404,7 @@ window.addEventListener('image-wheel-navigate', ((e: CustomEvent) => {
           v-if="viewer.currentImageLoading.value"
           class="absolute inset-0 flex items-center justify-center z-10"
         >
-          <div
-            class="w-12 h-12 border-4 border-white/20 border-t-white rounded-full animate-spin"
-          ></div>
+          <div class="media-viewer-spinner w-12 h-12 border-4 rounded-full animate-spin"></div>
         </div>
 
         <img
@@ -447,22 +435,22 @@ window.addEventListener('image-wheel-navigate', ((e: CustomEvent) => {
     </div>
 
     <!-- Info bar -->
-    <div class="mt-2 px-3 py-3 rounded-lg bg-black/60 backdrop-blur-sm shrink-0" @click.stop>
+    <div class="media-viewer-info mt-2 px-3 py-3 rounded-lg backdrop-blur-sm shrink-0" @click.stop>
       <!-- Basic info -->
       <div class="flex items-center justify-between gap-4 mb-2">
-        <h2 class="text-base font-bold text-white flex-1 line-clamp-2">
+        <h2 class="text-base font-bold flex-1 line-clamp-2">
           {{ article?.title }}
         </h2>
         <div class="flex items-center gap-2 shrink-0">
           <button
-            class="px-3 py-1.5 bg-accent hover:bg-accent-hover text-white rounded-md text-sm whitespace-nowrap transition-colors duration-200"
+            class="px-3 py-1.5 bg-accent hover:bg-accent-hover on-accent rounded-md text-sm whitespace-nowrap transition-colors duration-200"
             @click="handleViewerAction('openOriginal')"
           >
             {{ t('article.action.viewOriginal') }}
           </button>
           <button
             v-if="!isVideo"
-            class="px-3 py-1.5 bg-white/10 hover:bg-white/20 text-white rounded-md text-sm whitespace-nowrap transition-all duration-200"
+            class="media-control px-3 py-1.5 rounded-md text-sm whitespace-nowrap transition-all duration-200"
             :title="t('article.action.viewArticle')"
             @click="handleViewerAction('openArticleDetail')"
           >
@@ -470,7 +458,7 @@ window.addEventListener('image-wheel-navigate', ((e: CustomEvent) => {
           </button>
         </div>
       </div>
-      <div class="flex items-center gap-4 text-sm text-white/80">
+      <div class="media-overlay-muted flex items-center gap-4 text-sm">
         <span class="truncate flex-1">{{ article?.feed_title }}</span>
         <span class="shrink-0">{{
           article?.published_at ? new Date(article.published_at).toLocaleDateString() : ''

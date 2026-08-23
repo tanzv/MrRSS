@@ -204,6 +204,19 @@ function handleCaretClick() {
   // The click.stop modifier prevents event bubbling, so we need to manually trigger it
   document.dispatchEvent(new MouseEvent('click', { bubbles: true }));
 }
+
+function handleCategoryKeydown(event: KeyboardEvent) {
+  if (event.key === 'Enter' || event.key === ' ') {
+    event.preventDefault();
+    emit('selectCategory', fullPath.value);
+  } else if (event.key === 'ArrowRight' && !props.isOpen) {
+    event.preventDefault();
+    emit('toggle');
+  } else if (event.key === 'ArrowLeft' && props.isOpen) {
+    event.preventDefault();
+    emit('toggle');
+  }
+}
 </script>
 
 <template>
@@ -220,10 +233,16 @@ function handleCaretClick() {
   >
     <div
       :class="['category-header', isActive ? 'active' : '', props.compactMode ? 'compact' : '']"
+      role="button"
+      tabindex="0"
+      :aria-expanded="isOpen"
+      :aria-current="isActive ? 'page' : undefined"
+      :aria-label="name"
       @click="handleCategoryClick"
       @dblclick="handleCategoryDoubleClick"
       @contextmenu="(e) => emit('categoryContextMenu', e, fullPath)"
       @dragover="handleCategoryDragOver"
+      @keydown="handleCategoryKeydown"
     >
       <span class="flex-1 flex items-center gap-2">
         <PhFolderDashed v-if="isUncategorized" :size="20" />
@@ -344,6 +363,7 @@ function handleCaretClick() {
   margin-right: -0.375rem;
   padding-left: calc(0.5rem + 0.375rem);
   padding-right: calc(0.75rem + 0.375rem);
+  background-color: var(--surface-panel);
 }
 
 /* Compact mode: reduce padding for category headers */
@@ -426,15 +446,20 @@ function handleCaretClick() {
   }
 }
 .category-header.active {
-  @apply bg-bg-tertiary text-accent;
+  @apply text-accent;
+  background-color: var(--surface-selected);
+}
+
+.category-header:hover {
+  background-color: var(--surface-hover);
 }
 
 /* Container drag-over styling */
 .category-container.drag-over {
   @apply rounded-lg;
-  outline: 2px solid var(--accent-color, #007bff);
+  outline: 2px solid var(--accent-color);
   outline-offset: -2px;
-  background-color: var(--bg-tertiary, rgba(0, 123, 255, 0.05));
+  background-color: var(--surface-selected);
 }
 
 .feeds-list {
@@ -453,7 +478,7 @@ function handleCaretClick() {
   left: 0;
   right: 0;
   height: 3px;
-  background: linear-gradient(90deg, transparent, var(--accent-color, #007bff), transparent);
+  background: var(--accent-color);
   border-radius: 1.5px;
   animation: pulse-indicator 1.5s ease-in-out infinite;
   pointer-events: none;
@@ -486,16 +511,7 @@ function handleCaretClick() {
 
 .unread-badge {
   @apply text-[9px] sm:text-[10px] font-medium rounded-full min-w-[14px] sm:min-w-[16px] h-[14px] sm:h-[16px] px-0.5 sm:px-1 flex items-center justify-center;
-  background-color: rgba(120, 120, 120, 0.15);
-  color: #666666;
-}
-</style>
-
-<style>
-@reference "../../style.css";
-.dark-mode .unread-badge {
-  /* This style will be applied to child components, so it can not use scoped */
-  background-color: rgba(100, 100, 100, 0.4) !important;
-  color: #d0d0d0 !important;
+  background-color: var(--unread-badge-background);
+  color: var(--unread-badge-color);
 }
 </style>

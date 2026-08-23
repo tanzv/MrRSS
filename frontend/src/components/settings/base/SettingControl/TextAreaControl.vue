@@ -7,6 +7,7 @@ interface Props {
   rows?: number;
   resize?: boolean;
   fontMono?: boolean;
+  ariaLabel?: string;
 }
 
 withDefaults(defineProps<Props>(), {
@@ -30,7 +31,7 @@ function handleInput(event: Event) {
   <textarea
     class="input-field textarea"
     :class="[
-      { 'border-red-500': error, 'opacity-50 cursor-not-allowed': disabled },
+      { 'state-danger-border': error, 'opacity-50 cursor-not-allowed': disabled },
       { 'resize-none': !resize },
       { 'font-mono': fontMono },
     ]"
@@ -38,6 +39,7 @@ function handleInput(event: Event) {
     :placeholder="placeholder"
     :disabled="disabled"
     :rows="rows"
+    :aria-label="ariaLabel"
     @input="handleInput"
   />
 </template>
@@ -50,6 +52,10 @@ function handleInput(event: Event) {
 
 .input-field:disabled {
   @apply cursor-not-allowed;
+}
+
+.input-field.state-danger-border {
+  border-color: var(--state-danger-border);
 }
 
 .textarea {

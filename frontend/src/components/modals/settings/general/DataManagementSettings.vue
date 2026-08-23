@@ -175,6 +175,7 @@ watch(
           :min="1"
           :max="1000"
           suffix="MB"
+          :aria-label="t('setting.database.maxCacheSize')"
           @update:model-value="updateSetting('max_cache_size_mb', $event)"
         />
       </SubSettingItem>
@@ -189,6 +190,7 @@ watch(
           :min="1"
           :max="365"
           :suffix="t('common.time.days')"
+          :aria-label="t('setting.database.maxArticleAge')"
           @update:model-value="updateSetting('max_article_age_days', $event)"
         />
       </SubSettingItem>
@@ -239,6 +241,7 @@ watch(
           :min="10"
           :max="1000"
           suffix="MB"
+          :aria-label="t('setting.database.mediaCacheMaxSize')"
           @update:model-value="updateSetting('media_cache_max_size_mb', $event)"
         />
       </SubSettingItem>
@@ -253,6 +256,7 @@ watch(
           :min="1"
           :max="90"
           :suffix="t('setting.database.days')"
+          :aria-label="t('setting.database.mediaCacheMaxAge')"
           @update:model-value="updateSetting('media_cache_max_age_days', $event)"
         />
       </SubSettingItem>

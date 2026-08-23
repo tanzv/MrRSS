@@ -40,6 +40,8 @@ type Defaults struct {
 	ContentFontFamily             string `json:"content_font_family"`
 	ContentFontSize               int    `json:"content_font_size"`
 	ContentLineHeight             string `json:"content_line_height"`
+	ContentParagraphSpacing       string `json:"content_paragraph_spacing"`
+	ContentWidth                  string `json:"content_width"`
 	CustomCssFile                 string `json:"custom_css_file"`
 	CustomTranslationBodyTemplate string `json:"custom_translation_body_template"`
 	CustomTranslationEnabled      bool   `json:"custom_translation_enabled"`
@@ -70,6 +72,7 @@ type Defaults struct {
 	LastGlobalRefresh             string `json:"last_global_refresh"`
 	LastNetworkTest               string `json:"last_network_test"`
 	LayoutMode                    string `json:"layout_mode"`
+	MarkReadOnScroll              bool   `json:"mark_read_on_scroll"`
 	MaxArticleAgeDays             int    `json:"max_article_age_days"`
 	MaxCacheSizeMb                int    `json:"max_cache_size_mb"`
 	MaxConcurrentRefreshes        string `json:"max_concurrent_refreshes"`
@@ -116,7 +119,7 @@ type Defaults struct {
 	TencentSecretId               string `json:"tencent_secret_id"`
 	TencentSecretKey              string `json:"tencent_secret_key"`
 	Theme                         string `json:"theme"`
-	ThemeProfiles string `json:"theme_profiles"`
+	ThemeProfiles                 string `json:"theme_profiles"`
 	TranslationEnabled            bool   `json:"translation_enabled"`
 	TranslationOnlyMode           bool   `json:"translation_only_mode"`
 	TranslationProvider           string `json:"translation_provider"`
@@ -194,6 +197,10 @@ func GetString(key string) string {
 		return strconv.Itoa(defaults.ContentFontSize)
 	case "content_line_height":
 		return defaults.ContentLineHeight
+	case "content_paragraph_spacing":
+		return defaults.ContentParagraphSpacing
+	case "content_width":
+		return defaults.ContentWidth
 	case "custom_css_file":
 		return defaults.CustomCssFile
 	case "custom_translation_body_template":
@@ -254,6 +261,8 @@ func GetString(key string) string {
 		return defaults.LastNetworkTest
 	case "layout_mode":
 		return defaults.LayoutMode
+	case "mark_read_on_scroll":
+		return strconv.FormatBool(defaults.MarkReadOnScroll)
 	case "max_article_age_days":
 		return strconv.Itoa(defaults.MaxArticleAgeDays)
 	case "max_cache_size_mb":

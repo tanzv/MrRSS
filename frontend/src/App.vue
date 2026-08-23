@@ -15,7 +15,7 @@ import ConfirmDialog from './components/modals/common/ConfirmDialog.vue';
 import InputDialog from './components/modals/common/InputDialog.vue';
 import MultiSelectDialog from './components/modals/common/MultiSelectDialog.vue';
 import Toast from './components/common/Toast.vue';
-import { onMounted, onUnmounted, ref, computed, watchEffect } from 'vue';
+import { onMounted, onUnmounted, ref, computed, watch, watchEffect } from 'vue';
 import { useNotifications } from './composables/ui/useNotifications';
 import { useKeyboardShortcuts } from './composables/ui/useKeyboardShortcuts';
 import { useContextMenu } from './composables/ui/useContextMenu';
@@ -23,6 +23,7 @@ import { useResizablePanels } from './composables/ui/useResizablePanels';
 import { useWindowState } from './composables/core/useWindowState';
 import { useAppUpdates } from './composables/core/useAppUpdates';
 import { useSettings } from './composables/core/useSettings';
+import { useResponsiveShell } from './composables/ui/useResponsiveShell';
 import { resolveFontFamily } from './utils/fontDetector';
 import { applyCustomTheme, clearCustomThemeOverrides, getSystemPrefersDark } from './utils/theme';
 import { parseThemeProfiles } from './utils/customTheme';
@@ -75,7 +76,19 @@ const feedToEdit = ref<Feed | null>(null);
 const showSettings = ref(false);
 const showDiscoverBlogs = ref(false);
 const feedToDiscover = ref<Feed | null>(null);
-const isSidebarOpen = ref(true);
+
+const { isCompactViewport, isMobileViewport, isNavigationOpen, toggleNavigation, closeNavigation } =
+  useResponsiveShell();
+const isSidebarOpen = computed(() => !isMobileViewport.value || isNavigationOpen.value);
+
+watch(
+  () => store.isReadingMode,
+  (isReadingMode) => {
+    if (isReadingMode) {
+      closeNavigation({ restoreFocus: false });
+    }
+  }
+);
 
 // Check if we're in image gallery mode
 const isImageGalleryMode = computed(() => store.currentFilter === 'imageGallery');
@@ -123,6 +136,7 @@ windowState.init();
 // Initialize keyboard shortcuts
 const { shortcuts } = useKeyboardShortcuts({
   onOpenSettings: () => {
+    closeNavigation({ restoreFocus: false });
     showSettings.value = true;
   },
   onAddFeed: () => {
@@ -271,6 +285,7 @@ window.addEventListener('show-edit-feed', (e) => {
   showEditFeed.value = true;
 });
 window.addEventListener('show-settings', () => {
+  closeNavigation({ restoreFocus: false });
   showSettings.value = true;
 });
 window.addEventListener('show-discover-blogs', (e) => {
@@ -315,7 +330,7 @@ function shouldTriggerRefresh(lastUpdate: string, intervalMinutes: number): bool
 }
 
 function toggleSidebar(): void {
-  isSidebarOpen.value = !isSidebarOpen.value;
+  toggleNavigation();
 }
 
 async function onFeedAdded(feedId?: number): Promise<void> {
@@ -340,12 +355,26 @@ function onFeedUpdated(): void {
 <template>
   <div
     class="app-container flex h-screen w-full bg-bg-primary text-text-primary overflow-hidden"
+    :data-reading-mode="store.isReadingMode ? 'true' : 'false'"
     :style="{
       '--sidebar-width': sidebarWidth + 'px',
       '--article-list-width': articleListWidth + 'px',
     }"
   >
-    <Sidebar :is-open="isSidebarOpen" @toggle="toggleSidebar" />
+    <header class="sr-only" :aria-label="t('appName')">
+      <h1>{{ t('appName') }}</h1>
+    </header>
+    <div
+      data-testid="reading-sidebar-container"
+      :class="['contents', { 'md:hidden': store.isReadingMode }]"
+    >
+      <Sidebar
+        :is-open="isSidebarOpen"
+        :is-compact="isCompactViewport"
+        :is-mobile="isMobileViewport"
+        @toggle="toggleSidebar"
+      />
+    </div>
 
     <!-- Show ImageGalleryView when in image gallery mode -->
     <template v-if="isImageGalleryMode">
@@ -354,11 +383,20 @@ function onFeedUpdated(): void {
 
     <!-- Show ArticleList and ArticleDetail when not in image gallery mode -->
     <template v-else>
-      <ArticleList :is-sidebar-open="isSidebarOpen" @toggle-sidebar="toggleSidebar" />
+      <div
+        data-testid="reading-article-list-container"
+        :class="['contents', { 'md:hidden': store.isReadingMode }]"
+      >
+        <ArticleList :is-sidebar-open="isSidebarOpen" @toggle-sidebar="toggleSidebar" />
+      </div>
 
       <!-- Hide resizer and ArticleDetail when in card mode -->
       <template v-if="!isCardMode">
-        <div class="resizer hidden md:block" @mousedown="startResizeArticleList"></div>
+        <div
+          v-show="!store.isReadingMode"
+          class="resizer hidden md:block"
+          @mousedown="startResizeArticleList"
+        ></div>
 
         <ArticleDetail />
       </template>

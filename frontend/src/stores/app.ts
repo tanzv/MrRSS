@@ -32,6 +32,7 @@ export interface AppState {
   currentFeedId: Ref<number | null>;
   currentCategory: Ref<string | null>;
   currentArticleId: Ref<number | null>;
+  isReadingMode: Ref<boolean>;
   tempSelection: Ref<TempSelection>;
   isLoading: Ref<boolean>;
   page: Ref<number>;
@@ -67,6 +68,7 @@ export interface AppActions {
   startAutoRefresh: (minutes: number) => void;
   toggleShowOnlyUnread: () => void;
   setActiveFilters: (filters: FilterCondition[]) => void;
+  setReadingMode: (enabled: boolean) => void;
 }
 
 export const useAppStore = defineStore('app', () => {
@@ -108,6 +110,7 @@ export const useAppStore = defineStore('app', () => {
   const activeFilters = ref<FilterCondition[]>([]);
   const filteredArticlesFromServer = ref<Article[]>([]);
   const isFilterLoading = ref(false);
+  const isReadingMode = ref(false);
 
   // Article view mode preferences (persisted across component mounts)
   const articleViewModePreferences = ref<Map<number, 'original' | 'rendered'>>(new Map());
@@ -788,6 +791,10 @@ export const useAppStore = defineStore('app', () => {
     activeFilters.value = filters;
   }
 
+  function setReadingMode(enabled: boolean): void {
+    isReadingMode.value = enabled;
+  }
+
   function setFilteredArticlesFromServer(articles: Article[]): void {
     filteredArticlesFromServer.value = articles;
   }
@@ -837,6 +844,7 @@ export const useAppStore = defineStore('app', () => {
     activeFilters,
     filteredArticlesFromServer,
     isFilterLoading,
+    isReadingMode,
     articleViewModePreferences,
 
     // Actions
@@ -864,6 +872,7 @@ export const useAppStore = defineStore('app', () => {
     startAutoRefresh,
     toggleShowOnlyUnread,
     setActiveFilters,
+    setReadingMode,
     setFilteredArticlesFromServer,
     setIsFilterLoading,
     fetchTaskDetails,

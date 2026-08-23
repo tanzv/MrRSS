@@ -6,16 +6,92 @@ import { createI18n } from 'vue-i18n';
 import en from './i18n/locales/en';
 import App from './App.vue';
 import { setSettingsFromRawData } from './composables/core/useSettings';
-import { getRecommendedFonts } from './utils/fontDetector';
 import { useAppStore } from './stores/app';
+import { getRecommendedFonts } from './utils/fontDetector';
 
 // Create stub components for complex child components
 const createStub = (name: string) => ({
   name,
-  template: '<div class="stub-component"><slot /></div>',
+  template: `<div class="stub-component" data-component="${name}"><slot /></div>`,
 });
 
 describe('App', () => {
+  it('passes compact navigation state to the sidebar and article list', async () => {
+    const originalMatchMedia = window.matchMedia;
+    window.matchMedia = vi.fn((query: string) => {
+      const matches = query === '(max-width: 1279px)' || query === '(max-width: 767px)';
+      return {
+        matches,
+        media: query,
+        onchange: null,
+        addEventListener: vi.fn(),
+        removeEventListener: vi.fn(),
+        addListener: vi.fn(),
+        removeListener: vi.fn(),
+        dispatchEvent: vi.fn(),
+      } as unknown as MediaQueryList;
+    });
+
+    const pinia = createPinia();
+    const i18n = createI18n({
+      legacy: false,
+      locale: 'en',
+      messages: { en },
+    });
+    const propAwareStub = (name: string) => ({
+      name,
+      props: ['isOpen', 'isCompact', 'isMobile', 'isSidebarOpen'],
+      template: `<div class="stub-component" data-component="${name}"></div>`,
+    });
+
+    const wrapper = mount(App, {
+      global: {
+        plugins: [pinia, i18n],
+        stubs: {
+          Sidebar: propAwareStub('Sidebar'),
+          ArticleList: propAwareStub('ArticleList'),
+          ArticleDetail: createStub('ArticleDetail'),
+          ImageGalleryView: createStub('ImageGalleryView'),
+          AddFeedModal: createStub('AddFeedModal'),
+          EditFeedModal: createStub('EditFeedModal'),
+          SettingsModal: createStub('SettingsModal'),
+          DiscoverFeedsModal: createStub('DiscoverFeedsModal'),
+          UpdateAvailableDialog: createStub('UpdateAvailableDialog'),
+          ContextMenu: createStub('ContextMenu'),
+          ConfirmDialog: createStub('ConfirmDialog'),
+          InputDialog: createStub('InputDialog'),
+          MultiSelectDialog: createStub('MultiSelectDialog'),
+          Toast: createStub('Toast'),
+        },
+      },
+    });
+
+    await nextTick();
+    await flushPromises();
+
+    expect(wrapper.findComponent({ name: 'Sidebar' }).props('isMobile')).toBe(true);
+    expect(wrapper.findComponent({ name: 'Sidebar' }).props('isCompact')).toBe(true);
+    expect(wrapper.findComponent({ name: 'ArticleList' }).props('isSidebarOpen')).toBe(false);
+
+    const navigationTrigger = document.createElement('button');
+    navigationTrigger.dataset.responsiveNavTrigger = 'true';
+    const reader = document.createElement('main');
+    reader.tabIndex = -1;
+    document.body.append(navigationTrigger, reader);
+    reader.focus();
+
+    useAppStore(pinia).setReadingMode(true);
+    await nextTick();
+    await new Promise((resolve) => requestAnimationFrame(resolve));
+
+    expect(document.activeElement).toBe(reader);
+
+    wrapper.unmount();
+    navigationTrigger.remove();
+    reader.remove();
+    window.matchMedia = originalMatchMedia;
+  });
+
   it('renders and reacts to interface typography settings', async () => {
     setSettingsFromRawData({});
     const pinia = createPinia();
@@ -65,6 +141,7 @@ describe('App', () => {
     );
     expect(document.documentElement.style.getPropertyValue('--ui-font-family')).not.toContain(
       'Inter'
+    );
     expect(document.documentElement.style.getPropertyValue('--ui-font-size')).toBe('16px');
     expect(document.documentElement.style.getPropertyValue('--ui-font-scale')).toBe('1');
 
@@ -219,5 +296,52 @@ describe('App', () => {
     );
 
     getContextSpy.mockRestore();
+  });
+
+  it('hides desktop navigation panels while reading without unmounting them', async () => {
+    setSettingsFromRawData({});
+    const pinia = createPinia();
+    const i18n = createI18n({
+      legacy: false,
+      locale: 'en',
+      messages: { en },
+    });
+    const wrapper = mount(App, {
+      global: {
+        plugins: [pinia, i18n],
+        stubs: {
+          Sidebar: createStub('Sidebar'),
+          ArticleList: createStub('ArticleList'),
+          ArticleDetail: createStub('ArticleDetail'),
+          ImageGalleryView: createStub('ImageGalleryView'),
+          AddFeedModal: createStub('AddFeedModal'),
+          EditFeedModal: createStub('EditFeedModal'),
+          SettingsModal: createStub('SettingsModal'),
+          DiscoverFeedsModal: createStub('DiscoverFeedsModal'),
+          UpdateAvailableDialog: createStub('UpdateAvailableDialog'),
+          ContextMenu: createStub('ContextMenu'),
+          ConfirmDialog: createStub('ConfirmDialog'),
+          InputDialog: createStub('InputDialog'),
+          MultiSelectDialog: createStub('MultiSelectDialog'),
+          Toast: createStub('Toast'),
+        },
+      },
+    });
+    const store = useAppStore(pinia);
+
+    store.setReadingMode(true);
+    await nextTick();
+
+    expect(wrapper.get('.app-container').attributes('data-reading-mode')).toBe('true');
+    expect(wrapper.get('[data-testid="reading-sidebar-container"]').classes()).toContain(
+      'md:hidden'
+    );
+    expect(wrapper.get('[data-testid="reading-article-list-container"]').classes()).toContain(
+      'md:hidden'
+    );
+    expect(wrapper.find('[data-component="Sidebar"]').exists()).toBe(true);
+    expect(wrapper.find('[data-component="ArticleList"]').exists()).toBe(true);
+
+    wrapper.unmount();
   });
 });

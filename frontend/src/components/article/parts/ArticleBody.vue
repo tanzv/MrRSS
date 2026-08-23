@@ -4,7 +4,7 @@ import { ref, onMounted, watch, computed, nextTick } from 'vue';
 import { PhSpinnerGap, PhArticle, PhArrowClockwise } from '@phosphor-icons/vue';
 import { useI18n } from 'vue-i18n';
 import { useSettings } from '@/composables/core/useSettings';
-import { resolveFontFamily } from '@/utils/fontDetector';
+import { resolveReaderTypography } from '@/utils/readerTypography';
 
 const { t } = useI18n();
 const { settings, fetchSettings } = useSettings();
@@ -30,21 +30,17 @@ const customCSS = ref('');
 let styleElement: HTMLStyleElement | null = null;
 
 const hasCustomCSS = computed(() => !!settings.value.custom_css_file);
+const readerTypography = computed(() => resolveReaderTypography(settings.value));
 
 // Content styling based on settings
 const contentStyle = computed(() => {
-  const fontFamily = settings.value.content_font_family;
-  const fontSize = parseInt(settings.value.content_font_size as any) || 16;
-  const lineHeight = settings.value.content_line_height || '1.6';
-
-  const style = {
-    fontFamily: resolveFontFamily(fontFamily),
-    fontSize: `${fontSize}px`, // Always apply font size
-    lineHeight: lineHeight,
-    '--content-line-height': lineHeight,
-  } as Record<string, string>;
-
-  return style;
+  return {
+    ...readerTypography.value.cssVariables,
+    fontFamily: 'var(--reader-font-family)',
+    fontSize: 'var(--reader-font-size)',
+    lineHeight: 'var(--reader-line-height)',
+    '--content-line-height': 'var(--reader-line-height)',
+  };
 });
 
 const injectCustomCSS = (css: string) => {

@@ -35,6 +35,8 @@ export function generateInitialSettings(): SettingsData {
     content_font_family: settingsDefaults.content_font_family,
     content_font_size: settingsDefaults.content_font_size,
     content_line_height: settingsDefaults.content_line_height,
+    content_paragraph_spacing: settingsDefaults.content_paragraph_spacing,
+    content_width: settingsDefaults.content_width,
     custom_css_file: settingsDefaults.custom_css_file,
     custom_translation_body_template: settingsDefaults.custom_translation_body_template,
     custom_translation_enabled: settingsDefaults.custom_translation_enabled,
@@ -65,6 +67,7 @@ export function generateInitialSettings(): SettingsData {
     last_global_refresh: settingsDefaults.last_global_refresh,
     last_network_test: settingsDefaults.last_network_test,
     layout_mode: settingsDefaults.layout_mode,
+    mark_read_on_scroll: settingsDefaults.mark_read_on_scroll,
     max_article_age_days: settingsDefaults.max_article_age_days,
     max_cache_size_mb: settingsDefaults.max_cache_size_mb,
     max_concurrent_refreshes: settingsDefaults.max_concurrent_refreshes,
@@ -159,6 +162,9 @@ export function parseSettingsData(data: Record<string, string>): SettingsData {
     content_font_family: data.content_font_family || settingsDefaults.content_font_family,
     content_font_size: parseInt(data.content_font_size) || settingsDefaults.content_font_size,
     content_line_height: data.content_line_height || settingsDefaults.content_line_height,
+    content_paragraph_spacing:
+      data.content_paragraph_spacing || settingsDefaults.content_paragraph_spacing,
+    content_width: data.content_width || settingsDefaults.content_width,
     custom_css_file: data.custom_css_file || settingsDefaults.custom_css_file,
     custom_translation_body_template:
       data.custom_translation_body_template || settingsDefaults.custom_translation_body_template,
@@ -200,6 +206,7 @@ export function parseSettingsData(data: Record<string, string>): SettingsData {
     last_global_refresh: data.last_global_refresh || settingsDefaults.last_global_refresh,
     last_network_test: data.last_network_test || settingsDefaults.last_network_test,
     layout_mode: data.layout_mode || settingsDefaults.layout_mode,
+    mark_read_on_scroll: data.mark_read_on_scroll === 'true',
     max_article_age_days:
       parseInt(data.max_article_age_days) || settingsDefaults.max_article_age_days,
     max_cache_size_mb: parseInt(data.max_cache_size_mb) || settingsDefaults.max_cache_size_mb,
@@ -314,6 +321,9 @@ export function buildAutoSavePayload(settingsRef: Ref<SettingsData>): Record<str
     ).toString(),
     content_line_height:
       settingsRef.value.content_line_height ?? settingsDefaults.content_line_height,
+    content_paragraph_spacing:
+      settingsRef.value.content_paragraph_spacing ?? settingsDefaults.content_paragraph_spacing,
+    content_width: settingsRef.value.content_width ?? settingsDefaults.content_width,
     custom_css_file: settingsRef.value.custom_css_file ?? settingsDefaults.custom_css_file,
     custom_translation_body_template:
       settingsRef.value.custom_translation_body_template ??
@@ -371,6 +381,9 @@ export function buildAutoSavePayload(settingsRef: Ref<SettingsData>): Record<str
     language: settingsRef.value.language ?? settingsDefaults.language,
     last_network_test: settingsRef.value.last_network_test ?? settingsDefaults.last_network_test,
     layout_mode: settingsRef.value.layout_mode ?? settingsDefaults.layout_mode,
+    mark_read_on_scroll: (
+      settingsRef.value.mark_read_on_scroll ?? settingsDefaults.mark_read_on_scroll
+    ).toString(),
     max_article_age_days: (
       settingsRef.value.max_article_age_days ?? settingsDefaults.max_article_age_days
     ).toString(),

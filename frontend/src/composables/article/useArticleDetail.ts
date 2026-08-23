@@ -4,8 +4,12 @@ import { useI18n } from 'vue-i18n';
 import { openInBrowser } from '@/utils/browser';
 import type { Article } from '@/types/models';
 import { proxyImagesInHtml, isMediaCacheEnabled } from '@/utils/mediaProxy';
+import {
+  useArticleReadTracking,
+  type ArticleViewMode,
+} from '@/composables/article/useArticleReadTracking';
 
-type ViewMode = 'original' | 'rendered' | 'external';
+type ViewMode = ArticleViewMode;
 type RenderAction = 'showContent' | 'showOriginal' | null;
 
 interface ViewModeChangeEvent extends Event {
@@ -23,6 +27,7 @@ interface RenderActionEvent extends Event {
 export function useArticleDetail() {
   const store = useAppStore();
   const { t, locale } = useI18n();
+  const readTracking = useArticleReadTracking();
 
   const article = computed<Article | undefined>(() =>
     store.articles.find((a) => a.id === store.currentArticleId)
@@ -42,24 +47,28 @@ export function useArticleDetail() {
     () => currentArticleIndex.value >= 0 && currentArticleIndex.value < store.articles.length - 1
   );
 
+  const nextArticle = computed<Article | undefined>(() => {
+    if (!hasNextArticle.value) return undefined;
+
+    return store.articles[currentArticleIndex.value + 1];
+  });
+
   // Navigate to previous article
   function goToPreviousArticle() {
     if (hasPreviousArticle.value) {
       const prevArticle = store.articles[currentArticleIndex.value - 1];
       store.currentArticleId = prevArticle.id;
-      markAsReadIfNeeded(prevArticle);
       scrollArticleIntoView(prevArticle.id);
     }
   }
 
   // Navigate to next article
   function goToNextArticle() {
-    if (hasNextArticle.value) {
-      const nextArticle = store.articles[currentArticleIndex.value + 1];
-      store.currentArticleId = nextArticle.id;
-      markAsReadIfNeeded(nextArticle);
-      scrollArticleIntoView(nextArticle.id);
-    }
+    const targetArticle = nextArticle.value;
+    if (!targetArticle) return;
+
+    store.currentArticleId = targetArticle.id;
+    scrollArticleIntoView(targetArticle.id);
   }
 
   // Scroll article into view in the article list
@@ -72,44 +81,15 @@ export function useArticleDetail() {
     }, 50);
   }
 
-  // Mark article as read if it's not already read
-  async function markAsReadIfNeeded(article: Article) {
-    if (!article.is_read) {
-      article.is_read = true;
-      try {
-        await fetch(`/api/articles/read?id=${article.id}&read=true`, {
-          method: 'POST',
-        });
-        store.fetchUnreadCounts();
-      } catch (e) {
-        console.error('Error marking as read:', e);
-      }
-    }
-  }
-
   // Expose articles list and index for UI display
   const articles = computed(() => store.articles);
   const currentArticleIndexForDisplay = computed(() => currentArticleIndex.value + 1);
 
   // Get effective view mode based on feed settings and global settings
   function getEffectiveViewMode(): ViewMode {
-    if (!article.value) return defaultViewMode.value;
-
-    // Find the feed for this article
-    const feed = store.feeds.find((f) => f.id === article.value!.feed_id);
-    if (!feed) return defaultViewMode.value;
-
-    // Check feed's article_view_mode
-    if (feed.article_view_mode === 'webpage') {
-      return 'original';
-    } else if (feed.article_view_mode === 'rendered') {
-      return 'rendered';
-    } else if (feed.article_view_mode === 'external') {
-      return 'external';
-    } else {
-      // 'global' or undefined - use global setting
-      return defaultViewMode.value;
-    }
+    return article.value
+      ? readTracking.getEffectiveViewMode(article.value, defaultViewMode.value)
+      : defaultViewMode.value;
   }
 
   const showContent = ref(false);
@@ -123,11 +103,39 @@ export function useArticleDetail() {
   const imageViewerImages = ref<string[]>([]);
   const imageViewerInitialIndex = ref(0);
 
+  function enterAutomaticReader(targetArticle: Article): boolean {
+    if (
+      !readTracking.shouldAutoEnterReadingMode(targetArticle, defaultViewMode.value) ||
+      !articleContent.value.trim()
+    ) {
+      return false;
+    }
+
+    showContent.value = true;
+    store.setReadingMode(true);
+    return true;
+  }
+
+  function trackArticleOpened(targetArticle: Article, surface: 'rss' | 'webpage'): void {
+    void readTracking
+      .handleArticleOpened(targetArticle, surface)
+      .catch((error) => console.error('Error updating article read state:', error));
+  }
+
   // Watch for article changes and apply view mode
   watch(
     () => store.currentArticleId,
     async (newId, oldId) => {
-      if (newId && newId !== oldId) {
+      if (!newId) {
+        store.setReadingMode(false);
+        return;
+      }
+
+      if (newId !== oldId) {
+        const targetArticleId = newId;
+        const targetArticle = article.value;
+        if (!targetArticle || targetArticle.id !== targetArticleId) return;
+
         // Close image viewer when switching articles
         imageViewerSrc.value = null;
         imageViewerAlt.value = '';
@@ -141,8 +149,19 @@ export function useArticleDetail() {
         // Always fetch article content for AI chat and translation features
         await fetchArticleContent();
 
-        // Check if there's a pending render action from context menu
-        if (pendingRenderAction.value) {
+        if (
+          store.currentArticleId !== targetArticleId ||
+          article.value?.id !== targetArticleId ||
+          currentArticleId.value !== targetArticleId
+        ) {
+          return;
+        }
+
+        // Keep the rendered RSS view while navigating between articles in reading mode.
+        if (store.isReadingMode) {
+          showContent.value = true;
+        } else if (pendingRenderAction.value) {
+          // Check if there's a pending render action from context menu
           // Apply the explicit action instead of default
           // Don't save user preference for context menu actions - they're one-time actions
           if (pendingRenderAction.value === 'showContent') {
@@ -151,9 +170,9 @@ export function useArticleDetail() {
             showContent.value = false;
           }
           pendingRenderAction.value = null; // Clear the pending action
-        } else {
+        } else if (!enterAutomaticReader(targetArticle)) {
           // Apply user's preferred mode for this article from store, or determine from feed/global settings
-          const storedPreference = store.articleViewModePreferences.get(newId);
+          const storedPreference = store.articleViewModePreferences.get(targetArticleId);
           const effectiveMode = getEffectiveViewMode();
           const preferredMode = storedPreference || effectiveMode;
           showContent.value = preferredMode === 'rendered';
@@ -162,7 +181,7 @@ export function useArticleDetail() {
           // and there's no stored preference (we're using the default mode)
           if (!storedPreference) {
             const mode = showContent.value ? 'rendered' : 'original';
-            store.articleViewModePreferences.set(newId, mode);
+            store.articleViewModePreferences.set(targetArticleId, mode);
             try {
               const preferences = Object.fromEntries(store.articleViewModePreferences.entries());
               localStorage.setItem('articleViewModePreferences', JSON.stringify(preferences));
@@ -171,9 +190,17 @@ export function useArticleDetail() {
             }
           }
         }
+
+        trackArticleOpened(targetArticle, showContent.value ? 'rss' : 'webpage');
       }
     }
   );
+
+  watch(showContent, (contentVisible) => {
+    if (!contentVisible) {
+      store.setReadingMode(false);
+    }
+  });
 
   // Watch for feed/filter changes and close image viewer
   watch(
@@ -196,6 +223,7 @@ export function useArticleDetail() {
   });
 
   function close() {
+    store.setReadingMode(false);
     store.currentArticleId = null;
     showContent.value = false;
     articleContent.value = '';
@@ -204,11 +232,14 @@ export function useArticleDetail() {
 
   function toggleRead() {
     if (!article.value) return;
-    const newState = !article.value.is_read;
-    article.value.is_read = newState;
-    fetch(`/api/articles/read?id=${article.value.id}&read=${newState}`, {
-      method: 'POST',
-    });
+    void readTracking
+      .setReadState(article.value, !article.value.is_read)
+      .catch((error) => console.error('Error updating article read state:', error));
+  }
+
+  function handleReadingProgress(percent: number): Promise<void> | undefined {
+    if (!article.value || !showContent.value) return;
+    return readTracking.handleReadingProgress(article.value, percent);
   }
 
   function toggleFavorite() {
@@ -250,6 +281,9 @@ export function useArticleDetail() {
       }
     }
     showContent.value = !showContent.value;
+    if (!showContent.value) {
+      store.setReadingMode(false);
+    }
     // Remember user's preference for this specific article
     if (article.value) {
       const mode = showContent.value ? 'rendered' : 'original';
@@ -264,7 +298,30 @@ export function useArticleDetail() {
       } catch (e) {
         console.error('Failed to save article view mode to localStorage:', e);
       }
+
+      trackArticleOpened(article.value, showContent.value ? 'rss' : 'webpage');
     }
+  }
+
+  async function toggleReadingMode(): Promise<void> {
+    if (store.isReadingMode) {
+      store.setReadingMode(false);
+      return;
+    }
+
+    if (!article.value) return;
+
+    if (currentArticleId.value !== article.value.id || !articleContent.value.trim()) {
+      await fetchArticleContent();
+    }
+
+    if (!articleContent.value.trim()) {
+      window.showToast(t('article.content.noContentAvailable'), 'info');
+      return;
+    }
+
+    showContent.value = true;
+    store.setReadingMode(true);
   }
 
   async function fetchArticleContent() {
@@ -822,12 +879,6 @@ export function useArticleDetail() {
 
     const action = event.detail?.action || 'showContent';
 
-    // Mark as read when rendering content
-    if (!article.value.is_read) {
-      article.value.is_read = true;
-      fetch(`/api/articles/read?id=${article.value.id}&read=true`, { method: 'POST' });
-    }
-
     if (action === 'showContent') {
       // Check if we need to fetch content for this article
       if (currentArticleId.value !== article.value.id) {
@@ -839,6 +890,8 @@ export function useArticleDetail() {
       showContent.value = false;
       // Don't set userPreferredMode for context menu actions
     }
+
+    trackArticleOpened(article.value, showContent.value ? 'rss' : 'webpage');
   }
 
   // Listen for explicit render action from context menu (before article selection)
@@ -852,6 +905,10 @@ export function useArticleDetail() {
     if (article.value) {
       toggleContentView();
     }
+  }
+
+  function handleToggleReadingMode() {
+    void toggleReadingMode();
   }
 
   onMounted(async () => {
@@ -882,11 +939,22 @@ export function useArticleDetail() {
       if (currentArticleId.value !== store.currentArticleId || !articleContent.value) {
         await fetchArticleContent();
       }
+
+      const currentArticle = article.value;
+      if (
+        currentArticle &&
+        currentArticle.id === store.currentArticleId &&
+        !store.isReadingMode &&
+        enterAutomaticReader(currentArticle)
+      ) {
+        trackArticleOpened(currentArticle, 'rss');
+      }
     }
 
     window.addEventListener('render-article-content', handleRenderContent);
     window.addEventListener('explicit-render-action', handleExplicitRenderAction);
     window.addEventListener('toggle-content-view', handleToggleContentView);
+    window.addEventListener('toggle-reading-mode', handleToggleReadingMode);
 
     // Load default view mode from settings
     try {
@@ -902,6 +970,7 @@ export function useArticleDetail() {
     window.removeEventListener('render-article-content', handleRenderContent);
     window.removeEventListener('explicit-render-action', handleExplicitRenderAction);
     window.removeEventListener('toggle-content-view', handleToggleContentView);
+    window.removeEventListener('toggle-reading-mode', handleToggleReadingMode);
   });
 
   return {
@@ -917,6 +986,7 @@ export function useArticleDetail() {
     locale,
     hasPreviousArticle,
     hasNextArticle,
+    nextArticle,
     articles,
     currentArticleIndex: currentArticleIndexForDisplay,
 
@@ -927,6 +997,7 @@ export function useArticleDetail() {
     toggleReadLater,
     openOriginal,
     toggleContentView,
+    toggleReadingMode,
     reloadArticleContent,
     closeImageViewer,
     copyImage,
@@ -936,6 +1007,7 @@ export function useArticleDetail() {
     exportToZotero,
     attachImageEventListeners, // Expose for re-attaching after content modifications
     handleRetryLoadContent,
+    handleReadingProgress,
     goToPreviousArticle,
     goToNextArticle,
 

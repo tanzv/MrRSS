@@ -66,10 +66,9 @@ function getButtonClasses(type: 'primary' | 'secondary' | 'danger' | 'ghost' = '
   ];
 
   const typeClasses = {
-    primary: 'bg-accent text-white border-none hover:bg-accent-hover',
+    primary: 'bg-accent on-accent border-none hover:bg-accent-hover',
     secondary: 'bg-transparent border border-border text-text-primary hover:bg-bg-tertiary',
-    danger:
-      'bg-transparent border border-red-300 text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 dark:border-red-400 dark:text-red-400',
+    danger: 'bg-transparent border state-danger-button',
     ghost:
       'bg-transparent border-none text-text-primary hover:text-text-secondary hover:bg-bg-tertiary',
   };

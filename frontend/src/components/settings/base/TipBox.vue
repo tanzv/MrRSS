@@ -100,36 +100,33 @@ const boxClass = computed(() => {
   @apply text-accent underline underline-offset-2 hover:no-underline;
 }
 
-/* Info type - blue */
 .tip-box-info {
-  background-color: rgba(59, 130, 246, 0.05);
-  border-color: rgba(59, 130, 246, 0.3);
+  background-color: var(--state-info-background);
+  border-color: var(--state-info-border);
 }
 
 .tip-box-info .tip-box-icon,
 .tip-box-info .tip-box-title {
-  @apply text-blue-500;
+  color: var(--state-info-color);
 }
 
-/* Help type - purple */
 .tip-box-help {
-  background-color: rgba(139, 92, 246, 0.05);
-  border-color: rgba(139, 92, 246, 0.3);
+  background-color: var(--state-info-background);
+  border-color: var(--state-info-border);
 }
 
 .tip-box-help .tip-box-icon,
 .tip-box-help .tip-box-title {
-  @apply text-purple-500;
+  color: var(--state-info-color);
 }
 
-/* Tip type - green (default) */
 .tip-box-tip {
-  background-color: rgba(34, 197, 94, 0.05);
-  border-color: rgba(34, 197, 94, 0.4);
+  background-color: var(--state-success-background);
+  border-color: var(--state-success-border);
 }
 
 .tip-box-tip .tip-box-icon,
 .tip-box-tip .tip-box-title {
-  @apply text-green-600;
+  color: var(--state-success-color);
 }
 </style>

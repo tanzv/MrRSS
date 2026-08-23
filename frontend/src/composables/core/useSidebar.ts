@@ -403,6 +403,7 @@ export function useSidebar() {
               title: feed.title,
               url: feed.url,
               category: newCategory,
+              auto_reading_mode: feed.auto_reading_mode,
             }),
           });
         });

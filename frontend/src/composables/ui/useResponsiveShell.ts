@@ -3,6 +3,10 @@ import { onBeforeUnmount, onMounted, ref } from 'vue';
 export const COMPACT_SHELL_QUERY = '(max-width: 1279px)';
 export const MOBILE_SHELL_QUERY = '(max-width: 767px)';
 
+interface CloseNavigationOptions {
+  restoreFocus?: boolean;
+}
+
 function getMediaQuery(query: string): MediaQueryList | null {
   if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') {
     return null;
@@ -50,9 +54,12 @@ export function useResponsiveShell() {
     isNavigationOpen.value = true;
   }
 
-  function closeNavigation(): void {
+  function closeNavigation({ restoreFocus = true }: CloseNavigationOptions = {}): void {
+    const wasOpen = isNavigationOpen.value;
     isNavigationOpen.value = false;
-    scheduleFocus('[data-responsive-nav-trigger]');
+    if (restoreFocus && wasOpen) {
+      scheduleFocus('[data-responsive-nav-trigger]');
+    }
   }
 
   function toggleNavigation(): void {
@@ -69,6 +76,7 @@ export function useResponsiveShell() {
     }
 
     event.preventDefault();
+    event.stopImmediatePropagation();
     closeNavigation();
   }
 

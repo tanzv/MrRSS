@@ -250,6 +250,7 @@ export function useFeedManagement() {
           xpath_item_uid: feed.xpath_item_uid,
           article_view_mode: feed.article_view_mode,
           auto_expand_content: feed.auto_expand_content,
+          auto_reading_mode: feed.auto_reading_mode,
         }),
       });
     });
@@ -304,6 +305,7 @@ export function useFeedManagement() {
           xpath_item_uid: feed.xpath_item_uid,
           article_view_mode: feed.article_view_mode,
           auto_expand_content: feed.auto_expand_content,
+          auto_reading_mode: feed.auto_reading_mode,
           tags: mergedTagIds,
         }),
       });
@@ -376,6 +378,7 @@ export function useFeedManagement() {
           xpath_item_uid: feed.xpath_item_uid,
           article_view_mode: feed.article_view_mode,
           auto_expand_content: feed.auto_expand_content,
+          auto_reading_mode: feed.auto_reading_mode,
         }),
       });
     });
@@ -433,6 +436,7 @@ export function useFeedManagement() {
           xpath_item_uid: feed.xpath_item_uid,
           article_view_mode: feed.article_view_mode,
           auto_expand_content: feed.auto_expand_content,
+          auto_reading_mode: feed.auto_reading_mode,
         }),
       });
     });

@@ -29,7 +29,7 @@ withDefaults(defineProps<Props>(), {
         />
         <div class="flex-1 min-w-0">
           <div class="font-medium mb-0 sm:mb-1 text-xs sm:text-sm">
-            {{ title }} <span v-if="required" class="text-red-500">*</span>
+            {{ title }} <span v-if="required" class="state-danger-text">*</span>
           </div>
           <div
             v-if="description"

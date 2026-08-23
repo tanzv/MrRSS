@@ -164,7 +164,7 @@ onUnmounted(() => {
 <template>
   <div
     :class="[
-      'fixed inset-0 flex items-center justify-center bg-black/50 backdrop-blur-sm p-2 sm:p-4',
+      'overlay-backdrop fixed inset-0 flex items-center justify-center backdrop-blur-sm p-2 sm:p-4',
       animation ? 'animate-fade-in' : '',
     ]"
     :style="{ zIndex }"

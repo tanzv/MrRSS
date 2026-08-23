@@ -6,17 +6,19 @@ interface Props {
   title: string;
   description?: string;
   required?: boolean;
+  stacked?: boolean;
 }
 
 withDefaults(defineProps<Props>(), {
   icon: undefined,
   description: '',
   required: false,
+  stacked: false,
 });
 </script>
 
 <template>
-  <div class="setting-item">
+  <div class="setting-item" :class="{ 'setting-item-stacked': stacked }">
     <div class="flex-1 flex items-center sm:items-start gap-2 sm:gap-3 min-w-0">
       <component
         :is="icon"
@@ -26,7 +28,7 @@ withDefaults(defineProps<Props>(), {
       />
       <div class="flex-1 min-w-0">
         <div class="font-medium mb-0 sm:mb-1 text-sm sm:text-base">
-          {{ title }} <span v-if="required" class="text-red-500">*</span>
+          {{ title }} <span v-if="required" class="state-danger-text">*</span>
         </div>
         <slot name="description">
           <div v-if="description" class="text-xs text-text-secondary hidden sm:block">
@@ -51,5 +53,13 @@ withDefaults(defineProps<Props>(), {
 
 .setting-item-action {
   @apply shrink-0;
+}
+
+.setting-item-stacked {
+  @apply flex-col items-stretch;
+}
+
+.setting-item-stacked .setting-item-action {
+  @apply w-full;
 }
 </style>

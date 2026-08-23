@@ -27,6 +27,8 @@ export interface SettingsData {
   content_font_family: string;
   content_font_size: number;
   content_line_height: string;
+  content_paragraph_spacing: string;
+  content_width: string;
   custom_css_file: string;
   custom_translation_body_template: string;
   custom_translation_enabled: boolean;
@@ -57,6 +59,7 @@ export interface SettingsData {
   last_global_refresh: string;
   last_network_test: string;
   layout_mode: string;
+  mark_read_on_scroll: boolean;
   max_article_age_days: number;
   max_cache_size_mb: number;
   max_concurrent_refreshes: string;

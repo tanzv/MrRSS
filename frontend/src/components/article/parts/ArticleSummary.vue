@@ -263,7 +263,7 @@ async function handleSummaryLinkClick(event: MouseEvent) {
 
         <!-- Too Short Warning -->
         <div v-else-if="summaryResult?.is_too_short" class="flex flex-col items-center gap-2 py-4">
-          <div class="flex items-center gap-2 text-amber-600 dark:text-amber-400">
+          <div class="flex items-center gap-2 state-warning-text">
             <PhWarning :size="18" />
             <span class="text-sm">{{ t('setting.content.summaryTooShort') }}</span>
           </div>
@@ -323,7 +323,7 @@ async function handleSummaryLinkClick(event: MouseEvent) {
 
         <!-- Error State -->
         <div v-else-if="summaryResult?.error" class="flex flex-col items-center gap-2 py-4">
-          <div class="flex items-center gap-2 text-red-500">
+          <div class="flex items-center gap-2 state-danger-text">
             <PhWarning :size="18" />
             <span class="text-sm">{{ t('setting.content.summaryGenerationFailed') }}</span>
           </div>

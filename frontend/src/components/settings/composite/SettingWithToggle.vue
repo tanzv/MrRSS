@@ -24,6 +24,7 @@ const emit = defineEmits<{
     <ToggleControl
       :model-value="modelValue"
       :disabled="disabled"
+      :aria-label="title"
       @update:model-value="emit('update:modelValue', $event)"
     />
   </SettingItem>

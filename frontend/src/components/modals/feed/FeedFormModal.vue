@@ -54,6 +54,7 @@ const {
   xpathItemCategories,
   xpathItemUid,
   articleViewMode,
+  autoReadingMode,
   proxyMode,
   proxyType,
   proxyHost,
@@ -169,6 +170,7 @@ async function submit() {
 
     // Add article view mode
     body.article_view_mode = articleViewMode.value;
+    body.auto_reading_mode = autoReadingMode.value;
 
     // Add auto expand content mode
     // For XPath feeds: if there's a link xpath but no content xpath, auto-enable full article extraction
@@ -591,6 +593,7 @@ const submitButtonText = computed(() => {
         :is-image-mode="isImageMode"
         :hide-from-timeline="hideFromTimeline"
         :article-view-mode="articleViewMode"
+        :auto-reading-mode="autoReadingMode"
         :auto-expand-content="autoExpandContent"
         :proxy-mode="proxyMode"
         :proxy-type="proxyType"
@@ -603,6 +606,7 @@ const submitButtonText = computed(() => {
         @update:is-image-mode="isImageMode = $event"
         @update:hide-from-timeline="hideFromTimeline = $event"
         @update:article-view-mode="articleViewMode = $event"
+        @update:auto-reading-mode="autoReadingMode = $event"
         @update:auto-expand-content="autoExpandContent = $event"
         @update:proxy-mode="proxyMode = $event"
         @update:proxy-type="proxyType = $event"

@@ -3,6 +3,7 @@ import { copyArticleLink, copyArticleTitle } from '@/utils/clipboard';
 import { useAppStore } from '@/stores/app';
 import type { Article } from '@/types/models';
 import type { Composer } from 'vue-i18n';
+import { useArticleReadTracking } from '@/composables/article/useArticleReadTracking';
 
 type ViewMode = 'original' | 'rendered' | 'external';
 
@@ -12,22 +13,11 @@ export function useArticleActions(
   onReadStatusChange?: () => void
 ) {
   const store = useAppStore();
+  const readTracking = useArticleReadTracking();
 
   // Get effective view mode for an article based on feed settings and global settings
   function getEffectiveViewMode(article: Article): ViewMode {
-    const feed = store.feeds.find((f) => f.id === article.feed_id);
-    if (!feed) return defaultViewMode.value;
-
-    if (feed.article_view_mode === 'webpage') {
-      return 'original';
-    } else if (feed.article_view_mode === 'rendered') {
-      return 'rendered';
-    } else if (feed.article_view_mode === 'external') {
-      return 'external';
-    } else {
-      // 'global' or undefined - use global setting
-      return defaultViewMode.value;
-    }
+    return readTracking.getEffectiveViewMode(article, defaultViewMode.value);
   }
   // Show context menu for article
   function showArticleContextMenu(e: MouseEvent, article: Article): void {
@@ -194,20 +184,14 @@ export function useArticleActions(
     onReadStatusChange?: () => void
   ): Promise<void> {
     if (action === 'toggleRead') {
-      const newState = !article.is_read;
-      article.is_read = newState;
       try {
-        await fetch(`/api/articles/read?id=${article.id}&read=${newState}`, {
-          method: 'POST',
-        });
+        await readTracking.setReadState(article, !article.is_read);
         // Update unread counts after toggling read status
         if (onReadStatusChange) {
           onReadStatusChange();
         }
       } catch (e) {
         console.error('Error toggling read status:', e);
-        // Revert the state change on error
-        article.is_read = !newState;
         window.showToast(t('common.errors.savingSettings'), 'error');
       }
     } else if (action === 'markAboveAsRead' || action === 'markBelowAsRead') {
@@ -332,21 +316,6 @@ export function useArticleActions(
         })
       );
 
-      // Mark as read
-      if (!article.is_read) {
-        article.is_read = true;
-        try {
-          await fetch(`/api/articles/read?id=${article.id}&read=true`, {
-            method: 'POST',
-          });
-          if (onReadStatusChange) {
-            onReadStatusChange();
-          }
-        } catch (e) {
-          console.error('Error marking as read:', e);
-        }
-      }
-
       // Trigger the render action
       window.dispatchEvent(
         new CustomEvent('render-article-content', {
@@ -364,21 +333,6 @@ export function useArticleActions(
         })
       );
 
-      // Mark as read
-      if (!article.is_read) {
-        article.is_read = true;
-        try {
-          await fetch(`/api/articles/read?id=${article.id}&read=true`, {
-            method: 'POST',
-          });
-          if (onReadStatusChange) {
-            onReadStatusChange();
-          }
-        } catch (e) {
-          console.error('Error marking as read:', e);
-        }
-      }
-
       // Trigger the render action
       window.dispatchEvent(
         new CustomEvent('render-article-content', {
@@ -395,21 +349,6 @@ export function useArticleActions(
           detail: { action: 'showContent' },
         })
       );
-
-      // Mark as read
-      if (!article.is_read) {
-        article.is_read = true;
-        try {
-          await fetch(`/api/articles/read?id=${article.id}&read=true`, {
-            method: 'POST',
-          });
-          if (onReadStatusChange) {
-            onReadStatusChange();
-          }
-        } catch (e) {
-          console.error('Error marking as read:', e);
-        }
-      }
 
       // Trigger the render action
       window.dispatchEvent(

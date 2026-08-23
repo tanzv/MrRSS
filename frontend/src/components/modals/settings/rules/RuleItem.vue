@@ -224,7 +224,7 @@ function formatActions(rule: Rule): string {
 /* Dragging state - lifted effect */
 .rule-item.dragging {
   @apply opacity-40 scale-[0.98];
-  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15);
+  box-shadow: var(--overlay-shadow);
   cursor: grabbing;
 }
 
@@ -232,8 +232,8 @@ function formatActions(rule: Rule): string {
 .rule-item-container.drop-target .rule-item {
   @apply border-accent;
   opacity: 1;
-  background-color: rgb(var(--accent-color) / 0.05);
-  border-color: rgb(var(--accent-color) / 0.5);
+  background-color: rgb(var(--accent-rgb) / 0.05);
+  border-color: rgb(var(--accent-rgb) / 0.5);
 }
 
 /* Drop indicator line - thick and obvious */
@@ -257,7 +257,7 @@ function formatActions(rule: Rule): string {
 .drop-indicator::after {
   content: '';
   @apply absolute left-0 right-0 h-2 rounded-full -top-[3px];
-  background-color: rgb(var(--accent-color) / 0.2);
+  background-color: rgb(var(--accent-rgb) / 0.2);
 }
 
 .drop-indicator.drop-bottom::after {

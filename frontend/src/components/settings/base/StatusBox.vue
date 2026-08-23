@@ -28,11 +28,11 @@ defineOptions({
 const statusClass = computed(() => {
   switch (props.status.type) {
     case 'success':
-      return 'border-green-500/30 text-green-500';
+      return 'status-success';
     case 'error':
-      return 'border-red-500/30 text-red-500';
+      return 'status-danger';
     case 'warning':
-      return 'border-yellow-500/30 text-yellow-500';
+      return 'status-warning';
     default:
       return 'border-border';
   }
@@ -66,5 +66,20 @@ const displayIcon = computed(() => {
   transition:
     border-color 0.2s,
     color 0.2s;
+}
+
+.status-success {
+  border-color: var(--state-success-border);
+  color: var(--state-success-color);
+}
+
+.status-danger {
+  border-color: var(--state-danger-border);
+  color: var(--state-danger-color);
+}
+
+.status-warning {
+  border-color: var(--state-warning-border);
+  color: var(--state-warning-color);
 }
 </style>

@@ -83,7 +83,7 @@ function formatKey(key: string): string {
 
 .shortcut-key.recording {
   @apply border-accent;
-  background-color: rgba(59, 130, 246, 0.1);
+  background-color: var(--state-info-background);
 }
 
 .animate-pulse {

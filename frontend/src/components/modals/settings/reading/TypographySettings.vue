@@ -1,13 +1,18 @@
 <script setup lang="ts">
 import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
-import { PhTextT, PhTextIndent, PhTextAa } from '@phosphor-icons/vue';
-import { SettingGroup, SettingItem, NumberControl } from '@/components/settings';
+import { PhTextT, PhTextIndent, PhTextAa, PhTextColumns, PhParagraph } from '@phosphor-icons/vue';
+import { SettingGroup, SettingItem, NumberControl, SettingWithSelect } from '@/components/settings';
 import FontFamilySelect from '@/components/settings/FontFamilySelect.vue';
+import ReaderTypographyPresetPicker from '@/components/settings/ReaderTypographyPresetPicker.vue';
+import ReaderTypographyPreview from '@/components/settings/ReaderTypographyPreview.vue';
+import { useAppStore } from '@/stores/app';
 import '@/components/settings/styles.css';
 import type { SettingsData } from '@/types/settings';
+import { resolveReaderTypography, type ReaderTypographyValues } from '@/utils/readerTypography';
 
 const { t } = useI18n();
+const store = useAppStore();
 
 interface Props {
   settings: SettingsData;
@@ -21,22 +26,37 @@ const emit = defineEmits<{
 
 // Computed values for display (handle string/number conversion)
 const displayContentSize = computed(() => {
-  return parseInt(props.settings.content_font_size as any) || 16;
+  return props.settings.content_font_size || 16;
 });
 const displayLineHeight = computed(() => {
-  return parseFloat(props.settings.content_line_height as any) || 1.6;
+  return parseFloat(props.settings.content_line_height) || 1.6;
 });
+const readerTypography = computed(() => resolveReaderTypography(props.settings));
+const themePreset = computed(() => store.theme);
 
-function updateSetting(key: keyof SettingsData, value: any) {
+function updateSetting<K extends keyof SettingsData>(key: K, value: SettingsData[K]) {
   emit('update:settings', {
     ...props.settings,
     [key]: value,
+  });
+}
+
+function applyReaderPreset(values: ReaderTypographyValues): void {
+  emit('update:settings', {
+    ...props.settings,
+    ...values,
   });
 }
 </script>
 
 <template>
   <SettingGroup :icon="PhTextT" :title="t('setting.tab.typography')">
+    <ReaderTypographyPresetPicker
+      :settings="settings"
+      :theme-preset="themePreset"
+      @select="applyReaderPreset"
+    />
+
     <!-- Content Font Family -->
     <SettingItem :icon="PhTextT" :title="t('setting.typography.contentFontFamily')">
       <template #description>
@@ -62,6 +82,7 @@ function updateSetting(key: keyof SettingsData, value: any) {
         :min="10"
         :max="24"
         suffix="px"
+        :aria-label="t('setting.typography.contentFontSize')"
         @update:model-value="(v) => updateSetting('content_font_size', isNaN(v) ? 16 : v)"
       />
     </SettingItem>
@@ -78,11 +99,42 @@ function updateSetting(key: keyof SettingsData, value: any) {
         :min="1"
         :max="3"
         :step="0.1"
+        :aria-label="t('setting.typography.contentLineHeight')"
         @update:model-value="
           (v) => updateSetting('content_line_height', isNaN(v) ? '1.6' : v.toString())
         "
       />
     </SettingItem>
+
+    <SettingWithSelect
+      :icon="PhTextColumns"
+      :title="t('setting.typography.contentWidth')"
+      :description="t('setting.typography.contentWidthDesc')"
+      :model-value="settings.content_width"
+      :options="[
+        { value: 'narrow', label: t('setting.typography.contentWidthNarrow') },
+        { value: 'comfortable', label: t('setting.typography.contentWidthComfortable') },
+        { value: 'wide', label: t('setting.typography.contentWidthWide') },
+      ]"
+      width="md"
+      @update:model-value="updateSetting('content_width', $event)"
+    />
+
+    <SettingWithSelect
+      :icon="PhParagraph"
+      :title="t('setting.typography.paragraphSpacing')"
+      :description="t('setting.typography.paragraphSpacingDesc')"
+      :model-value="settings.content_paragraph_spacing"
+      :options="[
+        { value: 'compact', label: t('setting.typography.paragraphSpacingCompact') },
+        { value: 'comfortable', label: t('setting.typography.paragraphSpacingComfortable') },
+        { value: 'relaxed', label: t('setting.typography.paragraphSpacingRelaxed') },
+      ]"
+      width="md"
+      @update:model-value="updateSetting('content_paragraph_spacing', $event)"
+    />
+
+    <ReaderTypographyPreview :typography="readerTypography" :theme-preset="themePreset" />
   </SettingGroup>
 </template>
 

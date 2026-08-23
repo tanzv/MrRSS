@@ -51,6 +51,9 @@ export function useFeedForm(feed?: Feed) {
   // Article view mode
   const articleViewMode = ref<'global' | 'webpage' | 'rendered' | 'external'>('global');
 
+  // Automatically enter reader mode for this feed's RSS content
+  const autoReadingMode = ref(false);
+
   // Auto expand content mode
   const autoExpandContent = ref<'global' | 'enabled' | 'disabled'>('global');
 
@@ -234,6 +237,7 @@ export function useFeedForm(feed?: Feed) {
     // Initialize article view mode
     articleViewMode.value =
       (feed.article_view_mode as 'global' | 'webpage' | 'rendered' | 'external') || 'global';
+    autoReadingMode.value = feed.auto_reading_mode === true;
 
     // Initialize auto expand content mode
     autoExpandContent.value =
@@ -332,6 +336,7 @@ export function useFeedForm(feed?: Feed) {
     emailPassword.value = '';
     emailFolder.value = 'INBOX';
     articleViewMode.value = 'global';
+    autoReadingMode.value = false;
     autoExpandContent.value = 'global';
     proxyMode.value = 'global';
     proxyType.value = 'http';
@@ -400,6 +405,7 @@ export function useFeedForm(feed?: Feed) {
     // Tags
     selectedTags,
     articleViewMode,
+    autoReadingMode,
     autoExpandContent,
     proxyMode,
     proxyType,

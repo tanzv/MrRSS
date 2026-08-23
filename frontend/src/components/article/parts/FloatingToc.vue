@@ -308,7 +308,7 @@ onBeforeUnmount(() => {
     v-if="enabled && isDesktop && tocItems.length > 0"
     class="pointer-events-none absolute right-[8px] top-[76px] bottom-6 z-40 flex w-[max(15%,125px)] flex-col items-end justify-center [container-type:inline-size]"
   >
-    <div class="mb-2 w-full text-right text-[10px] font-medium text-text-secondary opacity-75">
+    <div class="mb-2 w-full text-right text-[10px] font-medium text-text-tertiary">
       {{ articleProgress }}%
     </div>
 

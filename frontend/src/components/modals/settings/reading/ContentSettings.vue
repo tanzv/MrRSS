@@ -49,6 +49,7 @@ function updateSetting(key: keyof SettingsData, value: any) {
       >
         <ToggleControl
           :model-value="settings.auto_show_all_content"
+          :aria-label="t('setting.reading.autoShowAllContent')"
           @update:model-value="updateSetting('auto_show_all_content', $event)"
         />
       </SubSettingItem>

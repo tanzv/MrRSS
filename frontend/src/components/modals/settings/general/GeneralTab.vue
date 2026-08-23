@@ -60,9 +60,6 @@ function handleUpdateSettings(updatedSettings: SettingsData) {
 }
 .info-display {
   @apply px-2 sm:px-3 py-1.5 sm:py-2 rounded-lg border border-border;
-  background-color: rgba(233, 236, 239, 0.3);
-}
-.dark-mode .info-display {
-  background-color: rgba(45, 45, 45, 0.3);
+  background-color: var(--surface-panel);
 }
 </style>

@@ -77,6 +77,7 @@ function updateSetting(key: keyof SettingsData, value: any) {
           :model-value="settings.update_interval"
           :min="1"
           :suffix="t('common.time.minutes')"
+          :aria-label="t('setting.update.autoUpdateInterval')"
           @update:model-value="updateSetting('update_interval', $event)"
         />
       </SubSettingItem>

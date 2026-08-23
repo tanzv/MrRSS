@@ -61,6 +61,7 @@ export interface Feed {
   xpath_item_uid?: string;
   article_view_mode?: string; // Article view mode override ('global', 'webpage', 'rendered', 'external')
   auto_expand_content?: string; // Auto expand content mode ('global', 'enabled', 'disabled')
+  auto_reading_mode?: boolean; // Automatically enter reader mode for this feed's RSS content
   // Email/Newsletter support
   email_address?: string;
   email_imap_server?: string;

@@ -124,7 +124,7 @@ function formatDate(dateString: string): string {
     >
       <!-- Hover overlay (gray mask on hover) -->
       <div
-        class="absolute inset-0 bg-black/0 group-hover/image-container:bg-black/30 pointer-events-none transition-all duration-200 z-0"
+        class="media-overlay-hover absolute inset-0 pointer-events-none transition-all duration-200 z-0"
       ></div>
 
       <img
@@ -137,7 +137,7 @@ function formatDate(dateString: string): string {
       <!-- Platform badge (top-left) -->
       <div
         v-if="platformBadge"
-        class="absolute top-2 left-2 px-2 py-1 rounded-md bg-white/90 dark:bg-gray-800/90 text-gray-900 dark:text-white text-xs font-semibold shadow-lg z-10 flex items-center gap-1.5 backdrop-blur-sm pointer-events-auto"
+        class="media-badge absolute top-2 left-2 px-2 py-1 rounded-md text-xs font-semibold shadow-lg z-10 flex items-center gap-1.5 backdrop-blur-sm pointer-events-auto"
       >
         <img :src="platformBadge.iconPath" class="w-4 h-4" alt="" />
         <span>{{ platformBadge.label }}</span>
@@ -148,15 +148,15 @@ function formatDate(dateString: string): string {
         v-if="isVideo"
         class="absolute inset-0 flex items-center justify-center pointer-events-none transition-opacity duration-200 group-hover:opacity-0 z-10"
       >
-        <div class="bg-gray-800/70 rounded-full p-4 shadow-lg backdrop-blur-sm">
-          <PhPlay :size="32" weight="fill" class="text-white" />
+        <div class="media-control rounded-full p-4 shadow-lg backdrop-blur-sm">
+          <PhPlay :size="32" weight="fill" />
         </div>
       </div>
 
       <!-- Image count indicator -->
       <div
         v-if="imageCount > 1 && !isVideo"
-        class="absolute bottom-2 left-2 px-2 py-1 rounded-full bg-black/60 text-white text-xs font-semibold backdrop-blur-sm z-10 flex items-center gap-1 transition-all duration-200 pointer-events-auto"
+        class="media-control absolute bottom-2 left-2 px-2 py-1 rounded-full text-xs font-semibold backdrop-blur-sm z-10 flex items-center gap-1 transition-all duration-200 pointer-events-auto"
         :class="{ 'group-hover:bottom-20': !showTextOverlay }"
       >
         <PhImage :size="14" />
@@ -165,25 +165,25 @@ function formatDate(dateString: string): string {
 
       <!-- Favorite button -->
       <button
-        class="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200 bg-black/50 rounded-full p-1.5 hover:bg-black/70 z-10 pointer-events-auto"
+        class="media-control absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200 rounded-full p-1.5 z-10 pointer-events-auto"
         @click="handleFavoriteClick($event)"
       >
         <PhStar
           :size="20"
           :weight="article.is_favorite ? 'fill' : 'regular'"
-          :class="article.is_favorite ? 'text-yellow-500' : 'text-white'"
+          :class="article.is_favorite ? 'state-favorite-text' : ''"
         />
       </button>
 
       <!-- Hover overlay when text is hidden -->
       <div
         v-if="!showTextOverlay"
-        class="absolute inset-x-0 bottom-0 p-3 bg-gradient-to-t from-black/80 via-black/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-200"
+        class="media-text-overlay absolute inset-x-0 bottom-0 p-3 opacity-0 group-hover:opacity-100 transition-opacity duration-200"
       >
-        <p class="text-sm font-medium text-white line-clamp-2 mb-1">
+        <p class="text-sm font-medium line-clamp-2 mb-1">
           {{ article.title }}
         </p>
-        <div class="flex items-center justify-between text-xs text-white/80">
+        <div class="media-overlay-muted flex items-center justify-between text-xs">
           <span class="truncate flex-1">{{ article.feed_title }}</span>
           <span class="ml-2 shrink-0">{{ formatDate(article.published_at) }}</span>
         </div>

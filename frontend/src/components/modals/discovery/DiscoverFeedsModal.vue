@@ -130,7 +130,7 @@ onUnmounted(() => {
       <!-- Error State -->
       <div
         v-else-if="errorMessage"
-        class="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-3 sm:p-4 text-red-600 dark:text-red-400 text-sm sm:text-base"
+        class="state-danger-surface border rounded-lg p-3 sm:p-4 text-sm sm:text-base"
       >
         {{ errorMessage }}
       </div>
@@ -200,12 +200,12 @@ onUnmounted(() => {
           >
             <div
               v-if="isSubscribing"
-              class="w-3 h-3 sm:w-4 sm:h-4 border-2 border-white border-t-transparent rounded-full animate-spin"
+              class="on-accent-spinner w-3 h-3 sm:w-4 sm:h-4 border-2 border-t-transparent rounded-full animate-spin"
             ></div>
             {{ subscribeButtonText }}
             <span
               v-if="hasSelection && !isSubscribing"
-              class="bg-white/20 px-1.5 sm:px-2 py-0.5 rounded-full text-xs sm:text-sm"
+              class="on-accent-muted px-1.5 sm:px-2 py-0.5 rounded-full text-xs sm:text-sm"
               >({{ selectedFeeds.size }})</span
             >
           </button>

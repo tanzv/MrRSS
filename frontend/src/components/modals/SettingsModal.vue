@@ -27,6 +27,7 @@ import {
   PhKeyboard,
   PhChartBar,
   PhInfo,
+  PhX,
 } from '@phosphor-icons/vue';
 import type { TabName } from '@/types/settings';
 import { useSettings } from '@/composables/core/useSettings';
@@ -88,32 +89,39 @@ function handleDiscoverAll() {
 
 <template>
   <div
-    class="fixed inset-0 flex items-center justify-center bg-black/50 backdrop-blur-sm"
+    class="overlay-backdrop fixed inset-0 flex items-center justify-center backdrop-blur-sm"
     :style="{ zIndex: modalZIndex }"
     data-modal-open="true"
     data-settings-modal="true"
   >
     <div
-      class="bg-bg-primary w-full max-w-5xl h-full sm:h-[800px] sm:max-h-[90vh] flex flex-col rounded-none sm:rounded-2xl shadow-2xl border border-border overflow-hidden animate-fade-in mx-2 sm:mx-4 my-2 sm:my-4"
+      class="settings-modal-panel bg-bg-primary w-full max-w-5xl h-full sm:h-[800px] sm:max-h-[90vh] flex flex-col rounded-none sm:rounded-2xl shadow-2xl border border-border overflow-hidden animate-fade-in mx-2 sm:mx-4 my-2 sm:my-4"
     >
       <div class="p-3 sm:p-5 border-b border-border flex justify-between items-center shrink-0">
         <h3 class="text-text-secondary sm:text-lg font-semibold m-0 flex items-center gap-2">
           <PhGear :size="20" :weight="'fill'" class="sm:w-6 sm:h-6" />
           {{ t('setting.tab.settingsTitle') }}
         </h3>
-        <span
-          class="text-2xl cursor-pointer text-text-secondary hover:text-text-primary"
+        <button
+          type="button"
+          class="text-xl sm:text-2xl p-1 text-text-secondary hover:text-text-primary"
+          :title="t('common.close')"
+          :aria-label="t('common.close')"
           @click="emit('close')"
-          >&times;</span
         >
+          <PhX :size="20" class="sm:w-6 sm:h-6" />
+        </button>
       </div>
 
       <div class="flex flex-1 min-h-0 overflow-hidden">
         <!-- Sidebar Navigation -->
-        <div class="w-48 sm:w-56 border-r border-border bg-bg-secondary shrink-0 overflow-y-scroll">
-          <nav class="p-2 space-y-1">
+        <div class="w-12 sm:w-56 border-r border-border bg-bg-secondary shrink-0 overflow-y-scroll">
+          <nav class="p-1 sm:p-2 space-y-1" :aria-label="t('setting.tab.settingsTitle')">
             <button
               :class="['sidebar-tab-btn', activeTab === 'general' ? 'active' : '']"
+              :title="t('setting.tab.general')"
+              :aria-label="t('setting.tab.general')"
+              :aria-current="activeTab === 'general' ? 'page' : undefined"
               @click="activeTab = 'general'"
             >
               <PhSlidersHorizontal :size="22" />
@@ -121,6 +129,9 @@ function handleDiscoverAll() {
             </button>
             <button
               :class="['sidebar-tab-btn', activeTab === 'reading' ? 'active' : '']"
+              :title="t('setting.tab.readingAndDisplay')"
+              :aria-label="t('setting.tab.readingAndDisplay')"
+              :aria-current="activeTab === 'reading' ? 'page' : undefined"
               @click="activeTab = 'reading'"
             >
               <PhBookOpen :size="22" />
@@ -128,6 +139,9 @@ function handleDiscoverAll() {
             </button>
             <button
               :class="['sidebar-tab-btn', activeTab === 'feeds' ? 'active' : '']"
+              :title="t('sidebar.feedList.feeds')"
+              :aria-label="t('sidebar.feedList.feeds')"
+              :aria-current="activeTab === 'feeds' ? 'page' : undefined"
               @click="activeTab = 'feeds'"
             >
               <PhRss :size="22" />
@@ -135,6 +149,9 @@ function handleDiscoverAll() {
             </button>
             <button
               :class="['sidebar-tab-btn', activeTab === 'content' ? 'active' : '']"
+              :title="t('setting.tab.content')"
+              :aria-label="t('setting.tab.content')"
+              :aria-current="activeTab === 'content' ? 'page' : undefined"
               @click="activeTab = 'content'"
             >
               <PhTextT :size="22" />
@@ -142,6 +159,9 @@ function handleDiscoverAll() {
             </button>
             <button
               :class="['sidebar-tab-btn', activeTab === 'ai' ? 'active' : '']"
+              :title="t('setting.tab.ai')"
+              :aria-label="t('setting.tab.ai')"
+              :aria-current="activeTab === 'ai' ? 'page' : undefined"
               @click="activeTab = 'ai'"
             >
               <PhBrain :size="22" />
@@ -149,6 +169,9 @@ function handleDiscoverAll() {
             </button>
             <button
               :class="['sidebar-tab-btn', activeTab === 'rules' ? 'active' : '']"
+              :title="t('modal.rule.rules')"
+              :aria-label="t('modal.rule.rules')"
+              :aria-current="activeTab === 'rules' ? 'page' : undefined"
               @click="activeTab = 'rules'"
             >
               <PhFunnel :size="22" />
@@ -156,6 +179,9 @@ function handleDiscoverAll() {
             </button>
             <button
               :class="['sidebar-tab-btn', activeTab === 'network' ? 'active' : '']"
+              :title="t('setting.tab.network')"
+              :aria-label="t('setting.tab.network')"
+              :aria-current="activeTab === 'network' ? 'page' : undefined"
               @click="activeTab = 'network'"
             >
               <PhGlobe :size="22" />
@@ -163,6 +189,9 @@ function handleDiscoverAll() {
             </button>
             <button
               :class="['sidebar-tab-btn', activeTab === 'plugins' ? 'active' : '']"
+              :title="t('setting.tab.plugins')"
+              :aria-label="t('setting.tab.plugins')"
+              :aria-current="activeTab === 'plugins' ? 'page' : undefined"
               @click="activeTab = 'plugins'"
             >
               <PhPuzzlePiece :size="22" />
@@ -170,6 +199,9 @@ function handleDiscoverAll() {
             </button>
             <button
               :class="['sidebar-tab-btn', activeTab === 'shortcuts' ? 'active' : '']"
+              :title="t('setting.shortcut.shortcuts')"
+              :aria-label="t('setting.shortcut.shortcuts')"
+              :aria-current="activeTab === 'shortcuts' ? 'page' : undefined"
               @click="activeTab = 'shortcuts'"
             >
               <PhKeyboard :size="22" />
@@ -177,6 +209,9 @@ function handleDiscoverAll() {
             </button>
             <button
               :class="['sidebar-tab-btn', activeTab === 'statistics' ? 'active' : '']"
+              :title="t('setting.statistic.statistics')"
+              :aria-label="t('setting.statistic.statistics')"
+              :aria-current="activeTab === 'statistics' ? 'page' : undefined"
               @click="activeTab = 'statistics'"
             >
               <PhChartBar :size="22" />
@@ -184,6 +219,9 @@ function handleDiscoverAll() {
             </button>
             <button
               :class="['sidebar-tab-btn', activeTab === 'about' ? 'active' : '']"
+              :title="t('setting.tab.about')"
+              :aria-label="t('setting.tab.about')"
+              :aria-current="activeTab === 'about' ? 'page' : undefined"
               @click="activeTab = 'about'"
             >
               <PhInfo :size="22" />
@@ -290,14 +328,37 @@ function handleDiscoverAll() {
   @apply w-full flex items-center gap-3 px-3 py-2.5 rounded-lg bg-transparent text-text-secondary font-medium cursor-pointer transition-all relative;
 }
 
+@media (max-width: 39.9375rem) {
+  .settings-modal-panel {
+    width: calc(100% - 1rem);
+    height: calc(100% - 1rem);
+    border-radius: 0.75rem;
+  }
+}
+
+@media (max-width: 39.9375rem) {
+  .sidebar-tab-btn {
+    @apply justify-center px-1.5;
+  }
+
+  .sidebar-tab-btn span {
+    @apply sr-only;
+  }
+
+  .sidebar-tab-btn.active::before {
+    top: 4px;
+    bottom: 4px;
+  }
+}
+
 .sidebar-tab-btn:hover {
-  background-color: rgba(128, 128, 128, 0.1);
+  background-color: var(--surface-hover);
   color: var(--text-primary);
 }
 
 .sidebar-tab-btn.active {
   @apply text-accent;
-  background-color: rgba(128, 128, 128, 0.08);
+  background-color: var(--surface-selected);
 }
 
 .sidebar-tab-btn.active::before {

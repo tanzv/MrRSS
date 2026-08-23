@@ -10,6 +10,7 @@ import FindInPage from '../common/FindInPage.vue';
 import type { Article } from '@/types/models';
 import { openInBrowser } from '@/utils/browser';
 import { useSettings } from '@/composables/core/useSettings';
+import { useArticleReadTracking } from '@/composables/article/useArticleReadTracking';
 
 interface Props {
   article: Article;
@@ -23,7 +24,6 @@ const emit = defineEmits<{
   close: [];
   previous: [];
   next: [];
-  toggleRead: [];
   toggleFavorite: [];
   toggleReadLater: [];
   retryLoadContent: [];
@@ -32,7 +32,8 @@ const emit = defineEmits<{
 
 const { t } = useI18n();
 const store = useAppStore();
-const { settings, fetchSettings } = useSettings();
+const { fetchSettings } = useSettings();
+const readTracking = useArticleReadTracking();
 
 // View state
 const showContent = ref(true);
@@ -161,15 +162,39 @@ const hasNextArticle = computed(
   () => currentArticleIndex.value >= 0 && currentArticleIndex.value < store.articles.length - 1
 );
 
+function resolvePresentation(): void {
+  showContent.value = readTracking.getEffectiveViewMode(props.article) === 'rendered';
+}
+
+function trackArticleOpened(): void {
+  void readTracking
+    .handleArticleOpened(props.article, showContent.value ? 'rss' : 'webpage')
+    .catch((error) => console.error('Error updating article read state:', error));
+}
+
+function handleReadingProgress(percent: number): void {
+  if (!showContent.value) return;
+  void readTracking
+    .handleReadingProgress(props.article, percent)
+    .catch((error) => console.error('Error updating article read state:', error));
+}
+
+function toggleRead(): void {
+  void readTracking
+    .setReadState(props.article, !props.article.is_read)
+    .catch((error) => console.error('Error updating article read state:', error));
+}
+
 // Load default view mode on mount
 onMounted(async () => {
   try {
     await fetchSettings();
-    // Apply default view mode
-    showContent.value = settings.value.default_view_mode === 'rendered';
   } catch (e) {
     console.error('Error loading settings:', e);
   }
+
+  resolvePresentation();
+  trackArticleOpened();
 
   // Add keyboard listener
   window.addEventListener('keydown', handleKeydown);
@@ -189,15 +214,8 @@ watch(
     imageViewerImages.value = [];
     imageViewerInitialIndex.value = 0;
 
-    // Apply default view mode for new article
-    const feed = store.feeds.find((f) => f.id === props.article?.feed_id);
-    if (feed?.article_view_mode === 'webpage') {
-      showContent.value = false;
-    } else if (feed?.article_view_mode === 'rendered') {
-      showContent.value = true;
-    } else {
-      showContent.value = settings.value.default_view_mode === 'rendered';
-    }
+    resolvePresentation();
+    trackArticleOpened();
   }
 );
 
@@ -231,6 +249,7 @@ function handleKeydown(e: KeyboardEvent) {
 
 function toggleContentView() {
   showContent.value = !showContent.value;
+  trackArticleOpened();
 }
 
 function toggleTranslations() {
@@ -309,7 +328,7 @@ function handleOverlayClick(e: MouseEvent) {
           :is-modal="true"
           @close="emit('close')"
           @toggle-content-view="toggleContentView"
-          @toggle-read="emit('toggleRead')"
+          @toggle-read="toggleRead"
           @toggle-favorite="emit('toggleFavorite')"
           @toggle-read-later="emit('toggleReadLater')"
           @open-original="openOriginal"
@@ -327,6 +346,7 @@ function handleOverlayClick(e: MouseEvent) {
             <iframe
               :key="article.id"
               :src="`/api/webpage/proxy?url=${encodeURIComponent(article.url)}`"
+              :title="article.title"
               class="w-full h-full border-none"
               sandbox="allow-scripts allow-same-origin allow-popups"
             ></iframe>
@@ -343,6 +363,7 @@ function handleOverlayClick(e: MouseEvent) {
             :show-content="showContent"
             class="modal-prose-content"
             @retry-load-content="handleRetryLoadContent"
+            @reading-progress="handleReadingProgress"
           />
         </div>
 
@@ -396,7 +417,8 @@ function handleOverlayClick(e: MouseEvent) {
 <style scoped>
 @reference "../../style.css";
 .article-modal-overlay {
-  @apply fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4;
+  @apply fixed inset-0 z-50 flex items-center justify-center backdrop-blur-sm p-4;
+  background-color: var(--overlay-backdrop);
 }
 
 .article-modal {

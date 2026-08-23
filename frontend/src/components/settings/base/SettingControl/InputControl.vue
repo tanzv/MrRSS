@@ -7,6 +7,7 @@ interface Props {
   error?: boolean | string;
   required?: boolean;
   width?: string;
+  ariaLabel?: string;
 }
 
 defineProps<Props>();
@@ -40,7 +41,7 @@ const widthClass = (width?: string) => {
     :class="[
       widthClass(width),
       {
-        'border-red-500': typeof error === 'boolean' ? error : error,
+        'state-danger-border': typeof error === 'boolean' ? error : error,
         'opacity-50 cursor-not-allowed': disabled,
       },
     ]"
@@ -49,9 +50,10 @@ const widthClass = (width?: string) => {
     :placeholder="placeholder"
     :disabled="disabled"
     :required="required"
+    :aria-label="ariaLabel"
     @input="handleInput"
   />
-  <div v-if="typeof error === 'string' && error" class="text-red-500 text-xs mt-1">
+  <div v-if="typeof error === 'string' && error" class="state-danger-text text-xs mt-1">
     {{ error }}
   </div>
 </template>
@@ -64,6 +66,10 @@ const widthClass = (width?: string) => {
 
 .input-field:disabled {
   @apply cursor-not-allowed;
+}
+
+.input-field.state-danger-border {
+  border-color: var(--state-danger-border);
 }
 
 .input-field::placeholder {

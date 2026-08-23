@@ -92,6 +92,13 @@ function handleDragStart(event: Event) {
 function handleDragEnd() {
   emit('dragend');
 }
+
+function handleFeedKeydown(event: KeyboardEvent) {
+  if (event.key !== 'Enter' && event.key !== ' ') return;
+
+  event.preventDefault();
+  emit('click');
+}
 </script>
 
 <template>
@@ -99,8 +106,13 @@ function handleDragEnd() {
     :class="['feed-item', isActive ? 'active' : '', props.compactMode ? 'compact' : '']"
     :data-feed-id="feed.id"
     :data-level="level || 0"
+    role="button"
+    tabindex="0"
+    :aria-current="isActive ? 'page' : undefined"
+    :aria-label="feed.title"
     @click="emit('click')"
     @contextmenu="(e) => emit('contextmenu', e)"
+    @keydown="handleFeedKeydown"
   >
     <!-- Drag handle (only visible in edit mode and not for FreshRSS feeds) -->
     <div
@@ -127,6 +139,7 @@ function handleDragEnd() {
       <img
         :src="feed.image_url || getFavicon(feed.url)"
         class="w-full h-full object-contain"
+        alt=""
         @error="($event.target as HTMLElement).style.display = 'none'"
       />
     </div>
@@ -160,7 +173,7 @@ function handleDragEnd() {
       @mouseenter="showErrorTooltip = true"
       @mouseleave="showErrorTooltip = false"
     >
-      <PhWarningCircle :size="16" class="text-yellow-500 shrink-0" />
+      <PhWarningCircle :size="16" class="state-warning-icon shrink-0" />
 
       <!-- Error tooltip -->
       <Transition
@@ -177,7 +190,7 @@ function handleDragEnd() {
         >
           <div class="px-2.5 py-2">
             <div class="flex items-start gap-2">
-              <PhWarningCircle :size="14" class="text-yellow-500 shrink-0 mt-0.5" />
+              <PhWarningCircle :size="14" class="state-warning-icon shrink-0 mt-0.5" />
               <div class="flex-1 min-w-0">
                 <div class="text-xs font-semibold text-text-primary mb-1">
                   {{ t('setting.update.updateFailed') }}
@@ -200,6 +213,11 @@ function handleDragEnd() {
 @reference "../../style.css";
 .feed-item {
   @apply px-2 sm:px-3 py-1.5 sm:py-2 cursor-pointer rounded-md text-xs sm:text-sm text-text-primary flex items-center gap-1 hover:bg-bg-tertiary transition-colors;
+  background-color: transparent;
+}
+
+.feed-item:hover {
+  background-color: var(--surface-hover);
 }
 
 /* Compact mode: reduce padding and gap */
@@ -277,7 +295,8 @@ function handleDragEnd() {
   }
 }
 .feed-item.active {
-  @apply bg-bg-tertiary text-accent font-medium;
+  @apply text-accent font-medium;
+  background-color: var(--surface-selected);
 }
 
 /* Dragging state styles */
@@ -297,7 +316,7 @@ function handleDragEnd() {
   border-radius: 2px;
 }
 .drag-handle:hover {
-  background-color: var(--color-bg-tertiary, rgba(0, 0, 0, 0.05));
+  background-color: var(--surface-hover);
 }
 .drag-handle:active {
   cursor: grabbing;
@@ -312,15 +331,11 @@ function handleDragEnd() {
 
 .unread-badge {
   @apply text-[9px] sm:text-[10px] font-medium rounded-full min-w-[14px] sm:min-w-[16px] h-[14px] sm:h-[16px] px-0.5 sm:px-1 flex items-center justify-center;
-  background-color: rgba(120, 120, 120, 0.15);
-  color: #666666;
+  background-color: var(--unread-badge-background);
+  color: var(--unread-badge-color);
 }
-</style>
 
-<style>
-@reference "../../style.css";
-.dark-mode .unread-badge {
-  background-color: rgba(100, 100, 100, 0.4) !important;
-  color: #d0d0d0 !important;
+.state-warning-icon {
+  color: var(--state-warning-color);
 }
 </style>

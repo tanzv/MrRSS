@@ -119,6 +119,44 @@ describe('useResponsiveShell', () => {
     expect(document.activeElement).toBe(trigger);
   });
 
+  it('can close navigation without moving focus from the reader', async () => {
+    mockMedia({
+      '(max-width: 1279px)': true,
+      '(max-width: 767px)': true,
+    });
+    const trigger = document.createElement('button');
+    trigger.dataset.responsiveNavTrigger = 'true';
+    const reader = document.createElement('main');
+    reader.tabIndex = -1;
+    document.body.append(trigger, reader);
+
+    const state = mountResponsiveShell();
+    state.openNavigation();
+    reader.focus();
+    state.closeNavigation({ restoreFocus: false });
+    await new Promise((resolve) => requestAnimationFrame(resolve));
+
+    expect(state.isNavigationOpen.value).toBe(false);
+    expect(document.activeElement).toBe(reader);
+  });
+
+  it('gives an open mobile navigation drawer priority over global Escape handlers', () => {
+    mockMedia({
+      '(max-width: 1279px)': true,
+      '(max-width: 767px)': true,
+    });
+    const state = mountResponsiveShell();
+    const globalHandler = vi.fn();
+    window.addEventListener('keydown', globalHandler);
+    state.openNavigation();
+
+    window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+
+    expect(state.isNavigationOpen.value).toBe(false);
+    expect(globalHandler).not.toHaveBeenCalled();
+    window.removeEventListener('keydown', globalHandler);
+  });
+
   it('updates viewport flags when media queries change', async () => {
     const controllers = mockMedia({
       '(max-width: 1279px)': false,

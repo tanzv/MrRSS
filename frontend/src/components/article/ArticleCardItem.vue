@@ -154,12 +154,12 @@ function handleImageError(event: Event) {
       <div class="card-title-row">
         <div class="card-title-wrapper">
           <!-- Title -->
-          <h4 class="card-title" :class="{ 'read-title': article.is_read }">
+          <h3 class="card-title" :class="{ 'read-title': article.is_read }">
             <span v-if="article.translated_title && article.translated_title !== article.title">
               {{ article.translated_title }}
             </span>
             <span v-else>{{ article.title }}</span>
-          </h4>
+          </h3>
           <!-- Original title when translated -->
           <div
             v-if="article.translated_title && article.translated_title !== article.title"
@@ -179,10 +179,10 @@ function handleImageError(event: Event) {
           <PhClockCountdown
             v-if="article.is_read_later"
             :size="14"
-            class="text-blue-500"
+            class="state-read-later-icon"
             weight="fill"
           />
-          <PhStar v-if="article.is_favorite" :size="14" class="text-yellow-500" weight="fill" />
+          <PhStar v-if="article.is_favorite" :size="14" class="state-favorite-icon" weight="fill" />
           <img
             v-if="article.freshrss_item_id"
             src="/assets/plugin_icons/freshrss.svg"
@@ -231,7 +231,7 @@ function handleImageError(event: Event) {
 .article-card-item.active {
   @apply shadow-md;
   border-color: var(--accent-color);
-  box-shadow: 0 0 0 2px rgba(var(--accent-rgb, 59, 130, 246), 0.2);
+  box-shadow: 0 0 0 2px rgb(var(--accent-rgb) / 0.2);
 }
 
 .article-card-item.read {
@@ -243,11 +243,19 @@ function handleImageError(event: Event) {
 }
 
 .article-card-item.favorite {
-  background-color: rgba(234, 179, 8, 0.05);
+  background-color: var(--state-favorite-background);
 }
 
 .article-card-item.read-later {
-  background-color: rgba(59, 130, 246, 0.05);
+  background-color: var(--state-read-later-background);
+}
+
+.state-favorite-icon {
+  color: var(--state-favorite-color);
+}
+
+.state-read-later-icon {
+  color: var(--state-read-later-color);
 }
 
 .article-card-item.hidden-article {
@@ -334,7 +342,7 @@ function handleImageError(event: Event) {
 }
 
 .feed-name {
-  @apply font-medium text-accent truncate flex-1;
+  @apply font-medium text-accent-text truncate flex-1;
 }
 
 .publish-date {

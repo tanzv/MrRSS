@@ -152,7 +152,7 @@ function getProxiedUrl(url: string): string {
       @click="emit('toggle')"
     >
       <div
-        class="h-1 w-12 bg-white/30 rounded-full cursor-pointer hover:bg-white/50 hover:w-16 transition-all duration-300"
+        class="thumbnail-handle h-1 w-12 rounded-full cursor-pointer hover:w-16 transition-all duration-300"
       ></div>
     </div>
 
@@ -161,7 +161,7 @@ function getProxiedUrl(url: string): string {
       <!-- Collapse handle above thumbnails -->
       <div class="relative w-full py-2 flex items-center justify-center" @click="emit('toggle')">
         <div
-          class="h-1 w-16 bg-white/20 rounded-full cursor-pointer hover:bg-white/40 hover:w-20 transition-all duration-300"
+          class="thumbnail-handle h-1 w-16 rounded-full cursor-pointer hover:w-20 transition-all duration-300"
         ></div>
       </div>
 
@@ -176,11 +176,11 @@ function getProxiedUrl(url: string): string {
           <button
             v-for="(image, index) in images"
             :key="index"
-            class="relative shrink-0 w-16 h-16 rounded overflow-hidden border-2 transition-all duration-200"
+            class="thumbnail-frame relative shrink-0 w-16 h-16 rounded overflow-hidden border-2 transition-all duration-200"
             :class="
               index === currentIndex
                 ? 'border-accent shadow-lg shadow-accent/30'
-                : 'border-white/30 hover:border-white/60'
+                : 'thumbnail-frame-inactive'
             "
             @click="selectThumbnail(index)"
           >
@@ -203,6 +203,28 @@ function getProxiedUrl(url: string): string {
 </template>
 
 <style scoped>
+@reference "../../../../style.css";
+
+.thumbnail-handle {
+  background-color: var(--media-overlay-muted-foreground);
+  opacity: 0.35;
+}
+
+.thumbnail-handle:hover {
+  background-color: var(--media-control-foreground);
+  opacity: 0.58;
+}
+
+.thumbnail-frame-inactive {
+  border-color: var(--media-viewer-border);
+  opacity: 0.78;
+}
+
+.thumbnail-frame-inactive:hover {
+  border-color: var(--media-control-foreground);
+  opacity: 1;
+}
+
 /* Hide scrollbar but keep functionality */
 .scrollbar-hide {
   -ms-overflow-style: none; /* IE and Edge */

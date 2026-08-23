@@ -72,6 +72,7 @@ interface Shortcuts {
   toggleReadLaterStatus: string;
   openInBrowser: string;
   toggleContentView: string;
+  toggleReadingMode: string;
   refreshFeeds: string;
   markAllRead: string;
   openSettings: string;
@@ -104,6 +105,7 @@ const defaultShortcuts: Shortcuts = {
   toggleReadLaterStatus: 'l',
   openInBrowser: 'o',
   toggleContentView: 'v',
+  toggleReadingMode: 'm',
   refreshFeeds: 'Shift+r',
   markAllRead: 'Shift+a',
   openSettings: ',',
@@ -169,6 +171,7 @@ const shortcutGroups = computed<Array<{ label: string; items: ShortcutItemData[]
         icon: PhArrowSquareOut,
       },
       { key: 'toggleContentView', label: t('shortcut.toggle.contentView'), icon: PhArticle },
+      { key: 'toggleReadingMode', label: t('shortcut.toggle.readingMode'), icon: PhBookOpen },
     ],
   },
   {

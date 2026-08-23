@@ -314,7 +314,10 @@ onUnmounted(() => {
           <PhCheck
             v-if="isSelected(option.value)"
             :size="16"
-            :class="['flex-shrink-0', isSelected(option.value) ? 'text-white' : 'text-accent']"
+            :class="[
+              'flex-shrink-0',
+              isSelected(option.value) ? 'text-text-on-accent' : 'text-accent',
+            ]"
           />
         </div>
 

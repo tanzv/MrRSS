@@ -5,7 +5,6 @@ import { ref, computed, onMounted, onBeforeUnmount, watch, nextTick, type Ref } 
 import {
   PhArrowClockwise,
   PhList,
-  PhSpinner,
   PhFunnel,
   PhTrash,
   PhCheckCircle,
@@ -26,6 +25,7 @@ import { useArticleActions } from '@/composables/article/useArticleActions';
 import { useShowPreviewImages } from '@/composables/ui/useShowPreviewImages';
 import { useSettings } from '@/composables/core/useSettings';
 import { parseSettingsData } from '@/composables/core/useSettings.generated';
+import { useArticleReadTracking } from '@/composables/article/useArticleReadTracking';
 import { openInBrowser } from '@/utils/browser';
 import { proxyImagesInHtml, isMediaCacheEnabled } from '@/utils/mediaProxy';
 import type { Article } from '@/types/models';
@@ -33,6 +33,7 @@ import type { Article } from '@/types/models';
 const store = useAppStore();
 const { t } = useI18n();
 const { settings } = useSettings();
+const readTracking = useArticleReadTracking();
 
 const listRef: Ref<HTMLDivElement | null> = ref(null);
 const defaultViewMode = ref<'original' | 'rendered' | 'external'>('original');
@@ -344,7 +345,7 @@ interface CustomEventDetail {
 function onDefaultViewModeChanged(e: Event): void {
   const customEvent = e as CustomEvent<CustomEventDetail>;
   if (customEvent.detail.mode) {
-    defaultViewMode.value = customEvent.detail.mode as 'original' | 'rendered';
+    defaultViewMode.value = customEvent.detail.mode as 'original' | 'rendered' | 'external';
   }
 }
 
@@ -412,41 +413,22 @@ function onRefreshTooltipHide(): void {
 
 // Article selection and interaction
 function selectArticle(article: Article): void {
-  // Check if we should open in browser based on feed or global settings
-  const feed = store.feeds.find((f) => f.id === article.feed_id);
-  let openInBrowserMode = false;
+  const surface = readTracking.getArticleSurface(article, defaultViewMode.value);
 
-  if (feed?.article_view_mode === 'external') {
-    openInBrowserMode = true;
-  } else if (feed?.article_view_mode === 'global' || !feed?.article_view_mode) {
-    // Check global setting
-    if (defaultViewMode.value === 'external') {
-      openInBrowserMode = true;
-    }
-  }
-
-  // If external mode is selected, open in browser and mark as read
-  if (openInBrowserMode) {
-    // Mark as read if not already read
-    if (!article.is_read) {
-      article.is_read = true;
-      fetch(`/api/articles/read?id=${article.id}&read=true`, { method: 'POST' })
-        .then(async () => {
-          await store.fetchUnreadCounts();
-          await store.fetchFilterCounts();
-        })
-        .catch((e) => {
-          console.error('Error marking as read:', e);
-        });
-    }
-    // Open article URL in browser
+  if (surface === 'external') {
+    void readTracking
+      .handleArticleOpened(article, 'external')
+      .catch((error) => console.error('Error updating article read state:', error));
     openInBrowser(article.url);
     return;
   }
 
   // Card mode: open in modal instead of side panel
-  if (isCardMode.value) {
-    openCardModal(article);
+  if (
+    isCardMode.value &&
+    !readTracking.shouldAutoEnterReadingMode(article, defaultViewMode.value)
+  ) {
+    void openCardModal(article);
     return;
   }
 
@@ -456,20 +438,11 @@ function selectArticle(article: Article): void {
     temporarilyKeepArticles.value.delete(store.currentArticleId);
   }
 
-  store.currentArticleId = article.id;
   if (!article.is_read) {
-    article.is_read = true;
     // Add to temporarily keep list so it doesn't disappear immediately
     temporarilyKeepArticles.value.add(article.id);
-    fetch(`/api/articles/read?id=${article.id}&read=true`, { method: 'POST' })
-      .then(async () => {
-        await store.fetchUnreadCounts();
-        await store.fetchFilterCounts();
-      })
-      .catch((e) => {
-        console.error('Error marking as read:', e);
-      });
   }
+  store.currentArticleId = article.id;
 }
 
 // Scrolling handler with throttling to improve performance
@@ -620,16 +593,9 @@ async function openCardModal(article: Article): Promise<void> {
   isCardModalLoading.value = true;
   cardModalContent.value = '';
 
-  // Mark as read
+  // Keep unread card articles visible while their reading policy resolves.
   if (!article.is_read) {
-    article.is_read = true;
     temporarilyKeepArticles.value.add(article.id);
-    fetch(`/api/articles/read?id=${article.id}&read=true`, { method: 'POST' })
-      .then(async () => {
-        await store.fetchUnreadCounts();
-        await store.fetchFilterCounts();
-      })
-      .catch((e) => console.error('Error marking as read:', e));
   }
 
   // Load article content
@@ -673,21 +639,6 @@ function cardModalNext(): void {
   const currentIndex = filteredArticles.value.findIndex((a) => a.id === cardModalArticle.value!.id);
   if (currentIndex >= 0 && currentIndex < filteredArticles.value.length - 1) {
     openCardModal(filteredArticles.value[currentIndex + 1]);
-  }
-}
-
-async function cardModalToggleRead(): Promise<void> {
-  if (!cardModalArticle.value) return;
-  const article = cardModalArticle.value;
-  const newReadState = !article.is_read;
-
-  try {
-    await fetch(`/api/articles/read?id=${article.id}&read=${newReadState}`, { method: 'POST' });
-    article.is_read = newReadState;
-    await store.fetchUnreadCounts();
-    await store.fetchFilterCounts();
-  } catch (e) {
-    console.error('Error toggling read state:', e);
   }
 }
 
@@ -797,33 +748,40 @@ async function markAllVisibleAsRead(): Promise<void> {
       'article-list flex flex-col w-full border-r border-border bg-bg-primary shrink-0 h-full',
       { 'card-mode': isCardMode },
     ]"
+    :aria-label="articleListTitle"
+    :aria-busy="store.isLoading || isFilterLoading ? 'true' : 'false'"
   >
     <div class="p-2 sm:p-4 border-b border-border bg-bg-primary">
       <div class="flex items-center justify-between">
-        <h3
+        <h2
           class="m-0 text-base sm:text-lg font-semibold truncate flex-1"
           :title="articleListTitle"
         >
           {{ articleListTitle }}
-        </h3>
+        </h2>
         <div class="flex items-center gap-1 sm:gap-2">
           <!-- Clear Read Later button - only shown when viewing Read Later list -->
           <button
             v-if="store.currentFilter === 'readLater'"
-            class="text-text-secondary hover:text-red-500 hover:bg-bg-tertiary p-1 sm:p-1.5 rounded transition-colors"
+            data-testid="clear-read-later"
+            class="state-danger-hover text-text-secondary p-1 sm:p-1.5 rounded transition-colors"
             :title="t('common.clearReadLater')"
+            :aria-label="t('common.clearReadLater')"
             @click="clearReadLater"
           >
             <PhTrash :size="18" class="sm:w-5 sm:h-5" />
           </button>
           <button
+            data-testid="mark-all-read"
             class="text-text-secondary hover:text-text-primary hover:bg-bg-tertiary p-1 sm:p-1.5 rounded transition-colors"
             :title="t('article.action.markAllRead')"
+            :aria-label="t('article.action.markAllRead')"
             @click="markAllAsRead"
           >
             <PhCheckCircle :size="18" class="sm:w-5 sm:h-5" />
           </button>
           <button
+            data-testid="toggle-unread"
             class="text-text-secondary hover:text-text-primary hover:bg-bg-tertiary p-1 sm:p-1.5 rounded transition-colors"
             :class="store.showOnlyUnread ? 'text-accent' : ''"
             :title="
@@ -831,6 +789,8 @@ async function markAllVisibleAsRead(): Promise<void> {
                 ? t('setting.reading.showAllArticles')
                 : t('setting.reading.showOnlyUnread')
             "
+            :aria-label="t('setting.reading.showOnlyUnread')"
+            :aria-pressed="store.showOnlyUnread"
             @click="store.toggleShowOnlyUnread()"
           >
             <component
@@ -841,9 +801,13 @@ async function markAllVisibleAsRead(): Promise<void> {
           </button>
           <div class="relative">
             <button
+              data-testid="open-filter"
               class="text-text-secondary hover:text-text-primary hover:bg-bg-tertiary p-1 sm:p-1.5 rounded transition-colors"
               :class="activeFilters.length > 0 ? 'filter-active' : ''"
               :title="t('modal.filter.filter')"
+              :aria-label="t('modal.filter.filter')"
+              aria-haspopup="dialog"
+              :aria-expanded="showFilterModal"
               @click="showFilterModal = true"
             >
               <PhFunnel :size="18" class="sm:w-5 sm:h-5" />
@@ -861,8 +825,10 @@ async function markAllVisibleAsRead(): Promise<void> {
             @mouseleave="onRefreshTooltipHide"
           >
             <button
+              data-testid="refresh-articles"
               class="text-text-secondary hover:text-text-primary hover:bg-bg-tertiary p-1 sm:p-1.5 rounded transition-colors"
               :title="t('article.action.refresh')"
+              :aria-label="t('article.action.refresh')"
               @click="refreshArticles"
             >
               <PhArrowClockwise
@@ -986,7 +952,14 @@ async function markAllVisibleAsRead(): Promise<void> {
               </div>
             </Transition>
           </div>
-          <button class="md:hidden text-xl sm:text-2xl p-1" @click="emit('toggleSidebar')">
+          <button
+            data-responsive-nav-trigger
+            class="md:hidden text-xl sm:text-2xl min-w-[44px] min-h-[44px] p-1 inline-flex items-center justify-center rounded transition-colors hover:bg-bg-tertiary"
+            :title="t('shortcut.toggle.sidebar')"
+            :aria-label="t('shortcut.toggle.sidebar')"
+            :aria-expanded="isSidebarOpen"
+            @click="emit('toggleSidebar')"
+          >
             <PhList :size="18" class="sm:w-5 sm:h-5" />
           </button>
         </div>
@@ -1069,9 +1042,22 @@ async function markAllVisibleAsRead(): Promise<void> {
 
       <div
         v-if="store.isLoading || isFilterLoading"
-        class="p-3 sm:p-4 text-center text-text-secondary"
+        data-testid="article-list-loading"
+        class="article-list-skeleton"
+        role="status"
+        :aria-label="t('common.pagination.loading')"
+        aria-live="polite"
       >
-        <PhSpinner :size="20" class="animate-spin sm:w-6 sm:h-6" />
+        <div
+          v-for="index in 3"
+          :key="index"
+          data-testid="article-list-skeleton-row"
+          class="article-list-skeleton-row"
+          aria-hidden="true"
+        >
+          <span class="article-list-skeleton-line article-list-skeleton-title" />
+          <span class="article-list-skeleton-line article-list-skeleton-source" />
+        </div>
       </div>
     </div>
   </section>
@@ -1085,7 +1071,6 @@ async function markAllVisibleAsRead(): Promise<void> {
     @close="closeCardModal"
     @previous="cardModalPrevious"
     @next="cardModalNext"
-    @toggle-read="cardModalToggleRead"
     @toggle-favorite="cardModalToggleFavorite"
     @toggle-read-later="cardModalToggleReadLater"
     @retry-load-content="cardModalRetryLoadContent"
@@ -1108,6 +1093,54 @@ async function markAllVisibleAsRead(): Promise<void> {
 @media (min-width: 768px) {
   .article-list {
     width: var(--article-list-width, 400px);
+  }
+}
+
+.article-list-skeleton {
+  display: grid;
+  gap: 1px;
+  background-color: var(--border-color);
+}
+
+.article-list-skeleton-row {
+  display: flex;
+  min-height: 76px;
+  flex-direction: column;
+  justify-content: center;
+  gap: 0.625rem;
+  padding: 0.75rem;
+  background-color: var(--bg-primary);
+}
+
+.article-list-skeleton-line {
+  display: block;
+  height: 0.75rem;
+  border-radius: 0.25rem;
+  background-color: var(--surface-hover);
+}
+
+.article-list-skeleton-title {
+  width: min(88%, 19rem);
+}
+
+.article-list-skeleton-source {
+  width: 42%;
+  height: 0.625rem;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .article-list-skeleton-line {
+    animation: article-list-skeleton-pulse 1.4s ease-in-out infinite alternate;
+  }
+}
+
+@keyframes article-list-skeleton-pulse {
+  from {
+    opacity: 0.62;
+  }
+
+  to {
+    opacity: 1;
   }
 }
 
@@ -1160,7 +1193,7 @@ async function markAllVisibleAsRead(): Promise<void> {
 
 .filter-active {
   @apply text-accent border-accent;
-  background-color: rgba(59, 130, 246, 0.1);
+  background-color: rgb(var(--accent-rgb) / 0.12);
 }
 
 .animate-spin {

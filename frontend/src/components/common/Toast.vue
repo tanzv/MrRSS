@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue';
 import { PhCheckCircle, PhXCircle, PhWarning, PhInfo, PhX } from '@phosphor-icons/vue';
+import { useI18n } from 'vue-i18n';
 
 type ToastType = 'info' | 'success' | 'error' | 'warning';
 
@@ -14,6 +15,8 @@ const props = withDefaults(defineProps<Props>(), {
   type: 'info',
   duration: 3000,
 });
+
+const { t } = useI18n();
 
 const emit = defineEmits<{
   close: [];
@@ -37,14 +40,25 @@ function handleClose() {
 </script>
 
 <template>
-  <div v-if="show" :class="['toast', `toast-${type}`, show ? 'toast-show' : 'toast-hide']">
+  <div
+    v-if="show"
+    :class="['toast', `toast-${type}`, show ? 'toast-show' : 'toast-hide']"
+    :role="type === 'error' || type === 'warning' ? 'alert' : 'status'"
+    :aria-live="type === 'error' || type === 'warning' ? 'assertive' : 'polite'"
+  >
     <div class="flex items-center gap-3">
       <PhCheckCircle v-if="type === 'success'" :size="20" />
       <PhXCircle v-else-if="type === 'error'" :size="20" />
       <PhWarning v-else-if="type === 'warning'" :size="20" />
       <PhInfo v-else :size="20" />
       <span class="flex-1 toast-message selectable-text">{{ message }}</span>
-      <button class="text-xl opacity-70 hover:opacity-100 transition-opacity" @click="handleClose">
+      <button
+        type="button"
+        class="text-xl opacity-70 hover:opacity-100 transition-opacity"
+        :title="t('common.close')"
+        :aria-label="t('common.close')"
+        @click="handleClose"
+      >
         <PhX :size="20" />
       </button>
     </div>
@@ -63,28 +77,24 @@ function handleClose() {
   animation: slideOut 0.3s cubic-bezier(0.16, 1, 0.3, 1);
 }
 .toast-info {
-  @apply bg-blue-50 border-blue-200 text-blue-900;
-}
-:global(.dark-mode) .toast-info {
-  @apply bg-blue-950 border-blue-700 text-blue-100;
+  background-color: var(--state-info-background);
+  border-color: var(--state-info-border);
+  color: var(--state-info-color);
 }
 .toast-success {
-  @apply bg-green-50 border-green-200 text-green-900;
-}
-:global(.dark-mode) .toast-success {
-  @apply bg-green-950 border-green-700 text-green-100;
+  background-color: var(--state-success-background);
+  border-color: var(--state-success-border);
+  color: var(--state-success-color);
 }
 .toast-error {
-  @apply bg-red-50 border-red-200 text-red-900;
-}
-:global(.dark-mode) .toast-error {
-  @apply bg-red-950 border-red-700 text-red-100;
+  background-color: var(--state-danger-background);
+  border-color: var(--state-danger-border);
+  color: var(--state-danger-color);
 }
 .toast-warning {
-  @apply bg-orange-50 border-orange-200 text-orange-900;
-}
-:global(.dark-mode) .toast-warning {
-  @apply bg-orange-950 border-orange-700 text-orange-100;
+  background-color: var(--state-warning-background);
+  border-color: var(--state-warning-border);
+  color: var(--state-warning-color);
 }
 .toast-message {
   user-select: text;

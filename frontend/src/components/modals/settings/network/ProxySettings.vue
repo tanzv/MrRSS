@@ -156,6 +156,7 @@ function updateSetting(key: keyof SettingsData, value: any) {
         :max="600"
         :step="10"
         :suffix="t('common.time.seconds')"
+        :aria-label="t('setting.feed.retryTimeout')"
         width="xs"
         class="text-center"
         @update:model-value="updateSetting('retry_timeout_seconds', $event)"

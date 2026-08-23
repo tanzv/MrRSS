@@ -89,7 +89,7 @@ function selectArticleFeed() {
         {{ article.feed_title }}
       </button>
       <template v-if="article.author && article.author !== article.feed_title">
-        <span class="text-text-secondary font-normal text-[11px] sm:text-xs opacity-75">{{
+        <span class="text-text-tertiary font-normal text-[11px] sm:text-xs">{{
           article.author
         }}</span>
       </template>
@@ -99,7 +99,7 @@ function selectArticleFeed() {
       <span
         v-if="translationEnabled"
         class="flex items-center gap-1.5 sm:gap-2"
-        :class="translationSkipped ? 'text-amber-600 dark:text-amber-400' : 'text-accent'"
+        :class="translationSkipped ? 'state-warning-text' : 'text-accent'"
       >
         <PhTranslate :size="14" />
         <span class="text-xs">{{ translationStatusText }}</span>
