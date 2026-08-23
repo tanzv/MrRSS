@@ -4,6 +4,7 @@
 
 - [Quick Start](#quick-start)
 - [Overview](#overview)
+- [Custom App Themes](#custom-app-themes)
 - [How to Add a New Setting](#how-to-add-a-new-setting)
 - [Complete Example](#complete-example)
 - [Reference](#reference)
@@ -100,6 +101,30 @@ This convention is used consistently across:
 - Vue components
 - API communication
 - Event names
+
+## Custom App Themes
+
+Application themes are stored in the schema-generated `theme_profiles` setting as a JSON array. The
+theme editor is available under **Settings > General > Custom themes** and supports:
+
+- immutable Paper, Ink, Sepia, and High Contrast base presets;
+- named profiles with light, dark, or system-following variants;
+- sparse semantic color overrides for the shell, states, overlays, and media controls;
+- detected system fonts and an independent interface font size (12-20 px);
+- duplicate, rename, delete, reset, import, and export actions.
+
+Profile colors are limited to registered semantic tokens and six/eight-digit hexadecimal values. The
+backend rejects malformed, oversized, unknown, or unsafe profile data before saving. Profiles are
+cached locally for first-paint startup and are re-applied after settings load.
+
+Reader typography remains separate. `content_font_family`, `content_font_size`, line height, width,
+paragraph spacing, and article custom CSS are edited in the Reading settings and are never written by
+the application-theme editor.
+
+When adding a new editable theme token, update `frontend/src/types/theme.ts`, the corresponding
+token definitions in `frontend/src/style.css`, the frontend sanitizer, the backend allowlist in
+`internal/handlers/settings/theme_profiles_validation.go`, and both locale files. Add a contrast or
+component test for the new token.
 
 ---
 

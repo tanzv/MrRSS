@@ -3,10 +3,20 @@ import { ref, computed, type Ref } from 'vue';
 import type { Article, Feed, Tag, UnreadCounts, RefreshProgress } from '@/types/models';
 import type { FilterCondition } from '@/types/filter';
 import { useSettings } from '@/composables/core/useSettings';
+import {
+  applyCustomTheme,
+  applyThemePreference,
+  getStoredThemePreference,
+  getSystemPrefersDark,
+  normalizeThemePreference,
+  type ThemePreference,
+  type ThemePreset,
+} from '@/utils/theme';
+import { parseThemeProfiles } from '@/utils/customTheme';
+import type { CustomThemeProfile } from '@/types/theme';
 
 export type Filter = 'all' | 'unread' | 'favorites' | 'readLater' | 'imageGallery' | '';
-export type ThemePreference = 'light' | 'dark' | 'auto';
-export type Theme = 'light' | 'dark';
+export type { ThemePreference, ThemePreset } from '@/utils/theme';
 
 // Temporary selection state for feed drawer selections
 export interface TempSelection {
@@ -28,7 +38,7 @@ export interface AppState {
   hasMore: Ref<boolean>;
   searchQuery: Ref<string>;
   themePreference: Ref<ThemePreference>;
-  theme: Ref<Theme>;
+  theme: Ref<ThemePreset>;
   refreshProgress: Ref<RefreshProgress>;
   showOnlyUnread: Ref<boolean>;
   activeFilters: Ref<FilterCondition[]>;
@@ -48,7 +58,7 @@ export interface AppActions {
   markAllAsRead: (feedId?: number, category?: string) => Promise<void>;
   updateArticleSummary: (articleId: number, summary: string) => void;
   toggleTheme: () => void;
-  setTheme: (preference: ThemePreference) => void;
+  setTheme: (preference: ThemePreference | string, profiles?: CustomThemeProfile[]) => void;
   applyTheme: () => void;
   initTheme: () => void;
   refreshFeeds: () => Promise<void>;
@@ -92,10 +102,8 @@ export const useAppStore = defineStore('app', () => {
   const page = ref<number>(1);
   const hasMore = ref<boolean>(true);
   const searchQuery = ref<string>('');
-  const themePreference = ref<ThemePreference>(
-    (localStorage.getItem('themePreference') as ThemePreference) || 'auto'
-  );
-  const theme = ref<Theme>('light');
+  const themePreference = ref<ThemePreference>(getStoredThemePreference());
+  const theme = ref<ThemePreset>('paper');
   const showOnlyUnread = ref<boolean>(localStorage.getItem('showOnlyUnread') === 'true');
   const activeFilters = ref<FilterCondition[]>([]);
   const filteredArticlesFromServer = ref<Article[]>([]);
@@ -352,53 +360,55 @@ export const useAppStore = defineStore('app', () => {
 
   // Theme Management
   function toggleTheme(): void {
-    // Cycle through: light -> dark -> auto -> light
-    if (themePreference.value === 'light') {
-      themePreference.value = 'dark';
-    } else if (themePreference.value === 'dark') {
-      themePreference.value = 'auto';
-    } else {
-      themePreference.value = 'light';
-    }
-    localStorage.setItem('themePreference', themePreference.value);
+    const cycle: ThemePreference[] = ['paper', 'ink', 'sepia', 'high-contrast', 'auto'];
+    const currentIndex = cycle.indexOf(themePreference.value);
+    themePreference.value = cycle[currentIndex === -1 ? 0 : (currentIndex + 1) % cycle.length];
     applyTheme();
   }
 
-  function setTheme(preference: ThemePreference): void {
-    themePreference.value = preference;
-    localStorage.setItem('themePreference', preference);
-    applyTheme();
+  function setTheme(preference: ThemePreference | string, profiles?: CustomThemeProfile[]): void {
+    themePreference.value = normalizeThemePreference(preference);
+    applyTheme(profiles);
   }
 
-  function applyTheme(): void {
-    let actualTheme: Theme = themePreference.value as Theme;
+  function applyTheme(profiles = parseThemeProfiles(settingsRef.value.theme_profiles)): void {
+    const activeProfileId = themePreference.value.startsWith('custom:')
+      ? themePreference.value.slice('custom:'.length)
+      : '';
+    const activeProfile = profiles.find((profile) => profile.id === activeProfileId);
+    theme.value = activeProfile
+      ? applyCustomTheme(activeProfile, getSystemPrefersDark())
+      : applyThemePreference(themePreference.value, getSystemPrefersDark());
 
-    // If auto, detect system preference
-    if (themePreference.value === 'auto') {
-      actualTheme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
-    }
-
-    theme.value = actualTheme;
-
-    // Apply to both html and body for consistency
-    const htmlElement = document.documentElement;
-    if (actualTheme === 'dark') {
-      htmlElement.classList.add('dark-mode');
-      document.body.classList.add('dark-mode');
-    } else {
-      htmlElement.classList.remove('dark-mode');
-      document.body.classList.remove('dark-mode');
+    try {
+      localStorage.setItem('themeProfilesCache', JSON.stringify({ version: 1, profiles }));
+    } catch {
+      // Runtime theme application remains available when local storage is unavailable.
     }
   }
 
   function initTheme(): void {
     // Listen for system theme changes
-    const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
-    mediaQuery.addEventListener('change', () => {
-      if (themePreference.value === 'auto') {
+    const mediaQuery =
+      typeof window !== 'undefined' && typeof window.matchMedia === 'function'
+        ? window.matchMedia('(prefers-color-scheme: dark)')
+        : null;
+    const handleSystemThemeChange = () => {
+      const activeProfileId = themePreference.value.startsWith('custom:')
+        ? themePreference.value.slice('custom:'.length)
+        : '';
+      const activeProfile = parseThemeProfiles(settingsRef.value.theme_profiles).find(
+        (profile) => profile.id === activeProfileId
+      );
+      if (themePreference.value === 'auto' || activeProfile?.appearance === 'auto') {
         applyTheme();
       }
-    });
+    };
+    if (mediaQuery?.addEventListener) {
+      mediaQuery.addEventListener('change', handleSystemThemeChange);
+    } else {
+      mediaQuery?.addListener(handleSystemThemeChange);
+    }
 
     // Apply initial theme
     applyTheme();

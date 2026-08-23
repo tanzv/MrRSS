@@ -18,6 +18,8 @@ import {
   NumberControl,
 } from '@/components/settings';
 import FontFamilySelect from '@/components/settings/FontFamilySelect.vue';
+import ThemePresetPicker from '@/components/settings/ThemePresetPicker.vue';
+import CustomThemeManager from '@/components/settings/CustomThemeManager.vue';
 import type { SettingsData } from '@/types/settings';
 
 const { t } = useI18n();
@@ -67,19 +69,19 @@ function updateUiFontSize(value: number) {
       @update:model-value="updateSetting('close_to_tray', $event)"
     />
 
-    <SettingWithSelect
+    <SettingItem
       :icon="PhMoon"
       :title="t('setting.general.theme')"
       :description="t('setting.general.themeDesc')"
-      :model-value="settings.theme"
-      :options="[
-        { value: 'light', label: t('setting.general.light') },
-        { value: 'dark', label: t('setting.general.dark') },
-        { value: 'auto', label: t('setting.general.auto') },
-      ]"
-      width="md"
-      @update:model-value="updateSetting('theme', $event)"
-    />
+      stacked
+    >
+      <ThemePresetPicker
+        :model-value="settings.theme"
+        @update:model-value="updateSetting('theme', $event)"
+      />
+    </SettingItem>
+
+    <CustomThemeManager :settings="settings" @update:settings="emit('update:settings', $event)" />
 
     <SettingWithSelect
       :icon="PhTranslate"
@@ -117,6 +119,7 @@ function updateUiFontSize(value: number) {
         :min="12"
         :max="20"
         suffix="px"
+        :aria-label="t('setting.general.uiFontSize')"
         @update:model-value="updateUiFontSize"
       />
     </SettingItem>

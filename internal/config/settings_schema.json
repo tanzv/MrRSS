@@ -39,6 +39,13 @@
       "encrypted": false,
       "frontend_key": "theme"
     },
+    "theme_profiles": {
+      "type": "string",
+      "default": "[]",
+      "category": "general",
+      "encrypted": false,
+      "frontend_key": "themeProfiles"
+    },
     "default_view_mode": {
       "type": "string",
       "default": "rendered",

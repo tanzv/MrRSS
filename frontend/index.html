@@ -2,39 +2,125 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <meta name="color-scheme" content="light dark">
+    <meta name="color-scheme" content="light dark" />
     <link rel="icon" type="image/svg+xml" href="/assets/logo.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>MrRSS</title>
 
     <!-- Apply theme immediately BEFORE any styles load to prevent flash -->
     <script>
-      (function() {
+      (function () {
+        const builtInPreferences = ['auto', 'paper', 'ink', 'sepia', 'high-contrast'];
+        const builtInPresets = ['paper', 'ink', 'sepia', 'high-contrast'];
+        const backgrounds = {
+          paper: '#ffffff',
+          ink: '#1e1e1e',
+          sepia: '#f7f1e3',
+          'high-contrast': '#000000',
+        };
+        const safeToken =
+          /^(?:bg|surface|text|accent|selection|border|mark|table|code|syntax|state|unread|overlay|media)-[a-z0-9-]+$/;
+        const safeColor = /^#[0-9a-f]{6}(?:[0-9a-f]{2})?$/i;
+        const safeFont = /^[\w\s,'".-]+$/u;
+
+        function applyOverrides(root, overrides) {
+          if (!overrides || typeof overrides !== 'object' || Array.isArray(overrides)) return;
+          Object.entries(overrides).forEach(([key, value]) => {
+            if (safeToken.test(key) && typeof value === 'string' && safeColor.test(value)) {
+              root.style.setProperty(`--${key}`, value.toLowerCase());
+            }
+          });
+        }
+
+        function setDerivedAccentRgb(root) {
+          const accent = root.style.getPropertyValue('--accent-color').trim();
+          const match = accent.match(/^#([0-9a-f]{6})/i);
+          if (!match) return;
+          const hex = match[1];
+          const channels = [0, 2, 4]
+            .map((offset) => Number.parseInt(hex.slice(offset, offset + 2), 16))
+            .join(' ');
+          root.style.setProperty('--accent-rgb', channels);
+        }
+
         try {
-          const themePreference = localStorage.getItem('themePreference') || 'auto';
-          let actualTheme = themePreference;
-
-          // If auto, detect system preference
-          if (themePreference === 'auto') {
-            actualTheme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+          const storedPreference = localStorage.getItem('themePreference') || 'auto';
+          const legacyPreference =
+            storedPreference === 'light'
+              ? 'paper'
+              : storedPreference === 'dark'
+                ? 'ink'
+                : storedPreference;
+          let preference = builtInPreferences.includes(legacyPreference)
+            ? legacyPreference
+            : /^custom:[a-z0-9][a-z0-9_-]{0,63}$/i.test(legacyPreference)
+              ? legacyPreference
+              : 'auto';
+          const prefersDark =
+            typeof window.matchMedia === 'function' &&
+            window.matchMedia('(prefers-color-scheme: dark)').matches;
+          let profile = null;
+          if (preference.startsWith('custom:')) {
+            try {
+              const cached = JSON.parse(localStorage.getItem('themeProfilesCache') || '{}');
+              const profiles =
+                cached && cached.version === 1 && Array.isArray(cached.profiles)
+                  ? cached.profiles
+                  : [];
+              const profileId = preference.slice('custom:'.length);
+              profile =
+                profiles.find((candidate) => candidate && candidate.id === profileId) || null;
+            } catch {
+              profile = null;
+            }
+            if (!profile || !builtInPresets.includes(profile.basePreset)) {
+              preference = 'auto';
+            }
           }
+          const preset = profile
+            ? profile.basePreset
+            : preference === 'auto'
+              ? prefersDark
+                ? 'ink'
+                : 'paper'
+              : preference;
+          const isDark = profile
+            ? profile.appearance === 'dark' || (profile.appearance === 'auto' && prefersDark)
+            : preset === 'ink' || preset === 'high-contrast';
+          const root = document.documentElement;
 
-          // Apply dark mode immediately and set background inline
-          if (actualTheme === 'dark') {
-            document.documentElement.classList.add('dark-mode');
-            document.documentElement.style.backgroundColor = '#1e1e1e';
+          root.dataset.themePreset = preset;
+          root.classList.toggle('dark-mode', isDark);
+          root.style.backgroundColor = backgrounds[preset];
+          root.style.colorScheme = isDark ? 'dark' : 'light';
+          if (profile) {
+            const variant =
+              profile.appearance === 'dark' || (profile.appearance === 'auto' && prefersDark)
+                ? profile.dark
+                : profile.light;
+            applyOverrides(root, variant);
+            setDerivedAccentRgb(root);
+            if (typeof profile.uiFontFamily === 'string' && safeFont.test(profile.uiFontFamily)) {
+              root.style.setProperty(
+                '--ui-font-family',
+                profile.uiFontFamily === 'system' ? 'system-ui, sans-serif' : profile.uiFontFamily
+              );
+            }
+            const size = Number(profile.uiFontSize);
+            if (Number.isFinite(size)) {
+              const clampedSize = Math.min(20, Math.max(12, Math.round(size)));
+              root.style.setProperty('--ui-font-size', `${clampedSize}px`);
+              root.style.setProperty('--ui-font-scale', String(clampedSize / 16));
+            }
+            root.dataset.themeProfile = profile.id;
           }
+          localStorage.setItem('themePreference', preference);
         } catch (e) {
           // Fallback to light mode if localStorage fails
           console.error('Theme initialization failed:', e);
         }
       })();
     </script>
-
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
-    <script src="https://unpkg.com/@phosphor-icons/web"></script>
   </head>
   <body>
     <div id="app"></div>

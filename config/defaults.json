@@ -97,6 +97,7 @@
   "tencent_secret_id": "",
   "tencent_secret_key": "",
   "theme": "auto",
+  "theme_profiles": "[]",
   "translation_enabled": false,
   "translation_only_mode": false,
   "translation_provider": "google",

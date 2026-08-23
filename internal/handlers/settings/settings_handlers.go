@@ -59,6 +59,13 @@ func HandleSettings(h *core.Handler, w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
+		if themeProfiles, ok := req["theme_profiles"]; ok {
+			if err := validateThemeProfilesJSON(themeProfiles); err != nil {
+				response.Error(w, err, http.StatusBadRequest)
+				return
+			}
+		}
+
 		wasFreshRSSEnabled := false
 		if _, ok := req["freshrss_enabled"]; ok {
 			currentValue, err := h.DB.GetSetting("freshrss_enabled")

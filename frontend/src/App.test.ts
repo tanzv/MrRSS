@@ -1,12 +1,13 @@
 import { describe, it, expect, vi } from 'vitest';
 import { nextTick } from 'vue';
-import { mount } from '@vue/test-utils';
+import { flushPromises, mount } from '@vue/test-utils';
 import { createPinia } from 'pinia';
 import { createI18n } from 'vue-i18n';
 import en from './i18n/locales/en';
 import App from './App.vue';
 import { setSettingsFromRawData } from './composables/core/useSettings';
 import { getRecommendedFonts } from './utils/fontDetector';
+import { useAppStore } from './stores/app';
 
 // Create stub components for complex child components
 const createStub = (name: string) => ({
@@ -59,7 +60,11 @@ describe('App', () => {
 
     // Check that the app container is rendered
     expect(wrapper.find('.app-container').exists()).toBe(true);
-    expect(document.documentElement.style.getPropertyValue('--ui-font-family')).toContain('Inter');
+    expect(document.documentElement.style.getPropertyValue('--ui-font-family')).toContain(
+      '-apple-system'
+    );
+    expect(document.documentElement.style.getPropertyValue('--ui-font-family')).not.toContain(
+      'Inter'
     expect(document.documentElement.style.getPropertyValue('--ui-font-size')).toBe('16px');
     expect(document.documentElement.style.getPropertyValue('--ui-font-scale')).toBe('1');
 
@@ -99,6 +104,82 @@ describe('App', () => {
 
     wrapper.unmount();
     expect(document.documentElement.style.getPropertyValue('--ui-font-family')).toBe('');
+  });
+
+  it('applies the active custom profile without changing reader typography settings', async () => {
+    const profile = {
+      id: 'focus',
+      name: 'Focus',
+      basePreset: 'paper',
+      appearance: 'light',
+      light: { 'accent-color': '#123456' },
+      dark: {},
+      uiFontFamily: 'serif',
+      uiFontSize: 18,
+      updatedAt: '2026-08-23T00:00:00.000Z',
+    };
+    setSettingsFromRawData({
+      theme: 'custom:focus',
+      theme_profiles: JSON.stringify([profile]),
+      content_font_family: 'monospace',
+      content_font_size: '22',
+    });
+    const defaultFetch = vi.mocked(global.fetch).getMockImplementation();
+    vi.mocked(global.fetch).mockImplementation(async (input, init) => {
+      if (String(input) === '/api/settings') {
+        return {
+          ok: true,
+          json: async () => ({
+            theme: 'custom:focus',
+            theme_profiles: JSON.stringify([profile]),
+            layout_mode: 'normal',
+            update_interval: '30',
+            update_check_enabled: 'false',
+          }),
+        } as Response;
+      }
+      return defaultFetch?.(input, init) ?? ({ ok: true, json: async () => ({}) } as Response);
+    });
+    const pinia = createPinia();
+    const i18n = createI18n({
+      legacy: false,
+      locale: 'en',
+      messages: { en },
+    });
+    const wrapper = mount(App, {
+      global: {
+        plugins: [pinia, i18n],
+        stubs: {
+          Sidebar: createStub('Sidebar'),
+          ArticleList: createStub('ArticleList'),
+          ArticleDetail: createStub('ArticleDetail'),
+          ImageGalleryView: createStub('ImageGalleryView'),
+          AddFeedModal: createStub('AddFeedModal'),
+          EditFeedModal: createStub('EditFeedModal'),
+          SettingsModal: createStub('SettingsModal'),
+          DiscoverFeedsModal: createStub('DiscoverFeedsModal'),
+          UpdateAvailableDialog: createStub('UpdateAvailableDialog'),
+          ContextMenu: createStub('ContextMenu'),
+          ConfirmDialog: createStub('ConfirmDialog'),
+          InputDialog: createStub('InputDialog'),
+          MultiSelectDialog: createStub('MultiSelectDialog'),
+          Toast: createStub('Toast'),
+        },
+      },
+    });
+
+    await nextTick();
+    await flushPromises();
+    const appStore = useAppStore(pinia);
+    expect(appStore.themePreference).toBe('custom:focus');
+    expect(document.documentElement.style.getPropertyValue('--accent-color')).toBe('#123456');
+    expect(document.documentElement.style.getPropertyValue('--ui-font-size')).toBe('18px');
+    expect(document.documentElement.style.getPropertyValue('--ui-font-family')).toContain(
+      'Georgia'
+    );
+
+    wrapper.unmount();
+    vi.mocked(global.fetch).mockImplementation(defaultFetch);
   });
 
   it('detects the expanded Chinese font catalog in the expected groups', () => {

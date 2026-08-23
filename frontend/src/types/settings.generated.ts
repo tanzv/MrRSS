@@ -103,6 +103,7 @@ export interface SettingsData {
   tencent_secret_id: string;
   tencent_secret_key: string;
   theme: string;
+  theme_profiles: string;
   translation_enabled: boolean;
   translation_only_mode: boolean;
   translation_provider: string;

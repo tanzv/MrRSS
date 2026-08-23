@@ -5,7 +5,15 @@ export default {
   theme: {
     extend: {
       fontFamily: {
-        sans: ['Inter', 'Noto Sans CJK SC', 'system-ui', 'sans-serif'],
+        sans: [
+          '-apple-system',
+          'BlinkMacSystemFont',
+          'Segoe UI',
+          'Noto Sans CJK SC',
+          'Microsoft YaHei',
+          'system-ui',
+          'sans-serif',
+        ],
       },
       fontSize: {
         xs: [
@@ -42,10 +50,13 @@ export default {
         text: {
           primary: 'var(--text-primary)',
           secondary: 'var(--text-secondary)',
+          tertiary: 'var(--text-tertiary)',
+          'on-accent': 'var(--accent-foreground)',
         },
         accent: {
           DEFAULT: 'var(--accent-color)',
           hover: 'var(--accent-hover)',
+          text: 'var(--accent-text-color)',
         },
         border: 'var(--border-color)',
       },

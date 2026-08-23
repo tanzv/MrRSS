@@ -4,13 +4,27 @@
 import { ref, type Ref, onMounted, onUnmounted } from 'vue';
 import { useI18n } from 'vue-i18n';
 import type { SettingsData } from '@/types/settings';
-import type { ThemePreference } from '@/stores/app';
+import { normalizeThemePreference } from '@/utils/theme';
+import { parseThemeProfiles, serializeThemeProfiles } from '@/utils/customTheme';
+import type { CustomThemeProfile } from '@/types/theme';
 import { generateInitialSettings, parseSettingsData } from './useSettings.generated';
 
 const sharedSettings: Ref<SettingsData> = ref(generateInitialSettings());
 
 export function setSettingsFromRawData(data: Record<string, string>) {
-  sharedSettings.value = parseSettingsData(data);
+  const parsedSettings = parseSettingsData(data);
+  const themeProfiles = parseThemeProfiles(parsedSettings.theme_profiles);
+  let serializedThemeProfiles = '[]';
+  try {
+    serializedThemeProfiles = serializeThemeProfiles(themeProfiles);
+  } catch (error) {
+    console.warn('Invalid custom theme profiles were reset:', error);
+  }
+  sharedSettings.value = {
+    ...parsedSettings,
+    theme: normalizeThemePreference(parsedSettings.theme),
+    theme_profiles: serializedThemeProfiles,
+  };
 }
 
 export function useSettings() {
@@ -40,7 +54,10 @@ export function useSettings() {
    * Apply fetched settings to the app
    */
 
-  function applySettings(data: SettingsData, setTheme: (preference: ThemePreference) => void) {
+  function applySettings(
+    data: SettingsData,
+    setTheme: (preference: string, profiles?: CustomThemeProfile[]) => void
+  ) {
     // Apply the saved language
     if (data.language) {
       locale.value = data.language;
@@ -48,7 +65,7 @@ export function useSettings() {
 
     // Apply the saved theme
     if (data.theme) {
-      setTheme(data.theme as ThemePreference);
+      setTheme(data.theme, parseThemeProfiles(data.theme_profiles));
     }
 
     // Initialize shortcuts in store

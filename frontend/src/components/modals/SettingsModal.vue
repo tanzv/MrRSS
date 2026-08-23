@@ -29,7 +29,6 @@ import {
   PhInfo,
 } from '@phosphor-icons/vue';
 import type { TabName } from '@/types/settings';
-import type { ThemePreference } from '@/stores/app';
 import { useSettings } from '@/composables/core/useSettings';
 import { useAppUpdates } from '@/composables/core/useAppUpdates';
 import { useFeedManagement } from '@/composables/feed/useFeedManagement';
@@ -76,7 +75,7 @@ const showDiscoverAllModal = ref(false);
 onMounted(async () => {
   try {
     const data = await fetchSettings();
-    applySettings(data, (theme: string) => store.setTheme(theme as ThemePreference));
+    applySettings(data, (theme: string, profiles) => store.setTheme(theme, profiles));
   } catch (e) {
     console.error('Error loading settings:', e);
   }

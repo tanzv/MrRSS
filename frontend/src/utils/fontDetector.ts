@@ -121,7 +121,7 @@ const COMMON_FONTS = {
 };
 
 export const SYSTEM_FONT_STACK =
-  'Inter, "Noto Sans CJK SC", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
+  '-apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans CJK SC", "Microsoft YaHei", system-ui, sans-serif';
 
 export interface RecommendedFonts {
   serif: string[];

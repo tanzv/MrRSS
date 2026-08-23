@@ -7,6 +7,7 @@ import { useAppStore } from '@/stores/app';
 import type { SettingsData } from '@/types/settings';
 import { settingsDefaults } from '@/config/defaults';
 import { buildAutoSavePayload } from './useSettings.generated';
+import { parseThemeProfiles } from '@/utils/customTheme';
 
 export function useSettingsAutoSave(settings: Ref<SettingsData> | (() => SettingsData)) {
   const { locale } = useI18n();
@@ -96,7 +97,7 @@ export function useSettingsAutoSave(settings: Ref<SettingsData> | (() => Setting
       // Always apply basic settings immediately (theme, language, etc.)
       // even if validation fails - these don't require API keys
       locale.value = settingsRef.value.language;
-      store.setTheme(settingsRef.value.theme as 'light' | 'dark' | 'auto');
+      store.setTheme(settingsRef.value.theme, parseThemeProfiles(settingsRef.value.theme_profiles));
       store.startAutoRefresh(settingsRef.value.update_interval);
 
       // Notify components about default view mode change
@@ -108,12 +109,9 @@ export function useSettingsAutoSave(settings: Ref<SettingsData> | (() => Setting
         })
       );
 
-      // Note: Validation is used for UI feedback only (showing red borders on invalid fields).
-      // We do NOT block saving settings to the backend based on validation.
-      // This allows users to save their preferences immediately, even if some fields are invalid.
-      // The backend saves all provided values to the database without validation.
-      // Features that require valid settings (e.g., translation with API keys) will check
-      // for valid values at runtime and fail gracefully if settings are incomplete/invalid.
+      // Most settings are intentionally saved while their form fields are incomplete.
+      // Theme profiles are the exception: the API validates their bounded JSON payload
+      // before writing it to storage.
 
       // Save to backend using generated payload (alphabetically sorted)
       await fetch('/api/settings', {

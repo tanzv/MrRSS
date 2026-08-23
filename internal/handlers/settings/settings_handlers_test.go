@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 
 	"MrRSS/internal/database"
@@ -87,6 +88,127 @@ func TestHandleSettings_POST(t *testing.T) {
 	}
 	if dec != "deadbeef" {
 		t.Fatalf("expected deepl_api_key decrypted to be deadbeef, got %s", dec)
+	}
+}
+
+func TestHandleSettingsThemeProfilesRoundTrip(t *testing.T) {
+	h := setupHandlerWithDB(t)
+	profileJSON := `[{"id":"custom-1","name":"Focus","basePreset":"ink","appearance":"dark","light":{},"dark":{},"uiFontFamily":"system","uiFontSize":16,"updatedAt":"2026-08-23T00:00:00.000Z"}]`
+	payload, err := json.Marshal(map[string]string{"theme_profiles": profileJSON})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	post := httptest.NewRequest(http.MethodPost, "/api/settings", bytes.NewReader(payload))
+	post.Header.Set("Content-Type", "application/json")
+	postResponse := httptest.NewRecorder()
+	HandleSettings(h, postResponse, post)
+	if postResponse.Code != http.StatusOK {
+		t.Fatalf("POST status = %d", postResponse.Code)
+	}
+
+	getResponse := httptest.NewRecorder()
+	HandleSettings(h, getResponse, httptest.NewRequest(http.MethodGet, "/api/settings", nil))
+	var got map[string]string
+	if err := json.NewDecoder(getResponse.Body).Decode(&got); err != nil {
+		t.Fatal(err)
+	}
+	if got["theme_profiles"] != profileJSON {
+		t.Fatalf("theme_profiles = %q, want %q", got["theme_profiles"], profileJSON)
+	}
+
+	emptyPayload, err := json.Marshal(map[string]string{"theme_profiles": "[]"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	emptyPost := httptest.NewRequest(http.MethodPost, "/api/settings", bytes.NewReader(emptyPayload))
+	emptyPost.Header.Set("Content-Type", "application/json")
+	emptyResponse := httptest.NewRecorder()
+	HandleSettings(h, emptyResponse, emptyPost)
+	if emptyResponse.Code != http.StatusOK {
+		t.Fatalf("empty POST status = %d", emptyResponse.Code)
+	}
+	if value, _ := h.DB.GetSetting("theme_profiles"); value != "[]" {
+		t.Fatalf("theme_profiles after clearing = %q, want []", value)
+	}
+}
+
+func TestHandleSettingsRejectsInvalidThemeProfiles(t *testing.T) {
+	tests := []struct {
+		name     string
+		profiles string
+	}{
+		{
+			name:     "malformed json",
+			profiles: "[{",
+		},
+		{
+			name:     "unknown token",
+			profiles: `[{"id":"custom-1","light":{"--arbitrary":"#ffffff"}}]`,
+		},
+		{
+			name:     "invalid color",
+			profiles: `[{"id":"custom-1","light":{"accent-color":"red"}}]`,
+		},
+		{
+			name:     "unsafe font",
+			profiles: `[{"id":"custom-1","uiFontFamily":"system; color:red"}]`,
+		},
+		{
+			name:     "font size outside range",
+			profiles: `[{"id":"custom-1","uiFontSize":40}]`,
+		},
+		{
+			name:     "missing profile fields",
+			profiles: `[{"id":"custom-1","name":"Focus"}]`,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			h := setupHandlerWithDB(t)
+			if err := h.DB.SetSetting("theme_profiles", "[]"); err != nil {
+				t.Fatalf("seed theme_profiles: %v", err)
+			}
+			payload, err := json.Marshal(map[string]string{"theme_profiles": tt.profiles})
+			if err != nil {
+				t.Fatal(err)
+			}
+			req := httptest.NewRequest(http.MethodPost, "/api/settings", bytes.NewReader(payload))
+			req.Header.Set("Content-Type", "application/json")
+			w := httptest.NewRecorder()
+
+			HandleSettings(h, w, req)
+
+			if w.Code != http.StatusBadRequest {
+				t.Fatalf("status = %d, want %d; body: %s", w.Code, http.StatusBadRequest, w.Body.String())
+			}
+			stored, err := h.DB.GetSetting("theme_profiles")
+			if err != nil {
+				t.Fatalf("read theme_profiles: %v", err)
+			}
+			if stored != "[]" {
+				t.Fatalf("theme_profiles changed to %q after rejected request", stored)
+			}
+		})
+	}
+}
+
+func TestHandleSettingsRejectsOversizedThemeProfiles(t *testing.T) {
+	h := setupHandlerWithDB(t)
+	profiles := `[{"id":"custom-1","name":"` + strings.Repeat("x", 512*1024) + `"}]`
+	payload, err := json.Marshal(map[string]string{"theme_profiles": profiles})
+	if err != nil {
+		t.Fatal(err)
+	}
+	req := httptest.NewRequest(http.MethodPost, "/api/settings", bytes.NewReader(payload))
+	req.Header.Set("Content-Type", "application/json")
+	w := httptest.NewRecorder()
+
+	HandleSettings(h, w, req)
+
+	if w.Code != http.StatusBadRequest {
+		t.Fatalf("status = %d, want %d", w.Code, http.StatusBadRequest)
 	}
 }
 

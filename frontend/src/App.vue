@@ -24,6 +24,8 @@ import { useWindowState } from './composables/core/useWindowState';
 import { useAppUpdates } from './composables/core/useAppUpdates';
 import { useSettings } from './composables/core/useSettings';
 import { resolveFontFamily } from './utils/fontDetector';
+import { applyCustomTheme, clearCustomThemeOverrides, getSystemPrefersDark } from './utils/theme';
+import { parseThemeProfiles } from './utils/customTheme';
 import type { Feed } from './types/models';
 
 const store = useAppStore();
@@ -35,18 +37,36 @@ const uiFontSize = computed(() => {
   return Number.isFinite(value) ? Math.min(20, Math.max(12, value)) : 16;
 });
 
+const activeCustomTheme = computed(() => {
+  if (!settings.value.theme.startsWith('custom:')) {
+    return null;
+  }
+
+  const profileId = settings.value.theme.slice('custom:'.length);
+  return (
+    parseThemeProfiles(settings.value.theme_profiles).find((profile) => profile.id === profileId) ??
+    null
+  );
+});
+
 watchEffect(() => {
-  const rootStyle = document.documentElement.style;
+  const root = document.documentElement;
+  const rootStyle = root.style;
+  const profile = activeCustomTheme.value;
+
+  if (profile) {
+    applyCustomTheme(profile, getSystemPrefersDark(), root);
+    return;
+  }
+
+  clearCustomThemeOverrides(root);
   rootStyle.setProperty('--ui-font-family', resolveFontFamily(settings.value.ui_font_family));
   rootStyle.setProperty('--ui-font-size', `${uiFontSize.value}px`);
   rootStyle.setProperty('--ui-font-scale', String(uiFontSize.value / 16));
 });
 
 onUnmounted(() => {
-  const rootStyle = document.documentElement.style;
-  rootStyle.removeProperty('--ui-font-family');
-  rootStyle.removeProperty('--ui-font-size');
-  rootStyle.removeProperty('--ui-font-scale');
+  clearCustomThemeOverrides(document.documentElement);
 });
 
 const showAddFeed = ref(false);
@@ -144,7 +164,7 @@ onMounted(async () => {
 
     // Apply saved theme preference (already applied in main.ts, but ensure it's set)
     if (data.theme) {
-      store.setTheme(data.theme);
+      store.setTheme(data.theme, parseThemeProfiles(data.theme_profiles));
     }
 
     // Apply other settings
@@ -472,7 +492,7 @@ function onFeedUpdated(): void {
 }
 .resizer:hover,
 .resizer:active {
-  background-color: var(--color-accent, #3b82f6);
+  background-color: var(--accent-color);
 }
 /* Global styles if needed */
 </style>
