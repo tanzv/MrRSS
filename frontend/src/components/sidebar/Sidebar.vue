@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted, onBeforeUnmount, nextTick, toRef, watch } from 'vue';
+import { computed, ref, onMounted, onBeforeUnmount, nextTick, toRef, watch } from 'vue';
 import { PhCaretRight } from '@phosphor-icons/vue';
 import { useI18n } from 'vue-i18n';
 import { useSidebarEdgeReveal } from '@/composables/ui/useSidebarEdgeReveal';
@@ -28,11 +28,15 @@ const { t } = useI18n();
 const isFeedListExpanded = ref(false);
 const isFeedListPinned = ref(false);
 const activityBarRef = ref<InstanceType<typeof ActivityBar> | null>(null);
+const sidebarToggleContainerRef = ref<HTMLElement | null>(null);
+const desktopRevealBridgeRef = ref<HTMLButtonElement | null>(null);
+const mobileEdgeToggleRef = ref<HTMLButtonElement | null>(null);
 let focusTimer: number | null = null;
 
-// Activity bar collapse state - use localStorage for persistence
-const savedActivityBarCollapsed = localStorage.getItem('ActivityBarCollapsed');
-const isActivityBarCollapsed = ref(savedActivityBarCollapsed === 'true');
+// Keep the legacy key so existing users retain their sidebar preference.
+const ACTIVITY_BAR_VISIBILITY_STORAGE_KEY = 'ActivityBarCollapsed';
+const savedActivityBarVisibility = localStorage.getItem(ACTIVITY_BAR_VISIBILITY_STORAGE_KEY);
+const isActivityBarAutoHideEnabled = ref(savedActivityBarVisibility === 'true');
 const {
   isTemporarilyRevealed,
   isActivityBarVisible,
@@ -42,13 +46,20 @@ const {
   handleFocusOut,
   dismissTemporaryReveal,
 } = useSidebarEdgeReveal({
-  isPersistentlyCollapsed: isActivityBarCollapsed,
+  isAutoHideEnabled: isActivityBarAutoHideEnabled,
   isMobile: toRef(props, 'isMobile'),
 });
 
-// Save activity bar state to localStorage
-function saveActivityBarState() {
-  localStorage.setItem('ActivityBarCollapsed', String(isActivityBarCollapsed.value));
+const activityBarVisibilityControl = computed(() => {
+  if (props.isMobile) return 'collapse';
+  return isActivityBarAutoHideEnabled.value ? 'pin' : 'auto-hide';
+});
+
+function saveActivityBarAutoHideState() {
+  localStorage.setItem(
+    ACTIVITY_BAR_VISIBILITY_STORAGE_KEY,
+    String(isActivityBarAutoHideEnabled.value)
+  );
 }
 
 // Handle ready event from ActivityBar
@@ -169,20 +180,42 @@ function focusMobileDrawer() {
   });
 }
 
-function toggleActivityBar() {
-  if (isActivityBarCollapsed.value) {
-    dismissTemporaryReveal();
-    return;
+function hideActivityBar(event?: MouseEvent): void {
+  const shouldRestoreKeyboardFocus = event?.detail === 0;
+  dismissTemporaryReveal();
+  isActivityBarAutoHideEnabled.value = true;
+  saveActivityBarAutoHideState();
+  if (shouldRestoreKeyboardFocus) {
+    nextTick(focusActivityBarRevealControl);
   }
-
-  isActivityBarCollapsed.value = true;
-  saveActivityBarState();
 }
 
-function persistExpandedFromEdge() {
+function pinActivityBar(): void {
   dismissTemporaryReveal();
-  isActivityBarCollapsed.value = false;
-  saveActivityBarState();
+  isActivityBarAutoHideEnabled.value = false;
+  saveActivityBarAutoHideState();
+}
+
+function focusFirstActivityBarAction(): void {
+  sidebarToggleContainerRef.value
+    ?.querySelector<HTMLElement>('.smart-activity-bar button')
+    ?.focus();
+}
+
+function focusActivityBarRevealControl(): void {
+  (props.isMobile ? mobileEdgeToggleRef.value : desktopRevealBridgeRef.value)?.focus();
+}
+
+function focusDesktopPreview(): void {
+  nextTick(focusFirstActivityBarAction);
+}
+
+function expandMobileActivityBar(event: MouseEvent): void {
+  const shouldRestoreKeyboardFocus = event.detail === 0;
+  pinActivityBar();
+  if (shouldRestoreKeyboardFocus) {
+    nextTick(focusFirstActivityBarAction);
+  }
 }
 
 watch(
@@ -209,7 +242,7 @@ onBeforeUnmount(() => {
   <div
     class="compact-sidebar-wrapper flex h-full relative"
     :class="{
-      'width-collapsed': isActivityBarCollapsed,
+      'width-auto-hidden': isActivityBarAutoHideEnabled,
       'is-edge-revealed': isTemporarilyRevealed,
       'is-compact-shell': props.isCompact,
       'is-mobile-shell': props.isMobile,
@@ -225,25 +258,36 @@ onBeforeUnmount(() => {
       @click="handleBackdropClick"
     ></button>
 
-    <!-- Shared container for ActivityBar and Edge Toggle -->
+    <!-- Shared reveal zone and activity bar -->
     <div
+      ref="sidebarToggleContainerRef"
       class="sidebar-toggle-container"
       @pointerenter="handlePointerEnter"
       @pointerleave="handlePointerLeave"
       @focusin="handleFocusIn"
       @focusout="handleFocusOut"
     >
-      <!-- Edge Toggle Button (visible when ActivityBar is collapsed) -->
-      <Transition name="edge-toggle-fade">
+      <button
+        v-if="!props.isMobile && isActivityBarAutoHideEnabled"
+        ref="desktopRevealBridgeRef"
+        type="button"
+        class="sidebar-reveal-bridge"
+        :aria-label="t('sidebar.activity.showActivityBar')"
+        @click="focusDesktopPreview"
+      ></button>
+
+      <!-- Mobile retains an explicit expansion control because it has no hover preview. -->
+      <Transition name="edge-pin-fade">
         <button
-          v-if="isActivityBarCollapsed"
+          v-if="props.isMobile && isActivityBarAutoHideEnabled"
+          ref="mobileEdgeToggleRef"
           type="button"
           data-testid="sidebar-edge-toggle"
-          class="edge-toggle-button flex items-center justify-center text-text-secondary hover:text-accent-text transition-all"
+          class="edge-pin-button flex items-center justify-center text-text-secondary hover:text-accent-text"
           :title="t('sidebar.activity.expandActivityBar')"
           :aria-label="t('sidebar.activity.expandActivityBar')"
           :aria-expanded="isActivityBarVisible"
-          @click="persistExpandedFromEdge"
+          @click="expandMobileActivityBar"
         >
           <PhCaretRight :size="20" weight="regular" />
         </button>
@@ -253,10 +297,12 @@ onBeforeUnmount(() => {
       <ActivityBar
         ref="activityBarRef"
         :is-collapsed="!isActivityBarVisible"
+        :visibility-control="activityBarVisibilityControl"
         @add-feed="emitShowAddFeed"
         @settings="emitShowSettings"
         @toggle-feed-drawer="handleToggleFeedList"
-        @toggle-activity-bar="toggleActivityBar"
+        @hide-activity-bar="hideActivityBar"
+        @pin-activity-bar="pinActivityBar"
         @select-filter="handleActivityFilterSelect"
         @ready="handleActivityBarReady"
       />
@@ -269,7 +315,7 @@ onBeforeUnmount(() => {
         class="feed-drawer-wrapper"
         :class="[
           { pinned: isFeedListPinned },
-          { 'activity-bar-collapsed': isActivityBarCollapsed },
+          { 'activity-bar-auto-hidden': isActivityBarAutoHideEnabled },
         ]"
       >
         <FeedList
@@ -306,7 +352,7 @@ onBeforeUnmount(() => {
   cursor: default;
 }
 
-/* Container for both ActivityBar and Edge Toggle - uses absolute positioning */
+/* Container for the activity bar and its left-edge reveal zone. */
 .sidebar-toggle-container {
   position: relative;
   width: 48px;
@@ -320,8 +366,8 @@ onBeforeUnmount(() => {
   will-change: width, min-width;
 }
 
-/* When collapsed, container shrinks to edge toggle button width */
-.compact-sidebar-wrapper.width-collapsed .sidebar-toggle-container {
+/* Auto-hidden desktop rails leave a quiet 16px reveal zone. */
+.compact-sidebar-wrapper.width-auto-hidden .sidebar-toggle-container {
   width: 16px;
   min-width: 16px;
 }
@@ -330,50 +376,44 @@ onBeforeUnmount(() => {
   z-index: 32;
 }
 
-@media (min-width: 768px) {
-  .compact-sidebar-wrapper.width-collapsed.is-edge-revealed .sidebar-toggle-container {
-    width: 48px;
-    min-width: 48px;
-    margin-right: -32px;
-  }
+.sidebar-reveal-bridge {
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 16px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  cursor: default;
+  pointer-events: none;
+  z-index: 0;
 }
 
-.compact-sidebar-wrapper.is-edge-revealed .edge-toggle-button {
+.sidebar-reveal-bridge:focus-visible {
+  outline: 2px solid var(--accent-text-color);
+  outline-offset: -2px;
   z-index: 31;
 }
 
-/* Edge toggle button - absolutely positioned in shared space */
-.edge-toggle-button {
-  position: absolute;
-  left: 0;
-  top: 0;
-  width: 16px;
-  height: 100%;
-  border-right: 1px solid var(--border-color);
-  background-color: var(--surface-panel);
-  cursor: pointer;
-  z-index: 16;
-  transition: background-color 0.2s;
+/* Keep the preview over the drawer instead of changing its flex position. */
+.compact-sidebar-wrapper.is-edge-revealed .sidebar-reveal-bridge {
+  width: 48px;
+  pointer-events: auto;
 }
 
-.edge-toggle-button:hover {
-  background-color: var(--surface-hover);
-}
-
-/* Edge toggle fade transition - faster than container width change */
-.edge-toggle-fade-enter-active,
-.edge-toggle-fade-leave-active {
+/* The mobile expansion control only appears when the rail is collapsed. */
+.edge-pin-fade-enter-active,
+.edge-pin-fade-leave-active {
   transition: opacity 0.15s cubic-bezier(0.4, 0, 0.2, 1);
   will-change: opacity;
 }
 
-.edge-toggle-fade-enter-from,
-.edge-toggle-fade-leave-to {
+.edge-pin-fade-enter-from,
+.edge-pin-fade-leave-to {
   opacity: 0;
 }
 
-.edge-toggle-fade-enter-to,
-.edge-toggle-fade-leave-from {
+.edge-pin-fade-enter-to,
+.edge-pin-fade-leave-from {
   opacity: 1;
 }
 
@@ -384,14 +424,30 @@ onBeforeUnmount(() => {
     min-width: 44px;
   }
 
-  .compact-sidebar-wrapper.width-collapsed .sidebar-toggle-container {
+  .compact-sidebar-wrapper.width-auto-hidden .sidebar-toggle-container {
     width: 44px;
     min-width: 44px;
   }
 
-  .edge-toggle-button {
+  .edge-pin-button {
+    position: absolute;
+    left: 0;
+    top: 0;
     width: 44px;
     min-width: 44px;
+    height: 100%;
+    border: 1px solid var(--border-color);
+    border-left: 0;
+    border-radius: 0;
+    background-color: var(--surface-panel);
+    cursor: pointer;
+    opacity: 1;
+    transform: none;
+  }
+
+  .edge-pin-button:hover,
+  .edge-pin-button:focus-visible {
+    background-color: var(--surface-hover);
   }
 }
 
@@ -410,7 +466,7 @@ onBeforeUnmount(() => {
     z-index: 30;
   }
 
-  .compact-sidebar-wrapper.is-compact-shell .feed-drawer-wrapper.pinned.activity-bar-collapsed {
+  .compact-sidebar-wrapper.is-compact-shell .feed-drawer-wrapper.pinned.activity-bar-auto-hidden {
     left: 16px;
   }
 }
@@ -429,8 +485,8 @@ onBeforeUnmount(() => {
   z-index: 20;
 }
 
-/* When activity bar is collapsed, feed drawer should start from edge toggle button */
-.feed-drawer-wrapper:not(.pinned).activity-bar-collapsed {
+/* An auto-hidden rail leaves the drawer at the edge while a preview overlays it. */
+.feed-drawer-wrapper:not(.pinned).activity-bar-auto-hidden {
   left: 16px;
 }
 
@@ -440,7 +496,7 @@ onBeforeUnmount(() => {
     left: 44px;
   }
 
-  .feed-drawer-wrapper:not(.pinned).activity-bar-collapsed {
+  .feed-drawer-wrapper:not(.pinned).activity-bar-auto-hidden {
     left: 16px;
   }
 }
@@ -531,7 +587,7 @@ onBeforeUnmount(() => {
     z-index: 31;
   }
 
-  .compact-sidebar-wrapper.is-mobile-shell .feed-drawer-wrapper.activity-bar-collapsed {
+  .compact-sidebar-wrapper.is-mobile-shell .feed-drawer-wrapper.activity-bar-auto-hidden {
     left: 44px !important;
   }
 
@@ -567,8 +623,8 @@ onBeforeUnmount(() => {
   .compact-sidebar-wrapper *,
   .drawer-position-enter-active,
   .drawer-position-leave-active,
-  .edge-toggle-fade-enter-active,
-  .edge-toggle-fade-leave-active {
+  .edge-pin-fade-enter-active,
+  .edge-pin-fade-leave-active {
     transition-duration: 0.01ms !important;
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;

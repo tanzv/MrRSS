@@ -9,9 +9,11 @@ import {
   PhPlus,
   PhGear,
   PhTextOutdent,
+  PhPushPin,
+  PhPushPinSlash,
   PhSidebar,
 } from '@phosphor-icons/vue';
-import { ref, onMounted } from 'vue';
+import { computed, ref, onMounted } from 'vue';
 import { useAppStore } from '@/stores/app';
 import { useI18n } from 'vue-i18n';
 import { useArticleFilter } from '@/composables/article/useArticleFilter';
@@ -21,11 +23,17 @@ const store = useAppStore();
 const { t } = useI18n();
 const { clearAllFilters } = useArticleFilter();
 
+type ActivityBarVisibilityControl = 'auto-hide' | 'pin' | 'collapse';
+
 interface Props {
   isCollapsed?: boolean;
+  visibilityControl?: ActivityBarVisibilityControl;
 }
 
-const props = defineProps<Props>();
+const props = withDefaults(defineProps<Props>(), {
+  isCollapsed: false,
+  visibilityControl: 'collapse',
+});
 
 const emit = defineEmits<{
   'select-filter': [filterType: string];
@@ -33,8 +41,27 @@ const emit = defineEmits<{
   settings: [];
   'toggle-feed-drawer': [];
   ready: [{ expanded: boolean; pinned: boolean }];
-  'toggle-activity-bar': [];
+  'hide-activity-bar': [event: MouseEvent];
+  'pin-activity-bar': [];
 }>();
+
+const visibilityControlLabel = computed(() => {
+  if (props.visibilityControl === 'auto-hide') {
+    return t('sidebar.activity.autoHideActivityBar');
+  }
+  if (props.visibilityControl === 'pin') {
+    return t('sidebar.activity.pinActivityBar');
+  }
+  return t('sidebar.activity.collapseActivityBar');
+});
+
+function handleVisibilityControlClick(event: MouseEvent): void {
+  if (props.visibilityControl === 'pin') {
+    emit('pin-activity-bar');
+    return;
+  }
+  emit('hide-activity-bar', event);
+}
 
 interface NavItem {
   id: string;
@@ -293,14 +320,26 @@ defineExpose({
         <!-- Divider -->
         <div class="activity-divider w-8 h-px bg-border my-2"></div>
 
-        <!-- Collapse Button (at the bottom) -->
+        <!-- Visibility mode action -->
         <button
           class="activity-nav-button relative flex items-center justify-center text-text-secondary flex-shrink-0 transition-all hover:text-accent-text"
-          :title="t('sidebar.activity.collapseActivityBar')"
-          :aria-label="t('sidebar.activity.collapseActivityBar')"
-          @click="emit('toggle-activity-bar')"
+          :title="visibilityControlLabel"
+          :aria-label="visibilityControlLabel"
+          @click="handleVisibilityControlClick"
         >
-          <PhTextOutdent :size="24" weight="regular" class="transition-all" />
+          <PhPushPinSlash
+            v-if="props.visibilityControl === 'auto-hide'"
+            :size="24"
+            weight="regular"
+            class="transition-all"
+          />
+          <PhPushPin
+            v-else-if="props.visibilityControl === 'pin'"
+            :size="24"
+            weight="regular"
+            class="transition-all"
+          />
+          <PhTextOutdent v-else :size="24" weight="regular" class="transition-all" />
         </button>
       </div>
     </div>

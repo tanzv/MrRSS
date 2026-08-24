@@ -2,14 +2,14 @@ import { computed, onBeforeUnmount, ref, watch } from 'vue';
 import type { ComputedRef, Ref } from 'vue';
 
 interface UseSidebarEdgeRevealOptions {
-  isPersistentlyCollapsed: Readonly<Ref<boolean>>;
+  isAutoHideEnabled: Readonly<Ref<boolean>>;
   isMobile: Readonly<Ref<boolean>>;
 }
 
 const RELEASE_DELAY_MS = 180;
 
 export function useSidebarEdgeReveal({
-  isPersistentlyCollapsed,
+  isAutoHideEnabled,
   isMobile,
 }: UseSidebarEdgeRevealOptions): {
   isTemporarilyRevealed: Readonly<Ref<boolean>>;
@@ -23,7 +23,7 @@ export function useSidebarEdgeReveal({
 } {
   const isTemporarilyRevealed = ref(false);
   const isActivityBarVisible = computed(
-    () => !isPersistentlyCollapsed.value || isTemporarilyRevealed.value
+    () => !isAutoHideEnabled.value || isTemporarilyRevealed.value
   );
   let releaseTimer: ReturnType<typeof setTimeout> | undefined;
   let isFocusWithin = false;
@@ -44,7 +44,7 @@ export function useSidebarEdgeReveal({
   }
 
   function canReveal(): boolean {
-    return !isMobile.value && isPersistentlyCollapsed.value;
+    return !isMobile.value && isAutoHideEnabled.value;
   }
 
   function handlePointerEnter(event: PointerEvent): void {
@@ -97,7 +97,7 @@ export function useSidebarEdgeReveal({
     clearReleaseTimer();
   }
 
-  watch([isPersistentlyCollapsed, isMobile], () => {
+  watch([isAutoHideEnabled, isMobile], () => {
     dismissTemporaryReveal();
   });
   onBeforeUnmount(dispose);
