@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest';
-import { mount } from '@vue/test-utils';
+import { flushPromises, mount } from '@vue/test-utils';
+import { nextTick } from 'vue';
 import { createI18n } from 'vue-i18n';
+import { createPinia } from 'pinia';
 import en from '@/i18n/locales/en';
 import type { Article } from '@/types/models';
 import ArticleToolbar from './ArticleToolbar.vue';
@@ -22,9 +24,12 @@ function mountToolbar(
     showContent?: boolean;
     isReadingMode?: boolean;
     readingProgress?: number;
-  } = {}
+    hasReaderContent?: boolean;
+  } = {},
+  attachToDocument = false
 ) {
   return mount(ArticleToolbar, {
+    attachTo: attachToDocument ? document.body : undefined,
     props: {
       article,
       showContent: false,
@@ -32,12 +37,20 @@ function mountToolbar(
     },
     global: {
       plugins: [
+        createPinia(),
         createI18n({
           legacy: false,
           locale: 'en',
           messages: { en },
         }),
       ],
+      stubs: {
+        ReaderAppearancePanel: {
+          name: 'ReaderAppearancePanel',
+          emits: ['close'],
+          template: '<div />',
+        },
+      },
     },
   });
 }
@@ -103,5 +116,26 @@ describe('ArticleToolbar', () => {
     expect(wrapper.get('[data-testid="reading-progress-fill"]').attributes('style')).toContain(
       'width: 100%'
     );
+  });
+
+  it('shows an expanded-state appearance trigger only in active reading mode and restores focus on close', async () => {
+    const wrapper = mountToolbar(
+      { showContent: true, isReadingMode: true, hasReaderContent: true },
+      true
+    );
+    const trigger = wrapper.get('[data-testid="reader-appearance-trigger"]');
+
+    expect(trigger.attributes('aria-expanded')).toBe('false');
+    await trigger.trigger('click');
+    expect(trigger.attributes('aria-expanded')).toBe('true');
+
+    wrapper.getComponent({ name: 'ReaderAppearancePanel' }).vm.$emit('close');
+    await flushPromises();
+    await nextTick();
+    expect(document.activeElement).toBe(trigger.element);
+
+    await wrapper.setProps({ isReadingMode: false });
+    expect(wrapper.find('[data-testid="reader-appearance-trigger"]').exists()).toBe(false);
+    wrapper.unmount();
   });
 });

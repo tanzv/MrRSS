@@ -6,7 +6,8 @@ export const readerParagraphSpacings = ['compact', 'comfortable', 'relaxed'] as 
 
 export type ReaderContentWidth = (typeof readerContentWidths)[number];
 export type ReaderParagraphSpacing = (typeof readerParagraphSpacings)[number];
-export type ReaderTypographyPresetId = 'focus' | 'night' | 'book' | 'clarity' | 'compact';
+export type ReaderTypographyPresetId =
+  'focus' | 'magazine' | 'night' | 'book' | 'clarity' | 'compact';
 
 export interface ReaderTypographyInput {
   content_font_family?: unknown;
@@ -65,6 +66,16 @@ export const readerTypographyPresets = [
       content_font_family: 'system',
       content_font_size: 16,
       content_line_height: '1.6',
+      content_width: 'comfortable',
+      content_paragraph_spacing: 'comfortable',
+    },
+  },
+  {
+    id: 'magazine',
+    values: {
+      content_font_family: 'serif',
+      content_font_size: 17,
+      content_line_height: '1.7',
       content_width: 'comfortable',
       content_paragraph_spacing: 'comfortable',
     },

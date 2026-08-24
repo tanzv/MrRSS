@@ -16,6 +16,7 @@ import {
 interface Props {
   settings: ReaderTypographyInput;
   themePreset?: ThemePreset;
+  variant?: 'settings' | 'compact';
 }
 
 interface PresetOption {
@@ -30,6 +31,7 @@ interface PresetOption {
 
 const props = withDefaults(defineProps<Props>(), {
   themePreset: 'paper',
+  variant: 'settings',
 });
 
 const emit = defineEmits<{
@@ -118,8 +120,11 @@ function getOptionAriaLabel(option: PresetOption): string {
 </script>
 
 <template>
-  <div class="reader-typography-preset-section">
-    <div class="reader-typography-preset-heading">
+  <div
+    class="reader-typography-preset-section"
+    :class="{ 'reader-typography-preset-section--compact': variant === 'compact' }"
+  >
+    <div v-if="variant === 'settings'" class="reader-typography-preset-heading">
       <span>{{ t('setting.typography.readerPreset') }}</span>
       <span v-if="selectedPreset === 'custom'" data-testid="reader-preset-custom">
         {{ t('setting.typography.readerPresetCustom') }}
@@ -128,6 +133,7 @@ function getOptionAriaLabel(option: PresetOption): string {
     <div
       ref="pickerRef"
       class="reader-typography-preset-picker"
+      :class="{ 'reader-typography-preset-picker--compact': variant === 'compact' }"
       role="radiogroup"
       :aria-label="t('setting.typography.readerPreset')"
     >
@@ -198,8 +204,16 @@ function getOptionAriaLabel(option: PresetOption): string {
   @apply grid grid-cols-2 gap-2 w-full;
 }
 
+.reader-typography-preset-picker--compact {
+  @apply grid-cols-1 gap-1;
+}
+
 .reader-typography-preset-option {
   @apply min-w-0 flex items-start justify-between gap-2 p-2 rounded-md border border-border bg-bg-primary text-left text-text-primary transition-colors;
+}
+
+.reader-typography-preset-picker--compact .reader-typography-preset-option {
+  @apply px-2.5 py-2;
 }
 
 .reader-typography-preset-option:hover {

@@ -120,4 +120,48 @@ describe('ArticleDetail original webpage view', () => {
     await wrapper.get('[data-testid="continue"]').trigger('click');
     expect(store.currentArticleId).toBe(nextArticle.id);
   });
+
+  it('keeps reader appearance unavailable until RSS body content has rendered', async () => {
+    async function mountWithContent(content: string) {
+      vi.stubGlobal(
+        'fetch',
+        vi.fn().mockResolvedValue({
+          ok: true,
+          json: vi.fn().mockResolvedValue({ content, cached: true }),
+        })
+      );
+      const pinia = createPinia();
+      wrapper = mount(ArticleDetail, {
+        global: {
+          plugins: [pinia, createI18n({ legacy: false, locale: 'en', messages: { en } })],
+          stubs: {
+            ArticleToolbar: {
+              name: 'ArticleToolbar',
+              props: ['hasReaderContent'],
+              template: '<div />',
+            },
+            ArticleContent: true,
+            ImageViewer: true,
+            FindInPage: true,
+          },
+        },
+      });
+      const store = useAppStore(pinia);
+      store.articles = [article];
+      store.articleViewModePreferences.set(article.id, 'rendered');
+      store.currentArticleId = article.id;
+      await nextTick();
+      await flushPromises();
+
+      return wrapper;
+    }
+
+    const empty = await mountWithContent('');
+    expect(empty.getComponent({ name: 'ArticleToolbar' }).props('hasReaderContent')).toBe(false);
+    empty.unmount();
+    wrapper = undefined;
+
+    const rendered = await mountWithContent('<p>Body</p>');
+    expect(rendered.getComponent({ name: 'ArticleToolbar' }).props('hasReaderContent')).toBe(true);
+  });
 });

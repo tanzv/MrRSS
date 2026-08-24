@@ -5,6 +5,7 @@ import type { Article } from '@/types/models';
 import { formatDate } from '@/utils/date';
 import { useI18n } from 'vue-i18n';
 import { useAppStore } from '@/stores/app';
+import type { ReaderTypographyPresetId } from '@/utils/readerTypography';
 
 interface Props {
   article: Article;
@@ -13,11 +14,13 @@ interface Props {
   translationEnabled: boolean;
   translationSkipped?: boolean;
   isTranslatingContent?: boolean;
+  readerStyle?: ReaderTypographyPresetId | 'custom';
 }
 
 const props = withDefaults(defineProps<Props>(), {
   translationSkipped: false,
   isTranslatingContent: false,
+  readerStyle: 'custom',
 });
 
 const emit = defineEmits<{
@@ -59,7 +62,10 @@ function selectArticleFeed() {
   <!-- Title Section - Bilingual when translation enabled -->
   <div class="mb-3 sm:mb-4">
     <!-- Original Title -->
-    <h1 class="text-xl sm:text-3xl font-bold leading-tight text-text-primary select-text">
+    <h1
+      class="text-xl sm:text-3xl font-bold leading-tight text-text-primary select-text"
+      :class="{ 'article-title--magazine': readerStyle === 'magazine' }"
+    >
       {{ article.title }}
     </h1>
     <!-- Translated Title (shown below if different from original) -->
@@ -77,7 +83,9 @@ function selectArticleFeed() {
   </div>
 
   <div
+    data-testid="article-title-meta"
     class="text-xs sm:text-sm text-text-secondary mb-4 sm:mb-6 flex flex-col sm:flex-row flex-wrap items-start sm:items-center gap-1.5 sm:gap-3"
+    :class="{ 'article-title-meta--magazine': readerStyle === 'magazine' }"
   >
     <div class="flex items-center gap-2">
       <button
@@ -117,3 +125,26 @@ function selectArticleFeed() {
     </div>
   </div>
 </template>
+
+<style scoped>
+.article-title--magazine {
+  font-family: var(--reader-font-family, Georgia, 'Times New Roman', serif);
+  font-size: clamp(2rem, calc(var(--reader-font-size, 17px) + 1rem), 3rem);
+  font-weight: 650;
+  letter-spacing: -0.025em;
+  line-height: 1.08;
+}
+
+.article-title-meta--magazine {
+  margin-top: 1.1rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid var(--border-color);
+  color: var(--text-secondary);
+}
+
+@media (max-width: 639px) {
+  .article-title--magazine {
+    font-size: clamp(1.75rem, calc(var(--reader-font-size, 17px) + 0.65rem), 2.4rem);
+  }
+}
+</style>

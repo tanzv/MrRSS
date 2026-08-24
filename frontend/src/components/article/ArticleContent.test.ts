@@ -8,7 +8,9 @@ import type { ThemePreset } from '@/utils/theme';
 import en from '@/i18n/locales/en';
 import ArticleContent from './ArticleContent.vue';
 import ArticleContinuation from './parts/ArticleContinuation.vue';
+import ArticleTitle from './parts/ArticleTitle.vue';
 import { useAppStore } from '@/stores/app';
+import { setSettingsFromRawData } from '@/composables/core/useSettings';
 
 const article: Article = {
   id: 1,
@@ -67,6 +69,7 @@ describe('ArticleContent reading mode', () => {
   afterEach(() => {
     wrapper?.unmount();
     wrapper = undefined;
+    setSettingsFromRawData({});
   });
 
   it('focuses the reader without changing its scroll position and reports progress', async () => {
@@ -140,5 +143,24 @@ describe('ArticleContent reading mode', () => {
     expect(
       mountedReader.get('[data-testid="article-reading-column"]').attributes('data-reader-theme')
     ).toBe('sepia');
+  });
+
+  it('passes Magazine to the reading column and title only while reading', async () => {
+    setSettingsFromRawData({
+      content_font_family: 'serif',
+      content_font_size: '17',
+      content_line_height: '1.7',
+      content_width: 'comfortable',
+      content_paragraph_spacing: 'comfortable',
+    });
+    const mountedReader = mountReader('<p>Body</p>', { isReadingMode: true });
+
+    expect(
+      mountedReader.get('[data-testid="article-reading-column"]').attributes('data-reader-style')
+    ).toBe('magazine');
+    expect(mountedReader.findComponent(ArticleTitle).props('readerStyle')).toBe('magazine');
+
+    await mountedReader.setProps({ isReadingMode: false });
+    expect(mountedReader.findComponent(ArticleTitle).props('readerStyle')).toBe('custom');
   });
 });

@@ -63,6 +63,25 @@ describe('reader typography', () => {
     ).toBe('custom');
   });
 
+  it('recognizes Magazine only when all five of its explicit values match', () => {
+    const magazine = readerTypographyPresets.find((preset) => preset.id === 'magazine');
+
+    expect(magazine?.values).toEqual({
+      content_font_family: 'serif',
+      content_font_size: 17,
+      content_line_height: '1.7',
+      content_width: 'comfortable',
+      content_paragraph_spacing: 'comfortable',
+    });
+    expect(getReaderTypographyPreset(magazine?.values ?? {})).toBe('magazine');
+    expect(
+      getReaderTypographyPreset({
+        ...magazine?.values,
+        content_font_size: 18,
+      })
+    ).toBe('custom');
+  });
+
   it('maps each resolved application theme to its recommended reader style', () => {
     expect(getRecommendedReaderTypographyPreset('paper').id).toBe('focus');
     expect(getRecommendedReaderTypographyPreset('ink').id).toBe('night');

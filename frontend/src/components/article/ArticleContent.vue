@@ -24,7 +24,11 @@ import { useSettings } from '@/composables/core/useSettings';
 import { useAppStore } from '@/stores/app';
 import { openInBrowser } from '@/utils/browser';
 import { proxyImagesInHtml, isMediaCacheEnabled } from '@/utils/mediaProxy';
-import { resolveReaderTypography } from '@/utils/readerTypography';
+import {
+  getReaderTypographyPreset,
+  resolveReaderTypography,
+  type ReaderTypographyPresetId,
+} from '@/utils/readerTypography';
 import './ArticleContent.css';
 
 interface SummaryResult {
@@ -74,6 +78,9 @@ function handleRetryLoad() {
 const { settings: appSettings, fetchSettings } = useSettings();
 const store = useAppStore();
 const readerTypography = computed(() => resolveReaderTypography(appSettings.value));
+const readerStyle = computed<ReaderTypographyPresetId | 'custom'>(() =>
+  props.isReadingMode ? getReaderTypographyPreset(appSettings.value) : 'custom'
+);
 const isChatPanelOpen = ref(false);
 const articleScrollContainer = ref<HTMLElement | null>(null);
 const ARTICLE_SCROLL_POSITIONS_KEY = 'mrrssArticleScrollPositions';
@@ -1180,6 +1187,7 @@ onBeforeUnmount(() => {
         :data-reader-width="readerTypography.width"
         :data-paragraph-spacing="readerTypography.paragraphSpacing"
         :data-reader-theme="store.theme"
+        :data-reader-style="readerStyle"
         :style="readerTypography.cssVariables"
         :class="{
           'hide-translations': !showTranslations,
@@ -1193,6 +1201,7 @@ onBeforeUnmount(() => {
           :translation-enabled="translationEnabled"
           :translation-skipped="translationSkipped"
           :is-translating-content="isTranslatingContent"
+          :reader-style="readerStyle"
           @force-translate="forceTranslateContent"
         />
 

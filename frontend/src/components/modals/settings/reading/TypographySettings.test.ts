@@ -61,6 +61,25 @@ describe('TypographySettings reader layout controls', () => {
     expect(wrapper.get('[data-testid="reader-typography-preview"]').exists()).toBe(true);
   });
 
+  it('writes the complete Magazine values through the existing settings update event', async () => {
+    const wrapper = mount(TypographySettings, {
+      props: { settings: createSettings() },
+      global: {
+        plugins: [createPinia(), createI18n({ legacy: false, locale: 'en', messages: { en } })],
+      },
+    });
+
+    await wrapper.get('[data-reader-preset="magazine"]').trigger('click');
+
+    expect(wrapper.emitted('update:settings')?.[0]?.[0]).toMatchObject({
+      content_font_family: 'serif',
+      content_font_size: 17,
+      content_line_height: '1.7',
+      content_width: 'comfortable',
+      content_paragraph_spacing: 'comfortable',
+    });
+  });
+
   it('updates width without changing the existing font settings', async () => {
     const settings = createSettings();
     const wrapper = mount(TypographySettings, {

@@ -7,7 +7,7 @@ import ArticleContent from './ArticleContent.vue';
 import ImageViewer from '../common/ImageViewer.vue';
 import FindInPage from '../common/FindInPage.vue';
 
-import { ref, onMounted, onBeforeUnmount, watch } from 'vue';
+import { computed, ref, onMounted, onBeforeUnmount, watch } from 'vue';
 
 const store = useAppStore();
 
@@ -47,6 +47,9 @@ const showTranslations = ref(true);
 const showFindInPage = ref(false);
 const readingProgress = ref(0);
 const readingModeAnnouncement = ref('');
+const hasReaderContent = computed(
+  () => !isLoadingContent.value && Boolean(articleContent.value.trim())
+);
 
 watch(
   () => store.isReadingMode,
@@ -134,6 +137,7 @@ onBeforeUnmount(() => {
         :show-translations="showTranslations"
         :is-reading-mode="store.isReadingMode"
         :reading-progress="readingProgress"
+        :has-reader-content="hasReaderContent"
         @close="close"
         @toggle-content-view="toggleContentView"
         @toggle-reading-mode="toggleReadingMode"

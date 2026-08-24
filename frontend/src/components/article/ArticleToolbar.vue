@@ -1,7 +1,10 @@
 <script setup lang="ts">
 import { useI18n } from 'vue-i18n';
 import { useSettings } from '@/composables/core/useSettings';
-import { computed, onMounted } from 'vue';
+import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue';
+import { useReaderTypographyPreferences } from '@/composables/article/useReaderTypographyPreferences';
+import { useAppStore } from '@/stores/app';
+import ReaderAppearancePanel from './ReaderAppearancePanel.vue';
 import {
   PhArrowLeft,
   PhX,
@@ -16,12 +19,18 @@ import {
   PhTranslate,
   PhArrowClockwise,
   PhBookOpen,
+  PhTextAa,
 } from '@phosphor-icons/vue';
 import type { Article } from '@/types/models';
 import { copyArticleLink } from '@/utils/clipboard';
 
 const { t } = useI18n();
 const { settings, fetchSettings } = useSettings();
+const store = useAppStore();
+const appearanceTrigger = ref<HTMLButtonElement | null>(null);
+const isReaderAppearanceOpen = ref(false);
+const { applyPreset, applyThemeRecommendation, flushSave, retrySave, saveError, updateTypography } =
+  useReaderTypographyPreferences({ settings });
 
 onMounted(async () => {
   try {
@@ -38,6 +47,7 @@ interface Props {
   isModal?: boolean;
   isReadingMode?: boolean;
   readingProgress?: number;
+  hasReaderContent?: boolean;
 }
 
 const props = withDefaults(defineProps<Props>(), {
@@ -45,6 +55,7 @@ const props = withDefaults(defineProps<Props>(), {
   isModal: false,
   isReadingMode: false,
   readingProgress: 0,
+  hasReaderContent: false,
 });
 
 defineEmits<{
@@ -75,6 +86,34 @@ async function copyLink(article: Article) {
     window.showToast(t('common.toast.copiedToClipboard'), 'success');
   }
 }
+
+function openReaderAppearance(): void {
+  isReaderAppearanceOpen.value = true;
+}
+
+async function closeReaderAppearance(restoreFocus = true): Promise<void> {
+  const wasOpen = isReaderAppearanceOpen.value;
+  isReaderAppearanceOpen.value = false;
+  await flushSave();
+
+  if (restoreFocus && wasOpen) {
+    await nextTick();
+    appearanceTrigger.value?.focus({ preventScroll: true });
+  }
+}
+
+watch(
+  () => [props.isReadingMode, props.hasReaderContent],
+  ([isReadingMode, hasReaderContent]) => {
+    if (!isReadingMode || !hasReaderContent) {
+      void closeReaderAppearance(false);
+    }
+  }
+);
+
+onBeforeUnmount(() => {
+  void flushSave();
+});
 </script>
 
 <template>
@@ -150,6 +189,20 @@ async function copyLink(article: Article) {
           class="reading-toolbar-divider"
           aria-hidden="true"
         ></span>
+        <button
+          v-if="showContent && isReadingMode && hasReaderContent"
+          ref="appearanceTrigger"
+          type="button"
+          data-testid="reader-appearance-trigger"
+          class="action-btn"
+          :title="t('article.readingMode.appearance')"
+          :aria-label="t('article.readingMode.appearance')"
+          aria-controls="reader-appearance-panel"
+          :aria-expanded="isReaderAppearanceOpen"
+          @click="openReaderAppearance"
+        >
+          <PhTextAa :size="18" class="sm:w-5 sm:h-5" />
+        </button>
         <button
           v-if="
             !isReadingMode &&
@@ -302,6 +355,18 @@ async function copyLink(article: Article) {
         :style="{ width: `${readingProgressPercent}%` }"
       ></div>
     </div>
+    <ReaderAppearancePanel
+      v-if="isReaderAppearanceOpen"
+      :anchor="appearanceTrigger"
+      :settings="settings"
+      :theme-preset="store.theme"
+      :save-error="saveError"
+      @close="closeReaderAppearance"
+      @select-preset="applyPreset"
+      @update-typography="updateTypography"
+      @restore-theme-recommendation="applyThemeRecommendation(store.theme)"
+      @retry-save="retrySave"
+    />
   </div>
 </template>
 
