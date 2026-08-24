@@ -1,8 +1,11 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { nextTick } from 'vue';
+import { defineComponent, h, nextTick } from 'vue';
 import { mount, type VueWrapper } from '@vue/test-utils';
 import { createI18n } from 'vue-i18n';
+import { createPinia } from 'pinia';
 import FontFamilySelect from '@/components/settings/FontFamilySelect.vue';
+import { useKeyboardShortcuts } from '@/composables/ui/useKeyboardShortcuts';
+import { useAppStore } from '@/stores/app';
 import type { ThemePreset } from '@/utils/theme';
 import type { ReaderTypographyInput } from '@/utils/readerTypography';
 import en from '@/i18n/locales/en';
@@ -18,6 +21,33 @@ const focusSettings: ReaderTypographyInput = {
 
 const mountedPanels: Array<VueWrapper<InstanceType<typeof ReaderAppearancePanel>>> = [];
 const mountedAnchors: HTMLElement[] = [];
+let shortcutHost: VueWrapper | undefined;
+
+function mountReadingModeShortcuts(): ReturnType<typeof useAppStore> {
+  const pinia = createPinia();
+  let store: ReturnType<typeof useAppStore> | undefined;
+
+  shortcutHost = mount(
+    defineComponent({
+      setup() {
+        store = useAppStore();
+        useKeyboardShortcuts({
+          onOpenSettings: vi.fn(),
+          onAddFeed: vi.fn(),
+          onMarkAllRead: vi.fn(async () => {}),
+        });
+        return () => h('div');
+      },
+    }),
+    {
+      global: {
+        plugins: [pinia, createI18n({ legacy: false, locale: 'en', messages: { en } })],
+      },
+    }
+  );
+
+  return store!;
+}
 
 function mockAppearanceMedia(mobile: boolean): void {
   window.matchMedia = vi.fn(() => ({
@@ -73,6 +103,8 @@ function mountPanel(options: {
 }
 
 afterEach(() => {
+  shortcutHost?.unmount();
+  shortcutHost = undefined;
   mountedPanels.splice(0).forEach((wrapper) => wrapper.unmount());
   mountedAnchors.splice(0).forEach((anchor) => anchor.remove());
   document.body.style.overflow = '';
@@ -151,6 +183,22 @@ describe('ReaderAppearancePanel', () => {
 
     wrapper.unmount();
     expect(document.body.style.overflow).toBe(previousOverflow);
+  });
+
+  it('keeps reading mode active when Escape closes the appearance panel', async () => {
+    const store = mountReadingModeShortcuts();
+    await nextTick();
+    store.currentArticleId = 42;
+    store.setReadingMode(true);
+    const wrapper = mountPanel({ mobile: false });
+
+    const event = new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true });
+    document.body.dispatchEvent(event);
+    await nextTick();
+
+    expect(wrapper.emitted('close')).toEqual([[]]);
+    expect(store.isReadingMode).toBe(true);
+    expect(store.currentArticleId).toBe(42);
   });
 
   it('closes a desktop popover when a pointer starts outside its anchor and panel', async () => {

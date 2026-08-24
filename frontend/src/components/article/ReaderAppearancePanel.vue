@@ -245,6 +245,7 @@ onBeforeUnmount(() => {
         :class="isMobile ? 'reader-appearance-panel--sheet' : 'reader-appearance-panel--popover'"
         :style="isMobile ? undefined : popoverStyle"
         data-testid="reader-appearance-panel"
+        data-modal-open="true"
         role="dialog"
         :aria-modal="isMobile ? 'true' : undefined"
         :aria-labelledby="'reader-appearance-title'"
