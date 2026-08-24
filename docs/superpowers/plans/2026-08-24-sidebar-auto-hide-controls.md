@@ -11,7 +11,7 @@
 ## Global Constraints
 
 - Preserve ActivityBarCollapsed: true means desktop auto-hide.
-- Desktop left edge is a 16px mouse reveal area only; it has no visible pin, collapse, or expand button.
+- Desktop left edge is a 16px visual-free reveal area; its invisible focus target may reveal the bar for keyboard users, but it has no visible pin, collapse, or expand button.
 - Temporary preview overlays the feed drawer and never changes its left position or reader width.
 - The only desktop visibility action is at the bottom of the visible activity bar: Auto-hide Activity Bar while fixed and Keep Activity Bar Visible while previewed.
 - Keep existing 44px mobile Collapse/Expand controls and their aria-expanded behavior.
@@ -116,10 +116,12 @@ git commit -m "feat(sidebar): keep visibility controls in activity bar"
 **Files:**
 - Modify: frontend/src/components/sidebar/Sidebar.vue
 - Modify: frontend/cypress/e2e/theme-sidebar.cy.ts
+- Modify: frontend/src/i18n/locales/en.ts
+- Modify: frontend/src/i18n/locales/zh.ts
 - Test: frontend/src/components/sidebar/SidebarNavigation.test.ts
 
 **Interfaces:**
-- sidebar-reveal-bridge remains the combined desktop pointer region.
+- sidebar-reveal-bridge becomes the combined desktop pointer and focus region.
 - data-testid="sidebar-edge-toggle" is rendered only on mobile.
 - The desktop preview exposes its pin action in ActivityBar.
 
@@ -135,6 +137,8 @@ cy.window().its('localStorage.ActivityBarCollapsed').should('equal', 'false');
 ~~~
 
 Retain the mobile check for the 44px Expand Activity Bar edge control and aria-expanded="false".
+Add a desktop keyboard assertion that focusing and activating the invisible
+reveal trigger moves focus to the first activity-bar button.
 
 - [ ] **Step 2: Run focused browser coverage**
 
@@ -145,6 +149,14 @@ Expected: it fails against the old desktop pin tab, or reports the known unavail
 - [ ] **Step 3: Remove the desktop pin tab**
 
 ~~~
+<button
+  v-if="!props.isMobile && isActivityBarAutoHideEnabled"
+  type="button"
+  class="sidebar-reveal-bridge"
+  :aria-label="t('sidebar.activity.showActivityBar')"
+  @click="focusDesktopPreview"
+></button>
+
 <button
   v-if="props.isMobile && isActivityBarAutoHideEnabled"
   type="button"
@@ -159,7 +171,11 @@ Expected: it fails against the old desktop pin tab, or reports the known unavail
 </button>
 ~~~
 
-Keep sidebar-reveal-bridge as a nonvisual desktop pointer region. Remove desktop edge-pin styles and imports, but retain the mobile 44px rule.
+Implement focusDesktopPreview() with nextTick so activation moves focus to the
+first .smart-activity-bar button. Keep sidebar-reveal-bridge visually
+transparent until focus-visible. Remove desktop edge-pin styles and imports,
+but retain the mobile 44px rule. Add showActivityBar translations: Show
+Activity Bar / 显示活动栏.
 
 - [ ] **Step 4: Run the installed browser probe**
 

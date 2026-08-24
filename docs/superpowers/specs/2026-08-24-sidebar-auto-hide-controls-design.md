@@ -20,7 +20,7 @@ controls visual availability of the rail.
 | Persisted mode | Temporary reveal | Visible UI | User action |
 | --- | --- | --- | --- |
 | Fixed visible | No | 48px activity bar | Bottom control enables auto-hide. |
-| Auto-hide | No | 16px left-edge reveal zone, with no visible button | Moving to the edge previews the bar. |
+| Auto-hide | No | 16px left-edge reveal zone, with no visible button | Moving to the edge or keyboard-focusing its invisible trigger previews the bar. |
 | Auto-hide | Yes | Activity bar overlaid above its unchanged feed drawer | Bottom control fixes the bar open; leaving the region retracts otherwise. |
 
 ## Button design
@@ -31,8 +31,10 @@ controls visual availability of the rail.
 - When an auto-hidden bar is temporarily revealed, that same bottom position
   uses a pin icon and **Keep Activity Bar Visible** / **固定活动栏**. It exits
   auto-hide mode without moving the pointer to a separate left-side button.
-- The far-left 16px region is only a mouse reveal affordance. It has no
-  permanently displayed icon, label, or collapse action.
+- The far-left 16px region has no permanently displayed icon, label, or
+  collapse action. It remains an invisible focus target for keyboard and
+  assistive-technology users; activating it moves focus into the previewed
+  activity bar rather than persisting a mode change.
 - The desktop bottom control has no `aria-expanded`: it changes a persistence
   preference rather than a disclosure state. Its label describes the resulting
   user action directly.
@@ -55,7 +57,8 @@ controls visual availability of the rail.
 ## Layout, input, and accessibility
 
 - Desktop hover reveals the activity bar; moving within the combined edge and
-  activity-bar region keeps it visible. Touch and mobile layouts retain the
+  activity-bar region keeps it visible. The invisible edge focus target moves
+  keyboard focus into the previewed rail. Touch and mobile layouts retain the
   existing explicit off-canvas navigation and 44px controls.
 - Temporary reveal overlays the feed drawer without changing drawer placement
   or reader width. Selecting **Keep Activity Bar Visible** is an intentional
