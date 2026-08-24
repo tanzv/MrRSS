@@ -71,6 +71,21 @@ describe('useSidebarEdgeReveal', () => {
     vi.useRealTimers();
   });
 
+  it('keeps the rail revealed when the pointer leaves while focus remains inside', () => {
+    vi.useFakeTimers();
+    const state = useSidebarEdgeReveal({
+      isPersistentlyCollapsed: ref(true),
+      isMobile: ref(false),
+    });
+
+    state.handleFocusIn();
+    state.handlePointerLeave();
+    vi.advanceTimersByTime(180);
+
+    expect(state.isTemporarilyRevealed.value).toBe(true);
+    vi.useRealTimers();
+  });
+
   it('clears transient state when persistence or mobile mode changes', async () => {
     vi.useFakeTimers();
     const collapsed = ref(true);

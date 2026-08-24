@@ -26,6 +26,7 @@ export function useSidebarEdgeReveal({
     () => !isPersistentlyCollapsed.value || isTemporarilyRevealed.value
   );
   let releaseTimer: ReturnType<typeof setTimeout> | undefined;
+  let isFocusWithin = false;
 
   function clearReleaseTimer(): void {
     if (releaseTimer !== undefined) {
@@ -55,7 +56,7 @@ export function useSidebarEdgeReveal({
   }
 
   function handlePointerLeave(): void {
-    if (isTemporarilyRevealed.value) {
+    if (isTemporarilyRevealed.value && !isFocusWithin) {
       scheduleRelease();
     }
   }
@@ -64,14 +65,12 @@ export function useSidebarEdgeReveal({
     if (!canReveal()) {
       return;
     }
+    isFocusWithin = true;
     clearReleaseTimer();
     isTemporarilyRevealed.value = true;
   }
 
   function handleFocusOut(event: FocusEvent): void {
-    if (!isTemporarilyRevealed.value || !canReveal()) {
-      return;
-    }
     const currentTarget = event.currentTarget;
     const relatedTarget = event.relatedTarget;
     if (
@@ -79,6 +78,10 @@ export function useSidebarEdgeReveal({
       relatedTarget instanceof Node &&
       currentTarget.contains(relatedTarget)
     ) {
+      return;
+    }
+    isFocusWithin = false;
+    if (!isTemporarilyRevealed.value || !canReveal()) {
       return;
     }
     scheduleRelease();
