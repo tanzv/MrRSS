@@ -80,13 +80,16 @@ const xpathPlaceholders = {
   <div class="mb-3 sm:mb-4">
     <div class="mb-3">
       <label class="block mb-1 sm:mb-1.5 font-semibold text-xs sm:text-sm text-text-secondary"
-        >{{ t('modal.feed.sourceUrl') }} <span class="text-red-500">*</span></label
+        >{{ t('modal.feed.sourceUrl') }} <span class="state-danger-text">*</span></label
       >
       <input
         :value="props.url"
         type="text"
         :placeholder="t('modal.feed.sourceUrlPlaceholder')"
-        :class="['input-field', props.mode === 'add' && props.isUrlInvalid ? 'border-red-500' : '']"
+        :class="[
+          'input-field',
+          props.mode === 'add' && props.isUrlInvalid ? 'state-danger-border' : '',
+        ]"
         @input="emit('update:url', ($event.target as HTMLInputElement).value)"
       />
     </div>
@@ -104,7 +107,7 @@ const xpathPlaceholders = {
 
     <div class="mb-3">
       <label class="block mb-1 sm:mb-1.5 font-semibold text-xs sm:text-sm text-text-secondary"
-        >{{ t('modal.feed.xpathItem') }} <span class="text-red-500">*</span></label
+        >{{ t('modal.feed.xpathItem') }} <span class="state-danger-text">*</span></label
       >
       <input
         :value="props.xpathItem"
@@ -112,7 +115,7 @@ const xpathPlaceholders = {
         :placeholder="xpathPlaceholders.xpathItem"
         :class="[
           'input-field',
-          props.mode === 'add' && props.isXpathItemInvalid ? 'border-red-500' : '',
+          props.mode === 'add' && props.isXpathItemInvalid ? 'state-danger-border' : '',
         ]"
         @input="emit('update:xpath-item', ($event.target as HTMLInputElement).value)"
       />

@@ -322,7 +322,7 @@ function handleClose() {
           <!-- Test Error -->
           <div
             v-if="testError"
-            class="bg-red-500/10 border border-red-500/30 rounded-lg p-2 sm:p-3 text-xs sm:text-sm text-red-500 mt-3"
+            class="state-danger-surface border rounded-lg p-2 sm:p-3 text-xs sm:text-sm mt-3"
           >
             {{ testError }}
           </div>
@@ -330,7 +330,7 @@ function handleClose() {
           <!-- Test Success (when all checks pass) -->
           <div
             v-if="testResult?.config_valid && testResult?.connection_success && !testError"
-            class="bg-green-500/10 border border-green-500/30 rounded-lg p-2 sm:p-3 text-xs sm:text-sm text-green-500 mt-3"
+            class="state-success-surface border rounded-lg p-2 sm:p-3 text-xs sm:text-sm mt-3"
           >
             {{ t('setting.ai.aiConfigAllGood') }}
           </div>
@@ -353,7 +353,7 @@ function handleClose() {
       <template #footer>
         <div class="flex items-center justify-between">
           <!-- Error Message -->
-          <div v-if="saveError" class="text-xs sm:text-sm text-red-500 flex-1 mr-4">
+          <div v-if="saveError" class="state-danger-text text-xs sm:text-sm flex-1 mr-4">
             {{ saveError }}
           </div>
           <div v-else class="flex-1" />

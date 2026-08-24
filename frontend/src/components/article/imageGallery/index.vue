@@ -320,7 +320,7 @@ function handleContextMenu(event: MouseEvent, article: Article): void {
       action: 'toggleFavorite',
       icon: 'ph-star',
       iconWeight: article.is_favorite ? 'fill' : 'regular',
-      iconColor: article.is_favorite ? 'text-yellow-500' : '',
+      iconColor: article.is_favorite ? 'state-favorite-text' : '',
     },
     { separator: true },
     {

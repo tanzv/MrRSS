@@ -135,7 +135,7 @@ const handleDeleteCSS = async () => {
           {{ t('setting.customization.cssDesc') }}
         </div>
         <div v-if="hasCustomCSS" class="flex items-center gap-1 mt-1">
-          <PhCheck :size="14" class="text-green-500" />
+          <PhCheck :size="14" class="state-success-text" />
           <span class="text-xs text-text-secondary">{{
             t('setting.customization.cssApplied')
           }}</span>
@@ -196,6 +196,7 @@ const handleDeleteCSS = async () => {
 <style scoped>
 @reference "../../../../style.css";
 .btn-danger {
-  @apply bg-bg-tertiary border border-border text-red-500 px-3 sm:px-4 py-1.5 sm:py-2 rounded-md cursor-pointer flex items-center gap-1.5 sm:gap-2 font-medium hover:bg-bg-secondary transition-colors disabled:opacity-50 disabled:cursor-not-allowed;
+  @apply bg-bg-tertiary border border-border px-3 sm:px-4 py-1.5 sm:py-2 rounded-md cursor-pointer flex items-center gap-1.5 sm:gap-2 font-medium hover:bg-bg-secondary transition-colors disabled:opacity-50 disabled:cursor-not-allowed;
+  color: var(--state-danger-color);
 }
 </style>

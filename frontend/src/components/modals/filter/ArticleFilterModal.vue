@@ -184,6 +184,6 @@ function close() {
   @apply text-text-primary bg-bg-secondary;
 }
 .logic-btn.active {
-  @apply text-white bg-accent;
+  @apply text-text-on-accent bg-accent;
 }
 </style>

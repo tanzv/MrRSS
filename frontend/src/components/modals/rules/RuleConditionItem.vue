@@ -255,9 +255,14 @@ function handleMultiSelectUpdate(values: (string | number)[]): void {
 }
 
 .btn-danger-icon {
-  @apply p-1.5 sm:p-2 rounded-lg text-red-500 hover:bg-red-500/10 transition-colors cursor-pointer;
+  @apply p-1.5 sm:p-2 rounded-lg transition-colors cursor-pointer;
+  color: var(--state-danger-color);
   height: 38px;
   width: 38px;
+}
+
+.btn-danger-icon:hover {
+  background-color: var(--state-danger-background);
 }
 
 /* NOT button styling */
@@ -267,9 +272,12 @@ function handleMultiSelectUpdate(values: (string | number)[]): void {
   height: 38px;
 }
 .not-btn:hover {
-  @apply border-red-400 text-red-500;
+  border-color: var(--state-danger-border);
+  color: var(--state-danger-color);
 }
 .not-btn.active {
-  @apply bg-red-500/10 border-red-500 text-red-500;
+  background-color: var(--state-danger-background);
+  border-color: var(--state-danger-border);
+  color: var(--state-danger-color);
 }
 </style>

@@ -243,7 +243,7 @@ function handleRefreshModeChange(value: string | number) {
         <div class="grid grid-cols-3 gap-2">
           <div class="col-span-2">
             <label class="block mb-1 text-[10px] sm:text-xs font-medium text-text-secondary">
-              {{ t('modal.feed.proxyHost') }} <span class="text-red-500">*</span>
+              {{ t('modal.feed.proxyHost') }} <span class="state-danger-text">*</span>
             </label>
             <input
               :value="props.proxyHost"
@@ -251,14 +251,16 @@ function handleRefreshModeChange(value: string | number) {
               :placeholder="t('setting.network.proxyHostPlaceholder')"
               :class="[
                 'input-field text-xs sm:text-sm',
-                props.proxyMode === 'custom' && !props.proxyHost.trim() ? 'border-red-500' : '',
+                props.proxyMode === 'custom' && !props.proxyHost.trim()
+                  ? 'state-danger-border'
+                  : '',
               ]"
               @input="emit('update:proxyHost', ($event.target as HTMLInputElement).value)"
             />
           </div>
           <div>
             <label class="block mb-1 text-[10px] sm:text-xs font-medium text-text-secondary">
-              {{ t('modal.feed.proxyPort') }} <span class="text-red-500">*</span>
+              {{ t('modal.feed.proxyPort') }} <span class="state-danger-text">*</span>
             </label>
             <input
               :value="props.proxyPort"
@@ -266,7 +268,9 @@ function handleRefreshModeChange(value: string | number) {
               placeholder="8080"
               :class="[
                 'input-field text-center text-xs sm:text-sm',
-                props.proxyMode === 'custom' && !props.proxyPort.trim() ? 'border-red-500' : '',
+                props.proxyMode === 'custom' && !props.proxyPort.trim()
+                  ? 'state-danger-border'
+                  : '',
               ]"
               @input="emit('update:proxyPort', ($event.target as HTMLInputElement).value)"
             />

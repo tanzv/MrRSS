@@ -154,7 +154,7 @@ defineExpose({
     <!-- IMAP Server -->
     <div class="mb-3">
       <label class="block mb-1 sm:mb-1.5 font-semibold text-xs sm:text-sm text-text-secondary">
-        {{ t('modal.feed.emailServer') }} <span class="text-red-500">*</span>
+        {{ t('modal.feed.emailServer') }} <span class="state-danger-text">*</span>
       </label>
 
       <!-- Quick select providers -->
@@ -163,7 +163,7 @@ defineExpose({
           v-for="provider in providers"
           :key="provider.name"
           type="button"
-          class="text-xs px-2 py-1 rounded bg-bg-tertiary text-text-secondary hover:bg-accent hover:text-white transition-colors"
+          class="text-xs px-2 py-1 rounded bg-bg-tertiary text-text-secondary hover:bg-accent hover:text-text-on-accent transition-colors"
           @click="selectProvider(provider)"
         >
           {{ provider.name }}
@@ -189,7 +189,7 @@ defineExpose({
     <!-- Username -->
     <div class="mb-3">
       <label class="block mb-1 sm:mb-1.5 font-semibold text-xs sm:text-sm text-text-secondary">
-        {{ t('modal.feed.emailUsername') }} <span class="text-red-500">*</span>
+        {{ t('modal.feed.emailUsername') }} <span class="state-danger-text">*</span>
       </label>
       <input
         v-model="username"
@@ -202,7 +202,7 @@ defineExpose({
     <!-- Password -->
     <div class="mb-3">
       <label class="block mb-1 sm:mb-1.5 font-semibold text-xs sm:text-sm text-text-secondary">
-        {{ t('modal.feed.emailPassword') }} <span class="text-red-500">*</span>
+        {{ t('modal.feed.emailPassword') }} <span class="state-danger-text">*</span>
       </label>
       <input
         v-model="password"
@@ -229,8 +229,8 @@ defineExpose({
         @click="testConnection"
       >
         <PhSpinner v-if="isTesting" :size="16" class="animate-spin" />
-        <PhCheckCircle v-else-if="testResult === 'success'" :size="16" class="text-green-500" />
-        <PhXCircle v-else-if="testResult === 'error'" :size="16" class="text-red-500" />
+        <PhCheckCircle v-else-if="testResult === 'success'" :size="16" class="state-success-text" />
+        <PhXCircle v-else-if="testResult === 'error'" :size="16" class="state-danger-text" />
         <PhGlobe v-else :size="16" />
         <span>{{ t('modal.feed.emailTestConnection') }}</span>
       </button>
@@ -239,10 +239,8 @@ defineExpose({
       <div
         v-if="testMessage"
         :class="[
-          'mt-2 text-xs p-2 rounded',
-          testResult === 'success'
-            ? 'bg-green-500/10 text-green-500'
-            : 'bg-red-500/10 text-red-500',
+          'mt-2 text-xs p-2 rounded border',
+          testResult === 'success' ? 'state-success-surface' : 'state-danger-surface',
         ]"
       >
         {{ testMessage }}

@@ -144,7 +144,7 @@ onMounted(() => {
     <!-- Error Message -->
     <div
       v-if="errorMessage"
-      class="bg-red-500/10 border border-red-500/30 rounded-lg p-2 sm:p-3 text-xs sm:text-sm text-red-500 mt-3"
+      class="state-danger-surface border rounded-lg p-2 sm:p-3 text-xs sm:text-sm mt-3"
     >
       {{ errorMessage }}
     </div>

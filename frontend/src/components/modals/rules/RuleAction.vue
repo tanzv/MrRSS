@@ -69,6 +69,11 @@ function handleUpdate(value: string | number): void {
 }
 
 .btn-danger-icon {
-  @apply p-2 rounded-lg text-red-500 hover:bg-red-500/10 transition-colors cursor-pointer;
+  @apply p-2 rounded-lg transition-colors cursor-pointer;
+  color: var(--state-danger-color);
+}
+
+.btn-danger-icon:hover {
+  background-color: var(--state-danger-background);
 }
 </style>

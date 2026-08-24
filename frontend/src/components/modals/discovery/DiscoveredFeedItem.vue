@@ -55,7 +55,7 @@ function handleImageError(event: Event): void {
             isSelected ? 'bg-accent border-accent scale-110' : 'border-border bg-bg-primary',
           ]"
         >
-          <PhCheck v-if="isSelected" :size="14" weight="bold" class="text-white" />
+          <PhCheck v-if="isSelected" :size="14" weight="bold" class="on-accent" />
         </div>
       </div>
 

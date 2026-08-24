@@ -41,11 +41,11 @@ function handleUpdateSettings(updatedSettings: SettingsData) {
     <!-- Validation Warning -->
     <div
       v-if="!isValid"
-      class="p-3 sm:p-4 rounded-lg border-2 border-red-500 bg-red-500/10 flex items-start gap-3"
+      class="state-danger-surface p-3 sm:p-4 rounded-lg border-2 flex items-start gap-3"
     >
-      <PhWarning :size="20" class="text-red-500 shrink-0 mt-0.5" :weight="'fill'" />
+      <PhWarning :size="20" class="shrink-0 mt-0.5" :weight="'fill'" />
       <div class="flex-1">
-        <div class="font-semibold text-red-500 text-sm sm:text-base mb-1">
+        <div class="font-semibold text-sm sm:text-base mb-1">
           {{ t('common.form.requiredField') }}
         </div>
         <div class="text-xs sm:text-sm text-text-secondary">

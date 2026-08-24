@@ -814,7 +814,7 @@ async function markAllVisibleAsRead(): Promise<void> {
             </button>
             <div
               v-if="activeFilters.length > 0"
-              class="absolute -top-1 -right-1 bg-accent text-white text-[9px] sm:text-[10px] font-bold rounded-full min-w-[14px] sm:min-w-[16px] h-3.5 sm:h-4 px-0.5 sm:px-1 flex items-center justify-center"
+              class="absolute -top-1 -right-1 bg-accent on-accent text-[9px] sm:text-[10px] font-bold rounded-full min-w-[14px] sm:min-w-[16px] h-3.5 sm:h-4 px-0.5 sm:px-1 flex items-center justify-center"
             >
               {{ activeFilters.length }}
             </div>
@@ -844,7 +844,7 @@ async function markAllVisibleAsRead(): Promise<void> {
                   (store.refreshProgress.pool_task_count || 0) >
                   0
               "
-              class="absolute -top-1 -right-1 bg-accent text-white text-[9px] sm:text-[10px] font-bold rounded-full min-w-[14px] sm:min-w-[16px] h-3.5 sm:h-4 px-0.5 sm:px-1 flex items-center justify-center"
+              class="absolute -top-1 -right-1 bg-accent on-accent text-[9px] sm:text-[10px] font-bold rounded-full min-w-[14px] sm:min-w-[16px] h-3.5 sm:h-4 px-0.5 sm:px-1 flex items-center justify-center"
             >
               {{
                 (store.refreshProgress.queue_task_count || 0) +
@@ -1028,7 +1028,7 @@ async function markAllVisibleAsRead(): Promise<void> {
       >
         <div v-if="shouldShowBottomMarkAllRead" class="mx-3 mb-3 pt-6 pb-3 text-center">
           <button
-            class="inline-flex items-center gap-2 px-4 py-2 bg-accent hover:bg-accent/80 text-white rounded-lg transition-colors text-sm font-medium"
+            class="inline-flex items-center gap-2 px-4 py-2 bg-accent hover:bg-accent/80 on-accent rounded-lg transition-colors text-sm font-medium"
             @click="markAllVisibleAsRead"
           >
             <PhCheckCircle :size="18" />

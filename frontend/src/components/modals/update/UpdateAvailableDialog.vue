@@ -82,8 +82,8 @@ onUnmounted(() => {
     <!-- Custom Header -->
     <template #header>
       <div class="flex items-center gap-3">
-        <div class="bg-green-500/20 rounded-full p-2">
-          <PhArrowCircleUp :size="28" class="text-green-500" />
+        <div class="state-success-surface rounded-full p-2">
+          <PhArrowCircleUp :size="28" />
         </div>
         <h3 class="text-lg sm:text-xl font-bold">{{ t('setting.update.updateAvailable') }}</h3>
       </div>
@@ -102,7 +102,9 @@ onUnmounted(() => {
         </div>
         <div class="flex justify-between items-center">
           <span class="text-text-secondary">{{ t('setting.update.latestVersion') }}:</span>
-          <span class="font-mono font-medium text-green-500">{{ updateInfo.latest_version }}</span>
+          <span class="state-success-text font-mono font-medium">
+            {{ updateInfo.latest_version }}
+          </span>
         </div>
       </div>
 
@@ -148,7 +150,7 @@ onUnmounted(() => {
 <style scoped>
 @reference "../../../style.css";
 .btn-primary {
-  @apply bg-accent text-white border-none px-5 py-2.5 rounded-lg cursor-pointer font-semibold hover:bg-accent-hover transition-colors flex items-center gap-2;
+  @apply bg-accent text-text-on-accent border-none px-5 py-2.5 rounded-lg cursor-pointer font-semibold hover:bg-accent-hover transition-colors flex items-center gap-2;
 }
 .btn-primary:disabled {
   @apply opacity-50 cursor-not-allowed;

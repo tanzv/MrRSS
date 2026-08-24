@@ -208,17 +208,17 @@ function getTestStatus(profileId: number): 'success' | 'error' | 'unknown' {
             </div>
             <div
               v-else-if="getTestStatus(profile.id) === 'success'"
-              class="status-indicator status-success"
+              class="status-indicator state-success-surface"
               :title="t('setting.ai.connectionSuccess')"
             >
-              <PhCheck :size="14" class="text-green-500" />
+              <PhCheck :size="14" />
             </div>
             <div
               v-else-if="getTestStatus(profile.id) === 'error'"
-              class="status-indicator status-error"
+              class="status-indicator state-danger-surface"
               :title="testResults.get(profile.id)?.error_message"
             >
-              <PhX :size="14" class="text-red-500" />
+              <PhX :size="14" />
             </div>
           </div>
 
@@ -252,7 +252,7 @@ function getTestStatus(profileId: number): 'success' | 'error' | 'unknown' {
         <!-- Test Result Details (shown when there's an error) -->
         <div
           v-if="testResults.get(profile.id)?.error_message && getTestStatus(profile.id) === 'error'"
-          class="mt-2 text-xs text-red-500 bg-red-500/5 rounded p-2 break-words"
+          class="state-danger-surface mt-2 text-xs rounded p-2 break-words"
         >
           {{ testResults.get(profile.id)?.error_message }}
         </div>
@@ -291,21 +291,14 @@ function getTestStatus(profileId: number): 'success' | 'error' | 'unknown' {
   @apply w-6 h-6 flex items-center justify-center rounded-full bg-bg-tertiary;
 }
 
-.status-indicator.status-success {
-  @apply bg-green-500/10;
-}
-
-.status-indicator.status-error {
-  @apply bg-red-500/10;
-}
-
 /* Action buttons */
 .action-btn {
   @apply p-1.5 sm:p-2 rounded-lg bg-transparent border-none cursor-pointer text-text-secondary hover:bg-bg-tertiary hover:text-text-primary transition-all;
 }
 
 .action-btn.danger:hover {
-  @apply text-red-500 bg-red-500/10;
+  color: var(--state-danger-color);
+  background-color: var(--state-danger-background);
 }
 
 .action-btn:disabled {

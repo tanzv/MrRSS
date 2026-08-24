@@ -534,7 +534,7 @@ async function clearTranslationCache() {
             <div class="flex-1 min-w-0">
               <div class="font-medium mb-0 sm:mb-1 text-sm">
                 {{ t('setting.translation.custom.bodyTemplate') }}
-                <span class="text-red-500">*</span>
+                <span class="state-danger-text">*</span>
               </div>
               <div class="text-xs text-text-secondary hidden sm:block">
                 {{ t('setting.translation.custom.bodyTemplateDesc') }}

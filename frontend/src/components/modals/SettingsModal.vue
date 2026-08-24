@@ -373,7 +373,7 @@ function handleDiscoverAll() {
 }
 
 .btn-primary {
-  @apply bg-accent text-white border-none px-5 py-2.5 rounded-lg cursor-pointer font-semibold hover:bg-accent-hover transition-colors;
+  @apply bg-accent text-text-on-accent border-none px-5 py-2.5 rounded-lg cursor-pointer font-semibold hover:bg-accent-hover transition-colors;
 }
 
 .animate-fade-in {

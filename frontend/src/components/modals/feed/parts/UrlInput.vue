@@ -46,13 +46,13 @@ function handleInput(event: Event) {
   <div class="mb-3 sm:mb-4">
     <label class="block mb-1 sm:mb-1.5 font-semibold text-xs sm:text-sm text-text-secondary"
       >{{ t('modal.feed.rssUrl') }}
-      <span v-if="props.mode === 'add'" class="text-red-500">*</span></label
+      <span v-if="props.mode === 'add'" class="state-danger-text">*</span></label
     >
     <input
       v-model="localValue"
       type="text"
       :placeholder="inputPlaceholder"
-      :class="['input-field', props.mode === 'add' && props.isInvalid ? 'border-red-500' : '']"
+      :class="['input-field', props.mode === 'add' && props.isInvalid ? 'state-danger-border' : '']"
       @input="handleInput"
     />
   </div>

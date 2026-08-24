@@ -52,13 +52,13 @@ function openDocumentation() {
   <div class="mb-3 sm:mb-4">
     <label class="block mb-1 sm:mb-1.5 font-semibold text-xs sm:text-sm text-text-secondary"
       >{{ t('setting.customization.selectScript') }}
-      <span v-if="props.mode === 'add'" class="text-red-500">*</span></label
+      <span v-if="props.mode === 'add'" class="state-danger-text">*</span></label
     >
     <div v-if="props.availableScripts.length > 0" class="mb-2">
       <BaseSelect
         :model-value="props.modelValue"
         :options="scriptOptions"
-        :class="{ 'border-red-500': props.mode === 'add' && props.isInvalid }"
+        :class="{ 'state-danger-border': props.mode === 'add' && props.isInvalid }"
         :searchable="true"
         @update:model-value="emit('update:modelValue', String($event))"
       />

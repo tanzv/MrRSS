@@ -51,7 +51,7 @@ export function useArticleActions(
         action: 'toggleFavorite',
         icon: 'ph-star',
         iconWeight: article.is_favorite ? 'fill' : 'regular',
-        iconColor: article.is_favorite ? 'text-yellow-500' : '',
+        iconColor: article.is_favorite ? 'state-favorite-text' : '',
       },
       {
         label: article.is_read_later
@@ -60,7 +60,7 @@ export function useArticleActions(
         action: 'toggleReadLater',
         icon: 'ph-clock-countdown',
         iconWeight: article.is_read_later ? 'fill' : 'regular',
-        iconColor: article.is_read_later ? 'text-blue-500' : '',
+        iconColor: article.is_read_later ? 'state-read-later-text' : '',
       },
       { separator: true },
     ];

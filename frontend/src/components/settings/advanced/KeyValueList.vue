@@ -160,7 +160,7 @@ defineOptions({
         />
         <button
           type="button"
-          class="p-1.5 sm:p-2 rounded hover:bg-red-50 dark:hover:bg-red-900/20 text-text-secondary hover:text-red-500 transition-all shrink-0"
+          class="p-1.5 sm:p-2 rounded text-text-secondary state-danger-hover transition-all shrink-0"
           :title="removeButtonTitle"
           @click="removePair(pair.id)"
         >

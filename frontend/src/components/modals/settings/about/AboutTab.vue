@@ -115,7 +115,7 @@ function openGitHubRelease() {
         <PhArrowCircleUp
           v-if="updateInfo.has_update"
           :size="28"
-          class="text-green-500 mt-0.5 shrink-0 sm:w-8 sm:h-8"
+          class="state-success-text mt-0.5 shrink-0 sm:w-8 sm:h-8"
         />
         <PhCheckCircle v-else :size="28" class="text-accent mt-0.5 shrink-0 sm:w-8 sm:h-8" />
         <div class="flex-1 min-w-0">
@@ -201,7 +201,7 @@ function openGitHubRelease() {
   @apply opacity-50 cursor-not-allowed;
 }
 .btn-primary {
-  @apply bg-accent text-white border-none hover:bg-accent-hover;
+  @apply bg-accent text-text-on-accent border-none hover:bg-accent-hover;
 }
 .btn-secondary {
   @apply bg-bg-tertiary border border-border text-text-primary hover:bg-bg-secondary;

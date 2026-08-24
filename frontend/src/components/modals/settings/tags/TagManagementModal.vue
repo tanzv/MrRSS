@@ -161,7 +161,7 @@ function close() {
 
               <!-- Delete button -->
               <button
-                class="text-text-secondary hover:text-red-500 transition-colors"
+                class="text-text-secondary state-danger-hover transition-colors"
                 @click="handleDeleteTag(tag)"
               >
                 <PhTrash :size="18" />
@@ -176,7 +176,7 @@ function close() {
         <div class="text-4xl mb-4">🏷️</div>
         <p>{{ t('modal.tag.noTags') }}</p>
         <button
-          class="mt-4 px-4 py-2 text-sm font-medium text-white bg-accent rounded-md hover:bg-accent/90 transition-colors"
+          class="mt-4 px-4 py-2 text-sm font-medium on-accent bg-accent rounded-md hover:bg-accent/90 transition-colors"
           @click="openAddForm"
         >
           <PhPlus :size="20" class="inline mr-1" />
@@ -209,7 +209,7 @@ function close() {
 <style scoped>
 @reference "../../../../style.css";
 .btn-primary {
-  @apply bg-accent text-white border-none px-4 sm:px-5 py-2 sm:py-2.5 rounded-lg cursor-pointer font-semibold hover:bg-accent-hover transition-colors disabled:opacity-70;
+  @apply bg-accent text-text-on-accent border-none px-4 sm:px-5 py-2 sm:py-2.5 rounded-lg cursor-pointer font-semibold hover:bg-accent-hover transition-colors disabled:opacity-70;
 }
 
 .feed-count-badge {

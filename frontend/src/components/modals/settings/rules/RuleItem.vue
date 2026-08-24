@@ -288,7 +288,8 @@ function formatActions(rule: Rule): string {
 }
 
 .action-btn.danger:hover {
-  @apply text-red-500 bg-red-500/10;
+  color: var(--state-danger-color);
+  background-color: var(--state-danger-background);
 }
 
 .action-btn:disabled {

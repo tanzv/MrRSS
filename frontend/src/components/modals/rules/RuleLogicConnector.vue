@@ -52,6 +52,6 @@ const logicOptions: Array<{ value: 'and' | 'or'; labelKey: string }> = [
 }
 
 .logic-btn.active {
-  @apply text-white bg-accent;
+  @apply text-text-on-accent bg-accent;
 }
 </style>

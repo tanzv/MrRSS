@@ -373,9 +373,9 @@ const downloadFilename = computed(() => {
           :title="isPlaying ? t('article.audioPlayer.pause') : t('article.audioPlayer.play')"
           @click="togglePlay"
         >
-          <PhSpinner v-if="isLoading" :size="20" class="text-white animate-spin" />
-          <PhPlay v-else-if="!isPlaying" :size="20" class="text-white ml-0.5" />
-          <PhPause v-else :size="20" class="text-white" />
+          <PhSpinner v-if="isLoading" :size="20" class="on-accent animate-spin" />
+          <PhPlay v-else-if="!isPlaying" :size="20" class="on-accent ml-0.5" />
+          <PhPause v-else :size="20" class="on-accent" />
         </button>
 
         <!-- Skip forward button -->

@@ -328,7 +328,7 @@ onMounted(async () => {
         <input v-model="customEndDate" type="date" class="date-input" @change="fetchStatistics" />
       </div>
       <button
-        class="px-4 py-2 bg-accent text-white border-none rounded-md font-medium cursor-pointer transition-all hover:opacity-90 hover:-translate-y-px h-9"
+        class="px-4 py-2 bg-accent on-accent border-none rounded-md font-medium cursor-pointer transition-all hover:opacity-90 hover:-translate-y-px h-9"
         @click="fetchStatistics"
       >
         {{ t('common.form.apply') }}
@@ -357,7 +357,7 @@ onMounted(async () => {
 
     <!-- Error State -->
     <div v-if="error" class="flex items-center justify-center p-8 gap-4">
-      <p class="text-red-500">{{ t('common.error') }}: {{ error }}</p>
+      <p class="state-danger-text">{{ t('common.error') }}: {{ error }}</p>
     </div>
 
     <!-- Statistics Display -->
@@ -386,7 +386,7 @@ onMounted(async () => {
 }
 
 .period-btn-active {
-  @apply bg-accent text-white border-accent hover:border-accent;
+  @apply bg-accent text-text-on-accent border-accent hover:border-accent;
 }
 
 .period-btn-inactive {
@@ -398,7 +398,7 @@ onMounted(async () => {
 }
 
 .nav-btn {
-  @apply flex items-center justify-center w-7 h-7 border border-border bg-bg-primary text-text-secondary rounded-md cursor-pointer transition-all hover:bg-accent hover:text-white hover:border-accent disabled:opacity-40 disabled:cursor-not-allowed;
+  @apply flex items-center justify-center w-7 h-7 border border-border bg-bg-primary text-text-secondary rounded-md cursor-pointer transition-all hover:bg-accent hover:text-text-on-accent hover:border-accent disabled:opacity-40 disabled:cursor-not-allowed;
 }
 
 .stat-card {

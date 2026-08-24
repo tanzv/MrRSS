@@ -397,7 +397,9 @@ const currentSessionTitle = computed(() => {
             :class="isResizing ? 'opacity-100' : ''"
             @mousedown="startResize"
           >
-            <div class="w-full h-full bg-accent rounded-full border border-white shadow-sm"></div>
+            <div
+              class="w-full h-full bg-accent rounded-full border on-accent-border shadow-sm"
+            ></div>
           </div>
         </div>
 
@@ -440,7 +442,7 @@ const currentSessionTitle = computed(() => {
                     <PhPencil :size="14" />
                   </button>
                   <button
-                    class="p-1 hover:bg-bg-primary rounded text-red-500"
+                    class="p-1 rounded state-danger-hover"
                     @click="deleteSession(session.id, $event)"
                   >
                     <PhTrash :size="14" />
@@ -474,7 +476,7 @@ const currentSessionTitle = computed(() => {
             <div
               class="max-w-[80%] rounded-lg px-3 py-2 text-sm select-text cursor-text"
               :class="
-                msg.role === 'user' ? 'bg-accent text-white' : 'bg-bg-secondary text-text-primary'
+                msg.role === 'user' ? 'bg-accent on-accent' : 'bg-bg-secondary text-text-primary'
               "
             >
               <!-- Thinking section -->
@@ -517,7 +519,7 @@ const currentSessionTitle = computed(() => {
             />
             <button
               :disabled="isLoading || !inputMessage.trim()"
-              class="px-3 py-2 bg-accent text-white rounded-lg hover:bg-accent-hover disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              class="px-3 py-2 bg-accent on-accent rounded-lg hover:bg-accent-hover disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
               @click="sendMessage"
             >
               <PhPaperPlaneRight :size="18" />
