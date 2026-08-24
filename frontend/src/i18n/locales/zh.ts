@@ -127,6 +127,8 @@ const zh: TranslationMessages = {
       appearanceWidth: '正文宽度',
       progress: '阅读进度：{percent}%',
       regionLabel: '文章阅读区域',
+      linkPreview: '链接页面',
+      returnToReading: '返回阅读',
     },
     summary: {
       aiLimitReached: 'AI 使用量已达上限，正在使用免费替代方案。',

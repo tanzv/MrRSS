@@ -43,6 +43,7 @@ let wrapper: VueWrapper | undefined;
 describe('ArticleDetail original webpage view', () => {
   afterEach(() => {
     wrapper?.unmount();
+    wrapper?.element.remove();
     wrapper = undefined;
     vi.unstubAllGlobals();
   });
@@ -163,5 +164,89 @@ describe('ArticleDetail original webpage view', () => {
 
     const rendered = await mountWithContent('<p>Body</p>');
     expect(rendered.getComponent({ name: 'ArticleToolbar' }).props('hasReaderContent')).toBe(true);
+  });
+
+  it('returns from an in-reader link page without leaving the active reader session', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue({
+        ok: true,
+        json: vi.fn().mockResolvedValue({ content: '<p>Body</p>', cached: true }),
+      })
+    );
+    const pinia = createPinia();
+    wrapper = mount(ArticleDetail, {
+      attachTo: document.body,
+      global: {
+        plugins: [pinia, createI18n({ legacy: false, locale: 'en', messages: { en } })],
+        stubs: {
+          ArticleToolbar: true,
+          ArticleContent: {
+            name: 'ArticleContent',
+            emits: ['openLink'],
+            template:
+              '<button data-testid="emit-reader-link" @click="$emit(\'openLink\', \'https://example.com/related\')"></button>',
+          },
+          ImageViewer: true,
+          FindInPage: true,
+        },
+      },
+    });
+    const store = useAppStore(pinia);
+    store.articles = [article];
+    store.articleViewModePreferences.set(article.id, 'rendered');
+    store.currentArticleId = article.id;
+
+    await nextTick();
+    await flushPromises();
+    store.setReadingMode(true);
+    await nextTick();
+
+    const linkTrigger = wrapper.get('[data-testid="emit-reader-link"]');
+    (linkTrigger.element as HTMLButtonElement).focus();
+    expect(document.activeElement).toBe(linkTrigger.element);
+
+    await linkTrigger.trigger('click');
+    await nextTick();
+
+    expect(wrapper.get('[data-testid="reader-link-preview"] iframe').attributes('src')).toContain(
+      encodeURIComponent('https://example.com/related')
+    );
+    expect(document.activeElement).toBe(wrapper.get('[data-testid="return-to-reading"]').element);
+    expect(wrapper.get('[data-testid="reader-session-content"]').attributes()).toHaveProperty(
+      'inert'
+    );
+    expect(store.isReadingMode).toBe(true);
+    expect(wrapper.findComponent({ name: 'ArticleContent' }).exists()).toBe(true);
+
+    await wrapper.get('[data-testid="return-to-reading"]').trigger('click');
+    await nextTick();
+
+    expect(wrapper.find('[data-testid="reader-link-preview"]').exists()).toBe(false);
+    expect(store.currentArticleId).toBe(article.id);
+    expect(store.isReadingMode).toBe(true);
+    expect(wrapper.findComponent({ name: 'ArticleContent' }).exists()).toBe(true);
+    expect(document.activeElement).toBe(linkTrigger.element);
+
+    await linkTrigger.trigger('click');
+    const previewFrame = wrapper.get('[data-testid="reader-link-preview"] iframe')
+      .element as HTMLIFrameElement;
+    const previewDocument = previewFrame.contentDocument;
+    previewDocument?.open();
+    previewDocument?.write(
+      '<!doctype html><html><body><button>Frame control</button></body></html>'
+    );
+    previewDocument?.close();
+    expect(previewDocument?.body).not.toBeNull();
+    previewFrame.dispatchEvent(new Event('load'));
+    previewDocument?.addEventListener('keydown', (event) => event.stopPropagation());
+    previewDocument?.body?.dispatchEvent(
+      new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true })
+    );
+    await nextTick();
+
+    expect(wrapper.find('[data-testid="reader-link-preview"]').exists()).toBe(false);
+    expect(store.currentArticleId).toBe(article.id);
+    expect(store.isReadingMode).toBe(true);
   });
 });

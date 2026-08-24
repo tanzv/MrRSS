@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { PhNewspaper, PhCaretLeft, PhCaretRight } from '@phosphor-icons/vue';
+import { PhArrowLeft, PhNewspaper, PhCaretLeft, PhCaretRight } from '@phosphor-icons/vue';
 import { useArticleDetail } from '@/composables/article/useArticleDetail';
 import { useAppStore } from '@/stores/app';
 import ArticleToolbar from './ArticleToolbar.vue';
@@ -7,7 +7,7 @@ import ArticleContent from './ArticleContent.vue';
 import ImageViewer from '../common/ImageViewer.vue';
 import FindInPage from '../common/FindInPage.vue';
 
-import { computed, ref, onMounted, onBeforeUnmount, watch } from 'vue';
+import { computed, ref, onMounted, onBeforeUnmount, watch, nextTick } from 'vue';
 
 const store = useAppStore();
 
@@ -47,6 +47,9 @@ const showTranslations = ref(true);
 const showFindInPage = ref(false);
 const readingProgress = ref(0);
 const readingModeAnnouncement = ref('');
+const readerLinkUrl = ref<string | null>(null);
+const readerLinkReturnFocusTarget = ref<HTMLElement | null>(null);
+const returnToReadingButton = ref<HTMLButtonElement | null>(null);
 const hasReaderContent = computed(
   () => !isLoadingContent.value && Boolean(articleContent.value.trim())
 );
@@ -64,6 +67,7 @@ watch(
   () => article.value?.id,
   () => {
     readingProgress.value = 0;
+    closeReaderLink({ restoreFocus: false });
   }
 );
 
@@ -79,6 +83,50 @@ function closeFindInPage() {
   showFindInPage.value = false;
 }
 
+function openReaderLink(url: string): void {
+  const activeElement = document.activeElement;
+  readerLinkReturnFocusTarget.value = activeElement instanceof HTMLElement ? activeElement : null;
+  showFindInPage.value = false;
+  readerLinkUrl.value = url;
+  void nextTick(() => returnToReadingButton.value?.focus());
+}
+
+function closeReaderLink({ restoreFocus = true }: { restoreFocus?: boolean } = {}): void {
+  readerLinkUrl.value = null;
+  const returnFocusTarget = readerLinkReturnFocusTarget.value;
+  readerLinkReturnFocusTarget.value = null;
+
+  if (restoreFocus && returnFocusTarget?.isConnected) {
+    void nextTick(() => returnFocusTarget.focus());
+  }
+}
+
+function closeReaderLinkOnEscape(event: KeyboardEvent): boolean {
+  if (!readerLinkUrl.value || event.key !== 'Escape') return false;
+
+  event.preventDefault();
+  event.stopImmediatePropagation();
+  closeReaderLink();
+  return true;
+}
+
+function handleReaderLinkPreviewKeydown(event: KeyboardEvent): void {
+  closeReaderLinkOnEscape(event);
+}
+
+function handleReaderLinkPreviewLoad(event: Event): void {
+  const iframe = event.currentTarget;
+  if (!(iframe instanceof HTMLIFrameElement)) return;
+
+  try {
+    const frameWindow = iframe.contentWindow;
+    frameWindow?.removeEventListener('keydown', handleReaderLinkPreviewKeydown, true);
+    frameWindow?.addEventListener('keydown', handleReaderLinkPreviewKeydown, true);
+  } catch {
+    // A navigation outside the local proxy cannot expose its window to the parent.
+  }
+}
+
 function onReadingProgress(percent: number): void {
   readingProgress.value = percent;
   void handleReadingProgress(percent)?.catch((error) =>
@@ -87,6 +135,8 @@ function onReadingProgress(percent: number): void {
 }
 
 function handleKeydown(e: KeyboardEvent) {
+  if (closeReaderLinkOnEscape(e)) return;
+
   // Open find in page with Ctrl+F or Cmd+F
   if ((e.ctrlKey || e.metaKey) && e.key === 'f') {
     // Only if we're showing an article in content mode (not webpage view)
@@ -130,85 +180,122 @@ onBeforeUnmount(() => {
       <p class="text-sm sm:text-base">{{ t('article.content.selectArticle') }}</p>
     </div>
 
-    <div v-else class="flex flex-col h-full bg-bg-primary">
-      <ArticleToolbar
-        :article="article"
-        :show-content="showContent"
-        :show-translations="showTranslations"
-        :is-reading-mode="store.isReadingMode"
-        :reading-progress="readingProgress"
-        :has-reader-content="hasReaderContent"
-        @close="close"
-        @toggle-content-view="toggleContentView"
-        @toggle-reading-mode="toggleReadingMode"
-        @toggle-read="toggleRead"
-        @toggle-favorite="toggleFavorite"
-        @toggle-read-later="toggleReadLater"
-        @open-original="openOriginal"
-        @toggle-translations="toggleTranslations"
-        @reload-content="reloadArticleContent"
-        @export-to-obsidian="exportToObsidian"
-        @export-to-notion="exportToNotion"
-        @export-to-zotero="exportToZotero"
-      />
-
-      <!-- Original webpage view -->
-      <div v-if="!showContent" class="flex-1 bg-bg-primary w-full">
-        <iframe
-          :key="article.id"
-          :src="`/api/webpage/proxy?url=${encodeURIComponent(article.url)}`"
-          :title="article.title"
-          class="w-full h-full border-none"
-          sandbox="allow-scripts allow-same-origin allow-popups"
-        ></iframe>
-      </div>
-
-      <!-- RSS content view -->
-      <ArticleContent
-        v-else
-        :article="article"
-        :article-content="articleContent"
-        :is-loading-content="isLoadingContent"
-        :attach-image-event-listeners="attachImageEventListeners"
-        :show-translations="showTranslations"
-        :show-content="showContent"
-        :is-reading-mode="store.isReadingMode"
-        :next-article="nextArticle"
-        @retry-load-content="handleRetryLoadContent"
-        @reading-progress="onReadingProgress"
-        @navigate-next="goToNextArticle"
-      />
-
-      <!-- Navigation buttons -->
+    <div v-else class="relative flex flex-col h-full bg-bg-primary">
       <div
-        v-if="!store.isReadingMode && (hasPreviousArticle || hasNextArticle)"
-        data-testid="article-navigation"
-        class="flex items-center justify-between bg-bg-primary px-3 py-1.5"
+        data-testid="reader-session-content"
+        class="contents"
+        :inert="readerLinkUrl ? true : undefined"
+        :aria-hidden="readerLinkUrl ? 'true' : undefined"
       >
-        <button
-          v-if="hasPreviousArticle"
-          :title="t('article.navigation.previousArticle') || 'Previous article'"
-          class="flex items-center gap-1.5 px-2 py-1 rounded text-text-secondary hover:text-text-primary hover:bg-bg-secondary/50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-          @click="goToPreviousArticle"
+        <ArticleToolbar
+          :article="article"
+          :show-content="showContent"
+          :show-translations="showTranslations"
+          :is-reading-mode="store.isReadingMode"
+          :reading-progress="readingProgress"
+          :has-reader-content="hasReaderContent"
+          @close="close"
+          @toggle-content-view="toggleContentView"
+          @toggle-reading-mode="toggleReadingMode"
+          @toggle-read="toggleRead"
+          @toggle-favorite="toggleFavorite"
+          @toggle-read-later="toggleReadLater"
+          @open-original="openOriginal"
+          @toggle-translations="toggleTranslations"
+          @reload-content="reloadArticleContent"
+          @export-to-obsidian="exportToObsidian"
+          @export-to-notion="exportToNotion"
+          @export-to-zotero="exportToZotero"
+        />
+
+        <!-- Original webpage view -->
+        <div v-if="!showContent" class="flex-1 bg-bg-primary w-full">
+          <iframe
+            :key="article.id"
+            :src="`/api/webpage/proxy?url=${encodeURIComponent(article.url)}`"
+            :title="article.title"
+            class="w-full h-full border-none"
+            sandbox="allow-scripts allow-same-origin allow-popups"
+          ></iframe>
+        </div>
+
+        <!-- RSS content view -->
+        <ArticleContent
+          v-else
+          :article="article"
+          :article-content="articleContent"
+          :is-loading-content="isLoadingContent"
+          :attach-image-event-listeners="attachImageEventListeners"
+          :show-translations="showTranslations"
+          :show-content="showContent"
+          :is-reading-mode="store.isReadingMode"
+          :next-article="nextArticle"
+          @retry-load-content="handleRetryLoadContent"
+          @reading-progress="onReadingProgress"
+          @navigate-next="goToNextArticle"
+          @open-link="openReaderLink"
+        />
+
+        <!-- Navigation buttons -->
+        <div
+          v-if="!store.isReadingMode && (hasPreviousArticle || hasNextArticle)"
+          data-testid="article-navigation"
+          class="flex items-center justify-between bg-bg-primary px-3 py-1.5"
         >
-          <PhCaretLeft :size="16" />
-          <span class="text-xs">{{ t('article.navigation.previousArticle') || 'Previous' }}</span>
-        </button>
+          <button
+            v-if="hasPreviousArticle"
+            :title="t('article.navigation.previousArticle') || 'Previous article'"
+            class="flex items-center gap-1.5 px-2 py-1 rounded text-text-secondary hover:text-text-primary hover:bg-bg-secondary/50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            @click="goToPreviousArticle"
+          >
+            <PhCaretLeft :size="16" />
+            <span class="text-xs">{{ t('article.navigation.previousArticle') || 'Previous' }}</span>
+          </button>
 
-        <div v-else class="w-16"></div>
+          <div v-else class="w-16"></div>
 
-        <button
-          v-if="hasNextArticle"
-          :title="t('article.navigation.nextArticle') || 'Next article'"
-          class="flex items-center gap-1.5 px-2 py-1 rounded text-text-secondary hover:text-text-primary hover:bg-bg-secondary/50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-          @click="goToNextArticle"
-        >
-          <span class="text-xs">{{ t('article.navigation.nextArticle') || 'Next' }}</span>
-          <PhCaretRight :size="16" />
-        </button>
+          <button
+            v-if="hasNextArticle"
+            :title="t('article.navigation.nextArticle') || 'Next article'"
+            class="flex items-center gap-1.5 px-2 py-1 rounded text-text-secondary hover:text-text-primary hover:bg-bg-secondary/50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            @click="goToNextArticle"
+          >
+            <span class="text-xs">{{ t('article.navigation.nextArticle') || 'Next' }}</span>
+            <PhCaretRight :size="16" />
+          </button>
 
-        <div v-else class="w-16"></div>
+          <div v-else class="w-16"></div>
+        </div>
       </div>
+
+      <section
+        v-if="readerLinkUrl"
+        data-testid="reader-link-preview"
+        class="absolute inset-0 z-40 flex flex-col bg-bg-primary"
+        role="dialog"
+        aria-modal="true"
+        :aria-label="t('article.readingMode.linkPreview')"
+      >
+        <header class="flex shrink-0 items-center border-b border-border bg-bg-primary px-3 py-2">
+          <button
+            ref="returnToReadingButton"
+            type="button"
+            data-testid="return-to-reading"
+            class="inline-flex items-center gap-2 rounded px-2 py-1.5 text-sm text-text-secondary transition-colors hover:bg-bg-tertiary hover:text-text-primary focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent"
+            @click="closeReaderLink"
+          >
+            <PhArrowLeft :size="18" />
+            <span>{{ t('article.readingMode.returnToReading') }}</span>
+          </button>
+        </header>
+        <iframe
+          :src="`/api/webpage/proxy?url=${encodeURIComponent(readerLinkUrl)}`"
+          :title="t('article.readingMode.linkPreview')"
+          class="w-full flex-1 border-none"
+          sandbox="allow-scripts allow-same-origin allow-popups"
+          @load="handleReaderLinkPreviewLoad"
+        ></iframe>
+      </section>
     </div>
 
     <!-- Find in Page (only shown in content mode) -->

@@ -254,7 +254,7 @@ describe('ArticleContent reading mode', () => {
     ).toBe('sepia');
   });
 
-  it('leaves ordinary body links to native navigation instead of opening the default browser', async () => {
+  it('requests an in-app reader link view instead of allowing native navigation', async () => {
     const mountedReader = mountReaderWithBodyLink(`
       <p><a href="/related" target="_blank">Root-relative</a></p>
       <p><a href="next-page">Path-relative</a></p>
@@ -266,26 +266,50 @@ describe('ArticleContent reading mode', () => {
 
     const [rootRelativeLink, pathRelativeLink] = mountedReader.findAll('.prose-content a');
     expect(rootRelativeLink.attributes('href')).toBe('https://example.com/related');
-    expect(rootRelativeLink.attributes('target')).toBe('_self');
     expect(pathRelativeLink.attributes('href')).toBe('https://example.com/next-page');
 
-    const link = rootRelativeLink.element;
-    let wasPreventedBeforeNativeNavigation = true;
-    link.addEventListener('click', (event) => {
-      wasPreventedBeforeNativeNavigation = event.defaultPrevented;
-      event.preventDefault();
-    });
+    const event = new MouseEvent('click', { bubbles: true, cancelable: true, button: 0 });
+    rootRelativeLink.element.dispatchEvent(event);
+    await nextTick();
 
-    link.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }));
-    await flushPromises();
-
-    expect(wasPreventedBeforeNativeNavigation).toBe(false);
+    expect(event.defaultPrevented).toBe(true);
+    expect(mountedReader.emitted('openLink')).toEqual([['https://example.com/related']]);
     expect(fetchMock.mock.calls.some(([input]) => String(input) === '/api/browser/open')).toBe(
       false
     );
   });
 
-  it('normalizes links that render after a manually generated summary', async () => {
+  it('does not request an in-app reader link view for a page fragment or image link', async () => {
+    const mountedReader = mountReaderWithBodyLink(`
+      <p><a href="#section">Section</a></p>
+      <a href="/photo"><img src="https://example.com/photo.png" alt="Photo"></a>
+    `);
+    await flushPromises();
+    await nextTick();
+
+    const [fragmentLink, imageLink] = mountedReader.findAll('.prose-content a');
+    const fragmentEvent = new MouseEvent('click', { bubbles: true, cancelable: true, button: 0 });
+    const imageEvent = new MouseEvent('click', { bubbles: true, cancelable: true, button: 0 });
+    let fragmentWasPrevented = true;
+    let imageWasPrevented = true;
+    fragmentLink.element.addEventListener('click', (event) => {
+      fragmentWasPrevented = event.defaultPrevented;
+      event.preventDefault();
+    });
+    imageLink.element.addEventListener('click', (event) => {
+      imageWasPrevented = event.defaultPrevented;
+      event.preventDefault();
+    });
+    fragmentLink.element.dispatchEvent(fragmentEvent);
+    imageLink.element.dispatchEvent(imageEvent);
+    await nextTick();
+
+    expect(fragmentWasPrevented).toBe(false);
+    expect(imageWasPrevented).toBe(false);
+    expect(mountedReader.emitted('openLink')).toBeUndefined();
+  });
+
+  it('normalizes and opens links that render after a manually generated summary', async () => {
     const { reader, resolveSummaryRequest } = mountReaderWithDelayedSummaryLink();
     await flushPromises();
     await nextTick();
@@ -303,7 +327,13 @@ describe('ArticleContent reading mode', () => {
 
     const link = reader.get('.summary-display a');
     expect(link.attributes('href')).toBe('https://example.com/summary-reference');
-    expect(link.attributes('target')).toBe('_self');
+
+    const event = new MouseEvent('click', { bubbles: true, cancelable: true, button: 0 });
+    link.element.dispatchEvent(event);
+    await nextTick();
+
+    expect(event.defaultPrevented).toBe(true);
+    expect(reader.emitted('openLink')).toEqual([['https://example.com/summary-reference']]);
   });
 
   it('passes Magazine to the reading column and title only while reading', async () => {

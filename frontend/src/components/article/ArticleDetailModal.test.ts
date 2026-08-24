@@ -150,4 +150,84 @@ describe('ArticleDetailModal original webpage view', () => {
 
     expect(readRequests()).toHaveLength(1);
   });
+
+  it('shows a linked page inside the card modal instead of handing it to the browser', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue({
+        ok: true,
+        json: vi.fn().mockResolvedValue({ default_view_mode: 'rendered' }),
+      })
+    );
+    setSettingsFromRawData({ default_view_mode: 'rendered' });
+    const LinkArticleContentStub = defineComponent({
+      name: 'ArticleContent',
+      emits: ['openLink'],
+      setup(_, { emit }) {
+        return () =>
+          h(
+            'button',
+            {
+              'data-testid': 'emit-card-link',
+              onClick: () => emit('openLink', 'https://example.com/related'),
+            },
+            'Open linked page'
+          );
+      },
+    });
+
+    wrapper = mount(ArticleDetailModal, {
+      attachTo: document.body,
+      props: {
+        article: { ...article },
+        articleContent: '<p>Body</p>',
+        isLoadingContent: false,
+      },
+      global: {
+        plugins: [createPinia(), createI18n({ legacy: false, locale: 'en', messages: { en } })],
+        stubs: {
+          Teleport: true,
+          ArticleToolbar: true,
+          ArticleContent: LinkArticleContentStub,
+          FindInPage: true,
+          ImageViewer: true,
+        },
+      },
+    });
+
+    await flushPromises();
+    await wrapper.get('[data-testid="emit-card-link"]').trigger('click');
+
+    const preview = wrapper.get('[data-testid="card-link-preview"]');
+    expect(preview.get('iframe').attributes('src')).toContain(
+      encodeURIComponent('https://example.com/related')
+    );
+    expect(wrapper.get('[data-testid="card-reader-session-content"]').attributes()).toHaveProperty(
+      'inert'
+    );
+
+    await wrapper.get('[data-testid="card-return-to-reading"]').trigger('click');
+
+    expect(wrapper.find('[data-testid="card-link-preview"]').exists()).toBe(false);
+    expect(wrapper.findComponent(LinkArticleContentStub).exists()).toBe(true);
+
+    await wrapper.get('[data-testid="emit-card-link"]').trigger('click');
+    const previewFrame = wrapper.get('[data-testid="card-link-preview"] iframe')
+      .element as HTMLIFrameElement;
+    const previewDocument = previewFrame.contentDocument;
+    previewDocument?.open();
+    previewDocument?.write(
+      '<!doctype html><html><body><button>Frame control</button></body></html>'
+    );
+    previewDocument?.close();
+    previewFrame.dispatchEvent(new Event('load'));
+    previewDocument?.addEventListener('keydown', (event) => event.stopPropagation());
+    previewDocument?.body?.dispatchEvent(
+      new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true })
+    );
+    await flushPromises();
+
+    expect(wrapper.find('[data-testid="card-link-preview"]').exists()).toBe(false);
+    expect(wrapper.emitted('close')).toBeUndefined();
+  });
 });

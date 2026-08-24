@@ -130,6 +130,8 @@ const en: TranslationMessages = {
       appearanceWidth: 'Article width',
       progress: 'Reading progress: {percent}%',
       regionLabel: 'Article reader',
+      linkPreview: 'Linked page',
+      returnToReading: 'Back to reading',
     },
     summary: {
       aiLimitReached: 'AI usage limit reached. Using free alternatives.',

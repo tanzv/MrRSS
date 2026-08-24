@@ -1,8 +1,8 @@
 <script setup lang="ts">
-import { ref, computed, watch, onMounted, onBeforeUnmount } from 'vue';
+import { ref, computed, watch, onMounted, onBeforeUnmount, nextTick } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useAppStore } from '@/stores/app';
-import { PhCaretLeft, PhCaretRight } from '@phosphor-icons/vue';
+import { PhArrowLeft, PhCaretLeft, PhCaretRight } from '@phosphor-icons/vue';
 import ArticleToolbar from './ArticleToolbar.vue';
 import ArticleContent from './ArticleContent.vue';
 import ImageViewer from '../common/ImageViewer.vue';
@@ -39,6 +39,9 @@ const readTracking = useArticleReadTracking();
 const showContent = ref(true);
 const showTranslations = ref(true);
 const showFindInPage = ref(false);
+const readerLinkUrl = ref<string | null>(null);
+const readerLinkReturnFocusTarget = ref<HTMLElement | null>(null);
+const returnToReadingButton = ref<HTMLButtonElement | null>(null);
 
 // Image viewer state
 const imageViewerSrc = ref<string | null>(null);
@@ -213,15 +216,62 @@ watch(
     imageViewerAlt.value = '';
     imageViewerImages.value = [];
     imageViewerInitialIndex.value = 0;
+    closeReaderLink({ restoreFocus: false });
 
     resolvePresentation();
     trackArticleOpened();
   }
 );
 
+function openReaderLink(url: string): void {
+  const activeElement = document.activeElement;
+  readerLinkReturnFocusTarget.value = activeElement instanceof HTMLElement ? activeElement : null;
+  showFindInPage.value = false;
+  readerLinkUrl.value = url;
+  void nextTick(() => returnToReadingButton.value?.focus());
+}
+
+function closeReaderLink({ restoreFocus = true }: { restoreFocus?: boolean } = {}): void {
+  readerLinkUrl.value = null;
+  const returnFocusTarget = readerLinkReturnFocusTarget.value;
+  readerLinkReturnFocusTarget.value = null;
+
+  if (restoreFocus && returnFocusTarget?.isConnected) {
+    void nextTick(() => returnFocusTarget.focus());
+  }
+}
+
+function closeReaderLinkOnEscape(event: KeyboardEvent): boolean {
+  if (!readerLinkUrl.value || event.key !== 'Escape') return false;
+
+  event.preventDefault();
+  event.stopImmediatePropagation();
+  closeReaderLink();
+  return true;
+}
+
+function handleReaderLinkPreviewKeydown(event: KeyboardEvent): void {
+  closeReaderLinkOnEscape(event);
+}
+
+function handleReaderLinkPreviewLoad(event: Event): void {
+  const iframe = event.currentTarget;
+  if (!(iframe instanceof HTMLIFrameElement)) return;
+
+  try {
+    const frameWindow = iframe.contentWindow;
+    frameWindow?.removeEventListener('keydown', handleReaderLinkPreviewKeydown, true);
+    frameWindow?.addEventListener('keydown', handleReaderLinkPreviewKeydown, true);
+  } catch {
+    // A navigation outside the local proxy cannot expose its window to the parent.
+  }
+}
+
 function handleKeydown(e: KeyboardEvent) {
   // ESC to close
   if (e.key === 'Escape') {
+    if (closeReaderLinkOnEscape(e)) return;
+
     if (showFindInPage.value) {
       showFindInPage.value = false;
     } else if (imageViewerSrc.value) {
@@ -320,77 +370,114 @@ function handleOverlayClick(e: MouseEvent) {
   <Teleport to="body">
     <div class="article-modal-overlay" @click="handleOverlayClick">
       <div class="article-modal" @click.stop>
-        <!-- Reuse ArticleToolbar with modal mode -->
-        <ArticleToolbar
-          :article="article"
-          :show-content="showContent"
-          :show-translations="showTranslations"
-          :is-modal="true"
-          @close="emit('close')"
-          @toggle-content-view="toggleContentView"
-          @toggle-read="toggleRead"
-          @toggle-favorite="emit('toggleFavorite')"
-          @toggle-read-later="emit('toggleReadLater')"
-          @open-original="openOriginal"
-          @toggle-translations="toggleTranslations"
-          @reload-content="handleReloadContent"
-          @export-to-obsidian="exportToObsidian"
-          @export-to-notion="exportToNotion"
-          @export-to-zotero="exportToZotero"
-        />
+        <div
+          data-testid="card-reader-session-content"
+          class="contents"
+          :inert="readerLinkUrl ? true : undefined"
+          :aria-hidden="readerLinkUrl ? 'true' : undefined"
+        >
+          <!-- Reuse ArticleToolbar with modal mode -->
+          <ArticleToolbar
+            :article="article"
+            :show-content="showContent"
+            :show-translations="showTranslations"
+            :is-modal="true"
+            @close="emit('close')"
+            @toggle-content-view="toggleContentView"
+            @toggle-read="toggleRead"
+            @toggle-favorite="emit('toggleFavorite')"
+            @toggle-read-later="emit('toggleReadLater')"
+            @open-original="openOriginal"
+            @toggle-translations="toggleTranslations"
+            @reload-content="handleReloadContent"
+            @export-to-obsidian="exportToObsidian"
+            @export-to-notion="exportToNotion"
+            @export-to-zotero="exportToZotero"
+          />
 
-        <!-- Modal content -->
-        <div class="modal-content">
-          <!-- Original webpage view -->
-          <div v-if="!showContent" class="flex-1 bg-bg-primary w-full">
-            <iframe
-              :key="article.id"
-              :src="`/api/webpage/proxy?url=${encodeURIComponent(article.url)}`"
-              :title="article.title"
-              class="w-full h-full border-none"
-              sandbox="allow-scripts allow-same-origin allow-popups"
-            ></iframe>
+          <!-- Modal content -->
+          <div class="modal-content">
+            <!-- Original webpage view -->
+            <div v-if="!showContent" class="flex-1 bg-bg-primary w-full">
+              <iframe
+                :key="article.id"
+                :src="`/api/webpage/proxy?url=${encodeURIComponent(article.url)}`"
+                :title="article.title"
+                class="w-full h-full border-none"
+                sandbox="allow-scripts allow-same-origin allow-popups"
+              ></iframe>
+            </div>
+
+            <!-- RSS content view -->
+            <ArticleContent
+              v-else
+              :article="article"
+              :article-content="articleContent"
+              :is-loading-content="isLoadingContent"
+              :attach-image-event-listeners="attachImageEventListeners"
+              :show-translations="showTranslations"
+              :show-content="showContent"
+              class="modal-prose-content"
+              @retry-load-content="handleRetryLoadContent"
+              @reading-progress="handleReadingProgress"
+              @open-link="openReaderLink"
+            />
           </div>
 
-          <!-- RSS content view -->
-          <ArticleContent
-            v-else
-            :article="article"
-            :article-content="articleContent"
-            :is-loading-content="isLoadingContent"
-            :attach-image-event-listeners="attachImageEventListeners"
-            :show-translations="showTranslations"
-            :show-content="showContent"
-            class="modal-prose-content"
-            @retry-load-content="handleRetryLoadContent"
-            @reading-progress="handleReadingProgress"
-          />
+          <!-- Navigation buttons -->
+          <div v-if="hasPreviousArticle || hasNextArticle" class="modal-navigation">
+            <button
+              v-if="hasPreviousArticle"
+              class="nav-btn"
+              :title="t('article.navigation.previousArticle')"
+              @click="emit('previous')"
+            >
+              <PhCaretLeft :size="16" />
+              <span>{{ t('article.navigation.previousArticle') }}</span>
+            </button>
+            <div v-else class="w-24"></div>
+
+            <button
+              v-if="hasNextArticle"
+              class="nav-btn"
+              :title="t('article.navigation.nextArticle')"
+              @click="emit('next')"
+            >
+              <span>{{ t('article.navigation.nextArticle') }}</span>
+              <PhCaretRight :size="16" />
+            </button>
+            <div v-else class="w-24"></div>
+          </div>
         </div>
 
-        <!-- Navigation buttons -->
-        <div v-if="hasPreviousArticle || hasNextArticle" class="modal-navigation">
-          <button
-            v-if="hasPreviousArticle"
-            class="nav-btn"
-            :title="t('article.navigation.previousArticle')"
-            @click="emit('previous')"
-          >
-            <PhCaretLeft :size="16" />
-            <span>{{ t('article.navigation.previousArticle') }}</span>
-          </button>
-          <div v-else class="w-24"></div>
-
-          <button
-            v-if="hasNextArticle"
-            class="nav-btn"
-            :title="t('article.navigation.nextArticle')"
-            @click="emit('next')"
-          >
-            <span>{{ t('article.navigation.nextArticle') }}</span>
-            <PhCaretRight :size="16" />
-          </button>
-          <div v-else class="w-24"></div>
-        </div>
+        <section
+          v-if="readerLinkUrl"
+          data-testid="card-link-preview"
+          class="absolute inset-0 z-10 flex flex-col bg-bg-primary"
+          role="dialog"
+          aria-modal="true"
+          :aria-label="t('article.readingMode.linkPreview')"
+        >
+          <header class="flex shrink-0 items-center border-b border-border bg-bg-primary px-3 py-2">
+            <button
+              ref="returnToReadingButton"
+              type="button"
+              data-testid="card-return-to-reading"
+              class="inline-flex items-center gap-2 rounded px-2 py-1.5 text-sm text-text-secondary transition-colors hover:bg-bg-tertiary hover:text-text-primary focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent"
+              @click="closeReaderLink"
+            >
+              <PhArrowLeft :size="18" />
+              <span>{{ t('article.readingMode.returnToReading') }}</span>
+            </button>
+          </header>
+          <iframe
+            :src="`/api/webpage/proxy?url=${encodeURIComponent(readerLinkUrl)}`"
+            :title="t('article.readingMode.linkPreview')"
+            class="w-full flex-1 border-none"
+            sandbox="allow-scripts allow-same-origin allow-popups"
+            @load="handleReaderLinkPreviewLoad"
+          ></iframe>
+        </section>
       </div>
 
       <!-- Find in Page -->
@@ -422,7 +509,7 @@ function handleOverlayClick(e: MouseEvent) {
 }
 
 .article-modal {
-  @apply bg-bg-primary w-full max-w-4xl h-[90vh] rounded-2xl shadow-2xl border border-border flex flex-col overflow-hidden;
+  @apply relative bg-bg-primary w-full max-w-4xl h-[90vh] rounded-2xl shadow-2xl border border-border flex flex-col overflow-hidden;
 }
 
 .modal-content {

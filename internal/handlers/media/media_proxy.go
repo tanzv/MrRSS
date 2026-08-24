@@ -700,45 +700,6 @@ func rewriteHTMLContent(bodyBytes []byte, baseURL string) []byte {
 			console.log('[Proxy] XHR interceptor installed');
 		} catch(e) { }
 
-		// Intercept all link clicks to open in external browser
-		try {
-			document.addEventListener('click', function(e) {
-				try {
-					// Check if clicked element or its parents is a link with our marker
-					let target = e.target;
-					while (target && target !== document) {
-						if (target.tagName === 'A' && target.hasAttribute('data-proxy-link')) {
-							// This is our proxied link
-							const href = target.getAttribute('href');
-							if (href && href.startsWith('BROWSER-OPEN:')) {
-								e.preventDefault();
-								e.stopPropagation();
-								e.stopImmediatePropagation();
-
-								const urlToOpen = href.substring('BROWSER-OPEN:'.length);
-								console.log('[Proxy] Opening link in browser:', urlToOpen);
-
-								// Call our backend to open the URL
-								fetch(PROXY_ORIGIN + '/api/browser/open?url=' + encodeURIComponent(urlToOpen), {
-									method: 'GET',
-									mode: 'cors'
-								}).catch(err => {
-									console.error('[Proxy] Failed to open URL:', err);
-								});
-
-								return false;
-							}
-						}
-						target = target.parentElement;
-					}
-				} catch(err) {
-					console.error('[Proxy] Error handling click:', err);
-				}
-			}, true); // Use capture phase
-			console.log('[Proxy] Link click interceptor installed');
-		} catch(e) {
-			console.error('[Proxy] Failed to install link interceptor:', e);
-		}
 	})();
 	</script>`
 
@@ -1195,147 +1156,45 @@ func rewriteLinkHref(content, baseURL string) string {
 	return result
 }
 
-// rewriteAnchorHref rewrites href attributes in anchor tags
+// rewriteAnchorHref rewrites HTTP(S) links to stay inside the webpage proxy.
 func rewriteAnchorHref(content, baseURL string) string {
-	// Match all anchor tags with href attribute
-	// This pattern matches any <a> tag that contains an href attribute
-	re := regexp.MustCompile(`<a\s+[^>]*href[^>]*>`)
+	anchorRe := regexp.MustCompile(`(?i)<a\s+[^>]*\bhref\b[^>]*>`)
+	hrefRe := regexp.MustCompile(`(?i)\bhref\s*=\s*(?:["']([^"']+)["']|([^"'\s>]+))`)
+	targetRe := regexp.MustCompile(`(?i)\s+target\s*=\s*(?:"[^"]*"|'[^']*'|[^\s>]+)`)
 
-	// Count matches for debugging
-	matchCount := 0
-	proxiedCount := 0
-
-	result := re.ReplaceAllStringFunc(content, func(match string) string {
-		matchCount++
-
-		// Extract href value using a more flexible regex
-		hrefRe := regexp.MustCompile(`href\s*=\s*(?:["']([^"']+)["']|([^"'\s>]+))`)
-		hrefMatch := hrefRe.FindStringSubmatch(match)
-
-		if len(hrefMatch) < 2 {
-			return match
+	return anchorRe.ReplaceAllStringFunc(content, func(anchor string) string {
+		hrefMatch := hrefRe.FindStringSubmatch(anchor)
+		if len(hrefMatch) < 3 {
+			return anchor
 		}
 
-		// Get the URL (first captured group is quoted, second is unquoted)
-		var urlValue string
-		if hrefMatch[1] != "" {
-			urlValue = hrefMatch[1]
-		} else if hrefMatch[2] != "" {
+		urlValue := hrefMatch[1]
+		if urlValue == "" {
 			urlValue = hrefMatch[2]
-		} else {
-			return match
+		}
+		urlValue = html.UnescapeString(urlValue)
+		lowerURL := strings.ToLower(urlValue)
+
+		if strings.HasPrefix(lowerURL, "mailto:") ||
+			strings.HasPrefix(lowerURL, "tel:") ||
+			strings.HasPrefix(lowerURL, "javascript:") ||
+			strings.HasPrefix(lowerURL, "data:") ||
+			strings.HasPrefix(lowerURL, "blob:") ||
+			strings.HasPrefix(urlValue, "#") ||
+			strings.HasPrefix(urlValue, "/api/") {
+			return anchor
 		}
 
-		// Skip mailto:, tel:, javascript:, and other special protocols
-		if strings.HasPrefix(urlValue, "mailto:") ||
-			strings.HasPrefix(urlValue, "tel:") ||
-			strings.HasPrefix(urlValue, "javascript:") ||
-			strings.HasPrefix(urlValue, "data:") ||
-			strings.HasPrefix(urlValue, "blob:") ||
-			strings.HasPrefix(urlValue, "#") {
-			return match
-		}
-
-		// Skip already proxied URLs (both relative and absolute)
-		if strings.HasPrefix(urlValue, "/api/") ||
-			strings.HasPrefix(urlValue, "http://") && strings.Contains(urlValue, "/api/") ||
-			strings.HasPrefix(urlValue, "https://") && strings.Contains(urlValue, "/api/") {
-			return match
-		}
-
-		// Resolve relative URLs to absolute URLs
-		var resolvedURL string
-		if strings.HasPrefix(urlValue, "http://") || strings.HasPrefix(urlValue, "https://") {
-			// Already absolute
-			resolvedURL = urlValue
-		} else if strings.HasPrefix(urlValue, "//") {
-			// Protocol-relative URL (//example.com) - add https:
-			resolvedURL = "https:" + urlValue
-		} else {
-			// Relative URL - resolve against baseURL
-			resolvedURL = resolveURL(urlValue, baseURL)
-		}
-
-		// Only proxy HTTP/HTTPS URLs
+		resolvedURL := resolveURL(urlValue, baseURL)
 		if !strings.HasPrefix(resolvedURL, "http://") && !strings.HasPrefix(resolvedURL, "https://") {
-			return match
+			return anchor
 		}
 
-		proxiedCount++
-
-		// CRITICAL FIX: Use absolute URL for the proxy endpoint
-		// We must use window.location.origin (which will be our backend) + the endpoint path
-		// This is handled by JavaScript in the iframe, but we need to ensure the href is absolute
-		// Format: https://localhost:9245/api/browser/open?url=...
-		// Since we don't know our backend origin here, we use a protocol-relative URL starting with //
-		// But actually, the iframe's window.location.origin IS our backend, so we just need to ensure
-		// the path starts with / and it will be resolved correctly... wait, that's the problem!
-
-		// The real solution: We need to construct an absolute URL or use JavaScript to handle clicks
-		// For now, let's use a data URL or JavaScript approach, but simpler: make it absolute by using
-		// the current origin. Since we're in an iframe served from our backend, we can use:
-
-		// Option 1: Use JavaScript: href (blocked by CSP usually)
-		// Option 2: Inject a <base> tag pointing to our backend (might break other resources)
-		// Option 3: Use absolute URL with placeholder that JavaScript will fix
-		// Option 4: Intercept clicks via event delegation (best approach)
-
-		// Let's use a special marker that our injected script will recognize
-		proxiedURL := fmt.Sprintf("BROWSER-OPEN:%s", resolvedURL)
-		// log.Printf("[Link Proxy] Proxied link %d: %s -> %s (marker: %s)", proxiedCount, urlValue, resolvedURL, proxiedURL)
-
-		// Replace the href attribute value by finding and replacing the exact value
-		// We need to handle different quote styles
-		if hrefMatch[1] != "" {
-			// Was quoted - replace with quoted version
-			// Find the original href attribute with its quotes and value
-			oldHref := fmt.Sprintf(`href="%s"`, urlValue)
-			oldHrefSingle := fmt.Sprintf(`href='%s'`, urlValue)
-			if strings.Contains(match, oldHref) {
-				newMatch := strings.Replace(match, oldHref, fmt.Sprintf(`href="%s"`, proxiedURL), 1)
-				// Add target="_self" and a special data attribute for our script
-				if !strings.Contains(newMatch, "target=") {
-					newMatch = strings.Replace(newMatch, ">", ` target="_self" data-proxy-link="true">`, 1)
-				} else {
-					newMatch = strings.Replace(newMatch, ">", ` data-proxy-link="true">`, 1)
-				}
-				return newMatch
-			} else if strings.Contains(match, oldHrefSingle) {
-				newMatch := strings.Replace(match, oldHrefSingle, fmt.Sprintf(`href='%s'`, proxiedURL), 1)
-				if !strings.Contains(newMatch, "target=") {
-					newMatch = strings.Replace(newMatch, ">", ` target="_self" data-proxy-link="true">`, 1)
-				} else {
-					newMatch = strings.Replace(newMatch, ">", ` data-proxy-link="true">`, 1)
-				}
-				return newMatch
-			}
-		} else {
-			// Was unquoted
-			oldHref := fmt.Sprintf(`href=%s`, urlValue)
-			newMatch := strings.Replace(match, oldHref, fmt.Sprintf(`href="%s"`, proxiedURL), 1)
-			if !strings.Contains(newMatch, "target=") {
-				newMatch = strings.Replace(newMatch, ">", ` target="_self" data-proxy-link="true">`, 1)
-			} else {
-				newMatch = strings.Replace(newMatch, ">", ` data-proxy-link="true">`, 1)
-			}
-			return newMatch
-		}
-
-		// Fallback: use regex replacement
-		newMatch := hrefRe.ReplaceAllString(match, fmt.Sprintf(`href="%s"`, proxiedURL))
-		if !strings.Contains(newMatch, "target=") {
-			newMatch = strings.Replace(newMatch, ">", ` target="_self" data-proxy-link="true">`, 1)
-		} else {
-			newMatch = strings.Replace(newMatch, ">", ` data-proxy-link="true">`, 1)
-		}
-		return newMatch
+		proxiedURL := "/api/webpage/proxy?url=" + url.QueryEscape(resolvedURL)
+		rewritten := hrefRe.ReplaceAllString(anchor, fmt.Sprintf(`href="%s"`, proxiedURL))
+		rewritten = targetRe.ReplaceAllString(rewritten, "")
+		return strings.Replace(rewritten, ">", ` target="_self">`, 1)
 	})
-
-	// if matchCount > 0 {
-	// 	log.Printf("[Link Proxy] Found %d anchor tags, proxied %d links", matchCount, proxiedCount)
-	// }
-
-	return result
 }
 
 // rewriteStyleTags rewrites CSS URLs in <style> tags

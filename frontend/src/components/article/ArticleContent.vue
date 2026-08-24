@@ -64,6 +64,7 @@ const emit = defineEmits<{
   retryLoadContent: [];
   readingProgress: [percent: number];
   navigateNext: [];
+  openLink: [url: string];
 }>();
 
 const { t } = useI18n();
@@ -815,11 +816,26 @@ function normalizeArticleLinks(): void {
       if (href) {
         link.setAttribute('href', href);
       }
-
-      if (link.target.toLowerCase() === '_blank') {
-        link.target = '_self';
-      }
     });
+}
+
+function handleArticleLinkClick(event: MouseEvent): void {
+  if (event.defaultPrevented || event.button !== 0) return;
+
+  const target = event.target;
+  if (!(target instanceof Element)) return;
+
+  const link = target.closest<HTMLAnchorElement>(
+    '.prose-content a[href], .summary-display a[href]'
+  );
+  if (!link || link.querySelector('img')) return;
+
+  const href = resolveArticleHref(link.getAttribute('href'));
+  if (!href) return;
+
+  event.preventDefault();
+  event.stopPropagation();
+  emit('openLink', href);
 }
 
 // Clear text selection when clicking outside the selected content
@@ -1171,6 +1187,7 @@ onBeforeUnmount(() => {
       tabindex="-1"
       role="region"
       :aria-label="t('article.readingMode.regionLabel')"
+      @click.capture="handleArticleLinkClick"
       @click="handleContainerClick"
       @scroll="handleReaderScroll"
     >
