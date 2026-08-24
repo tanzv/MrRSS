@@ -196,6 +196,15 @@ describe('reader navigation semantics', () => {
     expect(sidebarSource).toMatch(
       /\.compact-sidebar-wrapper\.is-edge-revealed \.sidebar-toggle-container\s*\{\s*z-index:\s*32;/
     );
+    expect(sidebarSource).toMatch(
+      /@media \(min-width: 1401px\)\s*\{\s*\.compact-sidebar-wrapper\.width-collapsed\.is-edge-revealed \.sidebar-toggle-container\s*\{[\s\S]*?width:\s*56px;[\s\S]*?min-width:\s*56px;[\s\S]*?margin-right:\s*-40px;/
+    );
+    expect(sidebarSource).toMatch(
+      /@media \(min-width: 768px\) and \(max-width: 1400px\)\s*\{\s*\.compact-sidebar-wrapper\.width-collapsed\.is-edge-revealed \.sidebar-toggle-container\s*\{[\s\S]*?width:\s*48px;[\s\S]*?min-width:\s*48px;[\s\S]*?margin-right:\s*-32px;/
+    );
+    expect(sidebarSource).toMatch(
+      /\.compact-sidebar-wrapper\.is-edge-revealed \.edge-toggle-button\s*\{\s*z-index:\s*31;/
+    );
     expect(sidebarSource).toContain("{ 'activity-bar-collapsed': isActivityBarCollapsed }");
     expect(sidebarSource).not.toContain("{ 'activity-bar-collapsed': !isActivityBarVisible }");
   });

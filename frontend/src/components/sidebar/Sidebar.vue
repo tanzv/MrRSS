@@ -329,6 +329,18 @@ onBeforeUnmount(() => {
   z-index: 32;
 }
 
+@media (min-width: 1401px) {
+  .compact-sidebar-wrapper.width-collapsed.is-edge-revealed .sidebar-toggle-container {
+    width: 56px;
+    min-width: 56px;
+    margin-right: -40px;
+  }
+}
+
+.compact-sidebar-wrapper.is-edge-revealed .edge-toggle-button {
+  z-index: 31;
+}
+
 /* Edge toggle button - absolutely positioned in shared space */
 .edge-toggle-button {
   position: absolute;
@@ -374,6 +386,14 @@ onBeforeUnmount(() => {
   .compact-sidebar-wrapper.width-collapsed .sidebar-toggle-container {
     width: 16px;
     min-width: 16px;
+  }
+}
+
+@media (min-width: 768px) and (max-width: 1400px) {
+  .compact-sidebar-wrapper.width-collapsed.is-edge-revealed .sidebar-toggle-container {
+    width: 48px;
+    min-width: 48px;
+    margin-right: -32px;
   }
 }
 
