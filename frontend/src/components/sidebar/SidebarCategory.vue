@@ -23,7 +23,6 @@ interface Props {
   isOpen: boolean;
   isActive: boolean;
   isUncategorized?: boolean;
-  unreadCount: number;
   currentFeedId: number | null;
   feedUnreadCounts: Record<number, number>;
   isDragOver?: boolean;
@@ -258,7 +257,6 @@ function handleCategoryKeydown(event: KeyboardEvent) {
           alt="FreshRSS"
         />
       </span>
-      <span v-if="unreadCount > 0" class="unread-badge mr-1">{{ unreadCount }}</span>
       <span class="category-toggle" @click.stop="handleCaretClick">
         <PhCaretDown
           :size="20"
@@ -332,7 +330,6 @@ function handleCategoryKeydown(event: KeyboardEvent) {
           :category-path="fullPath"
           :is-open="checkIsOpen(fullPath + '/' + childName)"
           :is-active="false"
-          :unread-count="0"
           :current-feed-id="currentFeedId"
           :feed-unread-counts="feedUnreadCounts"
           :is-drag-over="false"
@@ -525,11 +522,5 @@ function handleCategoryKeydown(event: KeyboardEvent) {
   50% {
     opacity: 1;
   }
-}
-
-.unread-badge {
-  @apply text-[9px] sm:text-[10px] font-medium rounded-full min-w-[14px] sm:min-w-[16px] h-[14px] sm:h-[16px] px-0.5 sm:px-1 flex items-center justify-center;
-  background-color: var(--unread-badge-background);
-  color: var(--unread-badge-color);
 }
 </style>

@@ -120,7 +120,6 @@ describe('reader navigation semantics', () => {
         feeds: [feed],
         isOpen: true,
         isActive: false,
-        unreadCount: 2,
         currentFeedId: null,
         feedUnreadCounts: { 1: 2 },
       },
@@ -135,6 +134,27 @@ describe('reader navigation semantics', () => {
 
     await header.trigger('keydown', { key: 'Enter' });
     expect(wrapper.emitted('selectCategory')).toHaveLength(1);
+  });
+
+  it('keeps unread counts on feeds, not subscription group headers', () => {
+    const wrapper = mount(SidebarCategory, {
+      props: {
+        name: 'News',
+        feeds: [feed],
+        isOpen: true,
+        isActive: false,
+        currentFeedId: null,
+        feedUnreadCounts: { 1: 2 },
+      },
+      global: { plugins: [i18n] },
+    });
+    wrappers.push(wrapper);
+
+    expect(wrapper.find('.category-header .unread-badge').exists()).toBe(false);
+    expect(wrapper.get('.feed-item .unread-badge').text()).toBe('2');
+    expect(sidebarCategorySource).not.toContain('unreadCount: number;');
+    expect(sidebarCategorySource).not.toContain('v-if="unreadCount > 0"');
+    expect(feedListSource).not.toContain(':unread-count="categoryUnreadCounts');
   });
 
   it('allows feed selection from the keyboard and exposes current state', async () => {

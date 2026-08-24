@@ -86,50 +86,6 @@ export function useSidebar() {
     return { tree: t, uncategorized, categories };
   });
 
-  // Compute unread counts for categories based on current filter
-  const categoryUnreadCounts = computed<Record<string, number>>(() => {
-    const counts: Record<string, number> = {};
-    if (!store.feeds || !store.unreadCounts.feedCounts) return counts;
-
-    // Determine which counts to use based on current filter
-    let countsSource: Record<number | string, number>;
-    switch (store.currentFilter) {
-      case 'favorites':
-        countsSource = store.filterCounts.favorites_unread;
-        break;
-      case 'readLater':
-        countsSource = store.filterCounts.read_later_unread;
-        break;
-      case 'unread':
-        countsSource = store.filterCounts.unread;
-        break;
-      case 'imageGallery':
-        countsSource = store.filterCounts.images_unread;
-        break;
-      default:
-        // For 'all' or empty filter, use regular unread counts
-        countsSource = store.unreadCounts.feedCounts;
-        break;
-    }
-
-    store.feeds.forEach((feed: Feed) => {
-      if (feed.category) {
-        const unreadCount = countsSource[feed.id] || 0;
-        if (unreadCount > 0) {
-          counts[feed.category] = (counts[feed.category] || 0) + unreadCount;
-        }
-      }
-    });
-
-    // Calculate uncategorized count
-    const uncategorizedFeeds = store.feeds.filter((f) => !f.category);
-    counts['uncategorized'] = uncategorizedFeeds.reduce((sum, feed) => {
-      return sum + (countsSource[feed.id] || 0);
-    }, 0);
-
-    return counts;
-  });
-
   // Compute feed unread counts based on current filter (for displaying on individual feeds)
   const feedUnreadCounts = computed<Record<number, number>>(() => {
     if (!store.feeds) return {};
@@ -484,7 +440,6 @@ export function useSidebar() {
 
   return {
     tree,
-    categoryUnreadCounts,
     feedUnreadCounts,
     openCategories,
     searchQuery,

@@ -177,7 +177,6 @@ function toggleEditMode() {
 
 const {
   tree,
-  categoryUnreadCounts,
   feedUnreadCounts,
   toggleCategory,
   isCategoryOpen: checkIsCategoryOpen,
@@ -704,7 +703,6 @@ function handleFilterDragEnd() {
               :level="0"
               :is-open="checkIsCategoryOpen(name)"
               :is-active="store.currentCategory === name"
-              :unread-count="categoryUnreadCounts[name] || 0"
               :current-feed-id="store.currentFeedId"
               :feed-unread-counts="feedUnreadCounts"
               :is-drag-over="dragOverCategory === name"
@@ -742,7 +740,6 @@ function handleFilterDragEnd() {
               "
               :is-active="store.currentCategory === ''"
               :is-uncategorized="true"
-              :unread-count="categoryUnreadCounts['uncategorized'] || 0"
               :current-feed-id="store.currentFeedId"
               :feed-unread-counts="feedUnreadCounts"
               :is-drag-over="dragOverCategory === 'uncategorized'"
