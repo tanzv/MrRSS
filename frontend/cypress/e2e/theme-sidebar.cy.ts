@@ -121,6 +121,45 @@ describe('Theme-aware sidebar', () => {
     });
   });
 
+  it('temporarily reveals a collapsed desktop rail without opening or moving the feed drawer', () => {
+    cy.viewport(1440, 900);
+    cy.get('[aria-label="Collapse Activity Bar"]').click();
+    cy.get('[data-testid="sidebar-edge-toggle"]').should('have.attr', 'aria-expanded', 'false');
+
+    let collapsedDrawerLeft = 0;
+    cy.get('.reader-feed-drawer')
+      .should('be.visible')
+      .then(($drawer) => {
+        collapsedDrawerLeft = $drawer[0].getBoundingClientRect().left;
+      });
+
+    cy.get('[data-testid="sidebar-edge-toggle"]')
+      .trigger('pointerenter', { pointerType: 'mouse' })
+      .should('have.attr', 'aria-expanded', 'true');
+    cy.get('.smart-activity-bar').should('be.visible');
+    cy.get('.reader-feed-drawer').should(($drawer) => {
+      expect($drawer[0].getBoundingClientRect().left).to.equal(collapsedDrawerLeft);
+    });
+
+    cy.get('[data-testid="sidebar-edge-toggle"]')
+      .focus()
+      .should('have.focus')
+      .trigger('pointerleave', { pointerType: 'mouse' });
+    cy.wait(230);
+    cy.get('.smart-activity-bar').should('be.visible');
+
+    cy.get('[data-testid="sidebar-edge-toggle"]').blur();
+    cy.wait(230);
+    cy.get('.smart-activity-bar').should('not.exist');
+    cy.get('[data-testid="sidebar-edge-toggle"]').should('have.attr', 'aria-expanded', 'false');
+
+    cy.get('[data-testid="sidebar-edge-toggle"]').click();
+    cy.get('[data-testid="sidebar-edge-toggle"]').should('not.exist');
+    cy.get('.smart-activity-bar').should('be.visible');
+    cy.get('.reader-feed-drawer').should('be.visible');
+    cy.window().its('localStorage.ActivityBarCollapsed').should('equal', 'false');
+  });
+
   it('keeps sidebar controls and list rows at 44px on a mobile viewport', () => {
     cy.viewport(375, 667);
     cy.get('button[aria-label="Toggle Sidebar"]').click();
