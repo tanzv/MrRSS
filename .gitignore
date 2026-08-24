@@ -88,3 +88,6 @@ tmpclaude-*-cwd
 i18n_usage_report.md
 __pycache__/
 .VSCodeCounter
+
+# Local design-review artifacts
+.impeccable/
