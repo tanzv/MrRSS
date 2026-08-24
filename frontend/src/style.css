@@ -60,7 +60,8 @@
     --unread-badge-background: #52606d;
     --unread-badge-color: #ffffff;
     --overlay-backdrop: rgb(15 23 42 / 0.42);
-    --overlay-shadow: 0 14px 32px rgb(15 23 42 / 0.18);
+    --overlay-shadow-color: #0f172a;
+    --overlay-shadow: 0 14px 32px color-mix(in srgb, var(--overlay-shadow-color) 18%, transparent);
     --media-overlay-background: rgb(15 23 42 / 0.28);
     --media-overlay-hover-background: rgb(15 23 42 / 0.42);
     --media-overlay-strong-background: rgb(15 23 42 / 0.84);
@@ -137,7 +138,8 @@
     --unread-badge-background: #d7e2ee;
     --unread-badge-color: #14171b;
     --overlay-backdrop: rgb(0 0 0 / 0.58);
-    --overlay-shadow: 0 14px 32px rgb(0 0 0 / 0.5);
+    --overlay-shadow-color: #000000;
+    --overlay-shadow: 0 14px 32px color-mix(in srgb, var(--overlay-shadow-color) 50%, transparent);
     --media-overlay-background: rgb(0 0 0 / 0.32);
     --media-overlay-hover-background: rgb(0 0 0 / 0.52);
     --media-overlay-strong-background: rgb(0 0 0 / 0.9);
@@ -208,7 +210,8 @@
     --unread-badge-background: #645748;
     --unread-badge-color: #ffffff;
     --overlay-backdrop: rgb(53 44 36 / 0.42);
-    --overlay-shadow: 0 14px 32px rgb(53 44 36 / 0.22);
+    --overlay-shadow-color: #352c24;
+    --overlay-shadow: 0 14px 32px color-mix(in srgb, var(--overlay-shadow-color) 22%, transparent);
     --media-overlay-background: rgb(53 44 36 / 0.28);
     --media-overlay-hover-background: rgb(53 44 36 / 0.44);
     --media-overlay-strong-background: rgb(53 44 36 / 0.86);
@@ -280,7 +283,8 @@
     --unread-badge-background: #ffffff;
     --unread-badge-color: #000000;
     --overlay-backdrop: rgb(0 0 0 / 0.78);
-    --overlay-shadow: 0 14px 32px rgb(0 0 0 / 0.7);
+    --overlay-shadow-color: #000000;
+    --overlay-shadow: 0 14px 32px color-mix(in srgb, var(--overlay-shadow-color) 70%, transparent);
     --media-overlay-background: rgb(0 0 0 / 0.58);
     --media-overlay-hover-background: rgb(0 0 0 / 0.78);
     --media-overlay-strong-background: rgb(0 0 0 / 0.96);
@@ -309,12 +313,28 @@ body {
   color: var(--state-warning-color);
 }
 
+.state-info-text {
+  color: var(--state-info-color);
+}
+
+.state-success-text {
+  color: var(--state-success-color);
+}
+
 .state-favorite-text {
   color: var(--state-favorite-color);
 }
 
+.state-read-later-text {
+  color: var(--state-read-later-color);
+}
+
 .on-accent {
   color: var(--accent-foreground);
+}
+
+.on-accent-border {
+  border-color: var(--accent-foreground);
 }
 
 .on-accent-muted {
@@ -362,6 +382,10 @@ body {
 
 .state-danger-text {
   color: var(--state-danger-color);
+}
+
+.state-danger-border {
+  border-color: var(--state-danger-border);
 }
 
 .state-danger-button {
@@ -449,13 +473,6 @@ body {
 
 .overlay-backdrop {
   background-color: var(--overlay-backdrop);
-}
-
-/* Preserve readable foregrounds for pre-existing primary controls in High Contrast. */
-:root[data-theme-preset='high-contrast'] .bg-accent.text-white,
-:root[data-theme-preset='high-contrast'] .bg-accent .text-white,
-:root[data-theme-preset='high-contrast'] .hover\:bg-accent:hover.hover\:text-white {
-  color: var(--accent-foreground);
 }
 
 /* Disable selection and dragging for UI elements and images */

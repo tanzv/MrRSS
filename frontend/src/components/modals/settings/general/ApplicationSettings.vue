@@ -21,6 +21,7 @@ import FontFamilySelect from '@/components/settings/FontFamilySelect.vue';
 import ThemePresetPicker from '@/components/settings/ThemePresetPicker.vue';
 import CustomThemeManager from '@/components/settings/CustomThemeManager.vue';
 import type { SettingsData } from '@/types/settings';
+import { parseThemeProfiles } from '@/utils/customTheme';
 
 const { t } = useI18n();
 
@@ -37,6 +38,8 @@ const emit = defineEmits<{
 const displayUiSize = computed(() => {
   return parseInt(props.settings.ui_font_size as any) || 16;
 });
+
+const themeProfiles = computed(() => parseThemeProfiles(props.settings.theme_profiles));
 
 function updateSetting(key: keyof SettingsData, value: any) {
   emit('update:settings', {
@@ -77,6 +80,7 @@ function updateUiFontSize(value: number) {
     >
       <ThemePresetPicker
         :model-value="settings.theme"
+        :profiles="themeProfiles"
         @update:model-value="updateSetting('theme', $event)"
       />
     </SettingItem>

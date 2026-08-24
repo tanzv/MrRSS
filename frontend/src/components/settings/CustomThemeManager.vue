@@ -52,6 +52,7 @@ const editingVariant = ref<'light' | 'dark'>('light');
 const renamingId = ref<string | null>(null);
 const renameValue = ref('');
 const importInput = ref<HTMLInputElement>();
+const rejectedTokenVersions = ref<Partial<Record<ThemeTokenKey, number>>>({});
 
 const groupOrder: ThemeTokenGroup[] = ['surface', 'text', 'accent', 'border', 'state', 'reader'];
 const groupLabelKeys: Record<ThemeTokenGroup, string> = {
@@ -133,13 +134,13 @@ function activeBasePreset(): BuiltInThemePreset {
     : 'paper';
 }
 
-function emitProfiles(profiles: CustomThemeProfile[], theme = props.settings.theme): void {
+function emitProfiles(profiles: CustomThemeProfile[], theme = props.settings.theme): boolean {
   if (profiles.some((profile) => !profilePassesContrast(profile))) {
     window.showToast?.(
-      getTranslation('contrastBlocked', 'High Contrast themes must keep readable text contrast.'),
+      getTranslation('contrastBlocked', 'Custom themes must keep readable text contrast.'),
       'error'
     );
-    return;
+    return false;
   }
 
   let serialized: string;
@@ -147,7 +148,7 @@ function emitProfiles(profiles: CustomThemeProfile[], theme = props.settings.the
     serialized = serializeThemeProfiles(profiles);
   } catch {
     window.showToast?.(getTranslation('invalidImport', 'Theme data is too large'), 'error');
-    return;
+    return false;
   }
   localProfiles.value = profiles;
   emit('update:settings', {
@@ -155,6 +156,7 @@ function emitProfiles(profiles: CustomThemeProfile[], theme = props.settings.the
     theme,
     theme_profiles: serialized,
   });
+  return true;
 }
 
 function createTheme(): void {
@@ -176,19 +178,19 @@ function activateTheme(profile: CustomThemeProfile): void {
   emitProfiles(localProfiles.value, getThemePreferenceId(profile));
 }
 
-function updateProfile(update: (profile: CustomThemeProfile) => CustomThemeProfile): void {
-  if (!activeProfile.value) return;
+function updateProfile(update: (profile: CustomThemeProfile) => CustomThemeProfile): boolean {
+  if (!activeProfile.value) return false;
   const updatedProfiles = localProfiles.value.map((profile) =>
     profile.id === activeProfile.value?.id ? update(profile) : profile
   );
-  emitProfiles(
+  return emitProfiles(
     updatedProfiles,
     getThemePreferenceId(updatedProfiles.find((profile) => profile.id === activeProfile.value?.id)!)
   );
 }
 
 function updateToken(key: ThemeTokenKey, value: string | undefined): void {
-  updateProfile((profile) => {
+  const updated = updateProfile((profile) => {
     const overrides = { ...profile[editingVariant.value] };
     if (value) {
       overrides[key] = value;
@@ -201,6 +203,12 @@ function updateToken(key: ThemeTokenKey, value: string | undefined): void {
       updatedAt: new Date().toISOString(),
     };
   });
+  if (!updated) {
+    rejectedTokenVersions.value = {
+      ...rejectedTokenVersions.value,
+      [key]: (rejectedTokenVersions.value[key] ?? 0) + 1,
+    };
+  }
 }
 
 function updateFont(value: string | number): void {
@@ -353,7 +361,7 @@ function getInheritedValue(key: ThemeTokenKey, profile: CustomThemeProfile | nul
 
 function profilePassesContrast(profile: CustomThemeProfile): boolean {
   const base = readBaseThemeTokens(profile);
-  if (!base.resolved || profile.basePreset !== 'high-contrast') {
+  if (!base.resolved) {
     return true;
   }
 
@@ -389,6 +397,96 @@ const contrastItems = computed(() => {
       check: report.secondary,
     },
     { key: 'accent', label: getTranslation('contrastAccent', 'Accent text'), check: report.accent },
+    {
+      key: 'background-warning',
+      label: getTranslation('contrastBackgroundWarning', 'Pinned drawer warning indicator'),
+      check: report.backgroundWarning,
+    },
+    {
+      key: 'accent-foreground',
+      label: getTranslation('contrastAccentForeground', 'Accent action'),
+      check: report.accentForeground,
+    },
+    {
+      key: 'accent-hover',
+      label: getTranslation('contrastAccentHover', 'Accent action hover'),
+      check: report.accentHover,
+    },
+    {
+      key: 'selection',
+      label: getTranslation('contrastSelection', 'Selection'),
+      check: report.selection,
+    },
+    {
+      key: 'rail-secondary',
+      label: getTranslation('contrastRailSecondary', 'Activity rail text'),
+      check: report.railSecondary,
+    },
+    {
+      key: 'rail-accent',
+      label: getTranslation('contrastRailAccent', 'Activity rail accent'),
+      check: report.railAccent,
+    },
+    {
+      key: 'panel-primary',
+      label: getTranslation('contrastPanelPrimary', 'Panel primary text'),
+      check: report.panelPrimary,
+    },
+    {
+      key: 'panel-secondary',
+      label: getTranslation('contrastPanelSecondary', 'Panel secondary text'),
+      check: report.panelSecondary,
+    },
+    {
+      key: 'panel-accent',
+      label: getTranslation('contrastPanelAccent', 'Panel accent text'),
+      check: report.panelAccent,
+    },
+    {
+      key: 'panel-warning',
+      label: getTranslation('contrastPanelWarning', 'Panel warning indicator'),
+      check: report.panelWarning,
+    },
+    {
+      key: 'hover-primary',
+      label: getTranslation('contrastHoverPrimary', 'Hover primary text'),
+      check: report.hoverPrimary,
+    },
+    {
+      key: 'hover-secondary',
+      label: getTranslation('contrastHoverSecondary', 'Hover secondary text'),
+      check: report.hoverSecondary,
+    },
+    {
+      key: 'hover-accent',
+      label: getTranslation('contrastHoverAccent', 'Hover accent text'),
+      check: report.hoverAccent,
+    },
+    {
+      key: 'hover-warning',
+      label: getTranslation('contrastHoverWarning', 'Hover warning indicator'),
+      check: report.hoverWarning,
+    },
+    {
+      key: 'selected-accent',
+      label: getTranslation('contrastSelectedAccent', 'Selected item text'),
+      check: report.selectedAccent,
+    },
+    {
+      key: 'selected-secondary',
+      label: getTranslation('contrastSelectedSecondary', 'Selected item secondary text'),
+      check: report.selectedSecondary,
+    },
+    {
+      key: 'selected-warning',
+      label: getTranslation('contrastSelectedWarning', 'Selected item warning indicator'),
+      check: report.selectedWarning,
+    },
+    {
+      key: 'unread-badge',
+      label: getTranslation('contrastUnreadBadge', 'Unread badge'),
+      check: report.unreadBadge,
+    },
     ...report.states.map((check, index) => ({
       key: `state-${stateKeys[index] ?? index}`,
       label: getTranslation(
@@ -445,8 +543,9 @@ async function importThemes(event: Event): Promise<void> {
     }
     const parsed = parseThemeProfiles(sourceProfiles);
     const nextProfile = parsed[0];
-    selectedProfileId.value = nextProfile?.id ?? null;
-    emitProfiles(parsed, nextProfile ? getThemePreferenceId(nextProfile) : 'paper');
+    if (emitProfiles(parsed, nextProfile ? getThemePreferenceId(nextProfile) : 'paper')) {
+      selectedProfileId.value = nextProfile?.id ?? null;
+    }
   } catch {
     window.showToast?.(getTranslation('invalidImport', 'Invalid theme file'), 'error');
   }
@@ -691,6 +790,7 @@ async function importThemes(event: Event): Promise<void> {
                 :label="tokenLabel(key)"
                 :inherited-value="getInheritedValue(key, activeProfile)"
                 :reset-label="getTranslation('resetToken', 'Reset token')"
+                :reset-version="rejectedTokenVersions[key] ?? 0"
                 @update:model-value="updateToken(key, $event)"
               />
             </div>
@@ -783,7 +883,7 @@ async function importThemes(event: Event): Promise<void> {
 }
 
 .theme-primary-button {
-  @apply inline-flex items-center gap-1.5 rounded border border-accent bg-accent px-3 py-1.5 text-xs font-medium text-white transition-colors hover:bg-accent-hover focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent;
+  @apply inline-flex items-center gap-1.5 rounded border border-accent bg-accent px-3 py-1.5 text-xs font-medium text-text-on-accent transition-colors hover:bg-accent-hover focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent;
 }
 
 .custom-theme-empty {

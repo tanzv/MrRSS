@@ -17,6 +17,40 @@ const baseTokens = Object.fromEntries(themeTokenKeys.map((key) => [key, '#ffffff
   string
 >;
 
+const stateContrastPairs = [
+  ['state-favorite-color', 'state-favorite-background'],
+  ['state-read-later-color', 'state-read-later-background'],
+  ['state-info-color', 'state-info-background'],
+  ['state-success-color', 'state-success-background'],
+  ['state-warning-color', 'state-warning-background'],
+  ['state-danger-color', 'state-danger-background'],
+] as const;
+
+const readableTokens = {
+  ...baseTokens,
+  'bg-primary': '#ffffff',
+  'surface-rail': '#ffffff',
+  'surface-panel': '#ffffff',
+  'surface-hover': '#ffffff',
+  'surface-selected': '#ffffff',
+  'text-primary': '#000000',
+  'text-secondary': '#000000',
+  'accent-text-color': '#000000',
+  'accent-color': '#005fcc',
+  'accent-hover': '#004caa',
+  'accent-foreground': '#ffffff',
+  'selection-background': '#005fcc',
+  'selection-color': '#ffffff',
+  'unread-badge-background': '#005fcc',
+  'unread-badge-color': '#ffffff',
+  ...Object.fromEntries(
+    stateContrastPairs.flatMap(([foreground, background]) => [
+      [foreground, '#000000'],
+      [background, '#ffffff'],
+    ])
+  ),
+} as Record<ThemeTokenKey, string>;
+
 describe('custom theme profiles', () => {
   it('exposes every editable token in exactly one editor group', () => {
     const groupedKeys = Object.values(themeTokenGroups).flat();
@@ -97,6 +131,115 @@ describe('custom theme profiles', () => {
     expect(report.primary.passes).toBe(false);
     expect(report.secondary.passes).toBe(true);
     expect(report.states.some((state) => !state.passes)).toBe(true);
+    expect(themeContrastPasses(report)).toBe(false);
+  });
+
+  it('rejects unreadable accent-action and selection foregrounds', () => {
+    const report = validateThemeContrast({
+      ...readableTokens,
+      'accent-color': '#ffffff',
+      'accent-hover': '#ffffff',
+      'accent-foreground': '#ffffff',
+      'selection-background': '#ffffff',
+      'selection-color': '#ffffff',
+    });
+
+    expect(report).toMatchObject({
+      accentForeground: { passes: false },
+      accentHover: { passes: false },
+      selection: { passes: false },
+    });
+    expect(themeContrastPasses(report)).toBe(false);
+  });
+
+  it('rejects unreadable sidebar rail, panel, selection, and badge pairings', () => {
+    const report = validateThemeContrast({
+      ...readableTokens,
+      'surface-rail': '#000000',
+      'surface-panel': '#000000',
+      'surface-hover': '#000000',
+      'surface-selected': '#000000',
+      'text-primary': '#000000',
+      'text-secondary': '#000000',
+      'accent-text-color': '#000000',
+      'unread-badge-background': '#000000',
+      'unread-badge-color': '#000000',
+    });
+
+    expect(report.railSecondary.passes).toBe(false);
+    expect(report.panelPrimary.passes).toBe(false);
+    expect(report.panelSecondary.passes).toBe(false);
+    expect(report.hoverPrimary.passes).toBe(false);
+    expect(report.hoverSecondary.passes).toBe(false);
+    expect(report.railAccent.passes).toBe(false);
+    expect(report.panelAccent.passes).toBe(false);
+    expect(report.hoverAccent.passes).toBe(false);
+    expect(report.selectedAccent.passes).toBe(false);
+    expect(report.selectedSecondary.passes).toBe(false);
+    expect(report.panelWarning.passes).toBe(false);
+    expect(report.hoverWarning.passes).toBe(false);
+    expect(report.selectedWarning.passes).toBe(false);
+    expect(report.unreadBadge.passes).toBe(false);
+    expect(themeContrastPasses(report)).toBe(false);
+  });
+
+  it('rejects warning colors that disappear in a pinned sidebar drawer', () => {
+    const report = validateThemeContrast({
+      ...readableTokens,
+      'bg-primary': '#000000',
+      'surface-rail': '#000000',
+      'surface-panel': '#767676',
+      'surface-hover': '#767676',
+      'surface-selected': '#767676',
+      'text-primary': '#ffffff',
+      'text-secondary': '#ffffff',
+      'accent-text-color': '#ffffff',
+      'state-warning-color': '#000000',
+      'state-warning-background': '#ffffff',
+    });
+
+    expect(report.backgroundWarning.passes).toBe(false);
+    expect(themeContrastPasses(report)).toBe(false);
+  });
+
+  it('rejects auxiliary sidebar icon colors that fail on selected and interactive surfaces', () => {
+    const report = validateThemeContrast({
+      ...readableTokens,
+      'bg-primary': '#000000',
+      'surface-rail': '#000000',
+      'surface-panel': '#000000',
+      'surface-hover': '#000000',
+      'surface-selected': '#767676',
+      'text-secondary': '#767676',
+      'accent-text-color': '#ffffff',
+      'state-warning-color': '#000000',
+      'state-warning-background': '#ffffff',
+    });
+
+    expect(report.selectedSecondary.passes).toBe(false);
+    expect(report.panelWarning.passes).toBe(false);
+    expect(report.hoverWarning.passes).toBe(false);
+    expect(themeContrastPasses(report)).toBe(false);
+  });
+
+  it('rejects translucent contrast backgrounds with an unknown rendered backdrop', () => {
+    const report = validateThemeContrast({
+      ...readableTokens,
+      'accent-color': '#00000000',
+      'accent-hover': '#00000000',
+      'accent-foreground': '#000000',
+      'selection-background': '#00000000',
+      'selection-color': '#000000',
+      'state-success-background': '#00000000',
+      'state-success-color': '#000000',
+    });
+
+    expect(report).toMatchObject({
+      accentForeground: { passes: false },
+      accentHover: { passes: false },
+      selection: { passes: false },
+    });
+    expect(report.states[3]).toMatchObject({ passes: false });
     expect(themeContrastPasses(report)).toBe(false);
   });
 

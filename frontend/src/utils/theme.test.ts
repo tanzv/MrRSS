@@ -9,9 +9,30 @@ import {
   normalizeThemePreference,
   resolveThemePreset,
 } from './theme';
-import type { CustomThemeProfile } from '@/types/theme';
+import { themeContrastPasses, validateThemeContrast } from './customTheme';
+import type { CustomThemeProfile, ThemeTokenKey } from '@/types/theme';
 import { themeTokenKeys } from '@/types/theme';
 const themeStyles = readFileSync(resolve(process.cwd(), 'src/style.css'), 'utf8');
+
+const presetIds = ['paper', 'ink', 'sepia', 'high-contrast'] as const;
+
+function presetTokenBlock(preset: (typeof presetIds)[number]): string {
+  const selector = preset === 'paper' ? ':root {' : `:root[data-theme-preset='${preset}'] {`;
+  const start = themeStyles.indexOf(selector);
+  const end = start === -1 ? -1 : themeStyles.indexOf('\n  }', start);
+  return start === -1 || end === -1 ? '' : themeStyles.slice(start, end);
+}
+
+function presetTokens(preset: (typeof presetIds)[number]): Record<ThemeTokenKey, string> {
+  const tokenBlock = presetTokenBlock(preset);
+  return Object.fromEntries(
+    themeTokenKeys.map((key) => {
+      const escapedKey = key.replace(/[-/\\^$*+?.()|[\]{}]/g, '\\$&');
+      const value = tokenBlock.match(new RegExp(`--${escapedKey}:\\s*([^;]+);`))?.[1] ?? '';
+      return [key, value.trim()];
+    })
+  ) as Record<ThemeTokenKey, string>;
+}
 
 function resetThemeDom() {
   document.documentElement.removeAttribute('data-theme-preset');
@@ -28,20 +49,24 @@ function resetThemeDom() {
 afterEach(resetThemeDom);
 
 describe('theme preferences', () => {
-  it.each(['paper', 'ink', 'sepia', 'high-contrast'] as const)(
-    'defines every editable token for the %s preset',
-    (preset) => {
-      const selector = preset === 'paper' ? ':root {' : `:root[data-theme-preset='${preset}'] {`;
-      const start = themeStyles.indexOf(selector);
-      const end = start === -1 ? -1 : themeStyles.indexOf('\n  }', start);
-      const tokenBlock = start === -1 || end === -1 ? '' : themeStyles.slice(start, end);
+  it.each(presetIds)('defines every editable token for the %s preset', (preset) => {
+    const selector = preset === 'paper' ? ':root {' : `:root[data-theme-preset='${preset}'] {`;
+    const start = themeStyles.indexOf(selector);
+    const end = start === -1 ? -1 : themeStyles.indexOf('\n  }', start);
+    const tokenBlock = start === -1 || end === -1 ? '' : themeStyles.slice(start, end);
 
-      expect(tokenBlock).toBeTruthy();
-      themeTokenKeys.forEach((key) => {
-        expect(tokenBlock).toMatch(
-          new RegExp(`--${key.replace(/[-/\\^$*+?.()|[\]{}]/g, '\\$&')}:\\s*[^;]+;`)
-        );
-      });
+    expect(tokenBlock).toBeTruthy();
+    themeTokenKeys.forEach((key) => {
+      expect(tokenBlock).toMatch(
+        new RegExp(`--${key.replace(/[-/\\^$*+?.()|[\]{}]/g, '\\$&')}:\\s*[^;]+;`)
+      );
+    });
+  });
+
+  it.each(presetIds)(
+    'keeps every custom-theme contrast pair readable in the %s preset',
+    (preset) => {
+      expect(themeContrastPasses(validateThemeContrast(presetTokens(preset)))).toBe(true);
     }
   );
 
@@ -100,7 +125,11 @@ describe('theme preferences', () => {
       name: 'Focus',
       basePreset: 'paper',
       appearance: 'light',
-      light: { 'accent-color': '#123456', 'surface-panel': '#f0f0f0' },
+      light: {
+        'accent-color': '#123456',
+        'surface-panel': '#f0f0f0',
+        'overlay-shadow-color': '#102030',
+      },
       dark: { 'accent-color': '#abcdef' },
       uiFontFamily: 'system',
       uiFontSize: 18,
@@ -110,6 +139,9 @@ describe('theme preferences', () => {
     expect(applyCustomTheme(profile, false)).toBe('paper');
     expect(document.documentElement.style.getPropertyValue('--accent-color')).toBe('#123456');
     expect(document.documentElement.style.getPropertyValue('--accent-rgb')).toBe('18 52 86');
+    expect(document.documentElement.style.getPropertyValue('--overlay-shadow-color')).toBe(
+      '#102030'
+    );
     expect(document.documentElement.style.getPropertyValue('--ui-font-size')).toBe('18px');
 
     applyThemePreference('paper', false);
@@ -160,6 +192,7 @@ describe('theme preferences', () => {
       expect(tokenBlock).toMatch(/--surface-selected:\s*[^;]+;/);
       expect(tokenBlock).toMatch(/--text-tertiary:\s*[^;]+;/);
       expect(tokenBlock).toMatch(/--overlay-backdrop:\s*[^;]+;/);
+      expect(tokenBlock).toMatch(/--overlay-shadow-color:\s*[^;]+;/);
       expect(tokenBlock).toMatch(/--overlay-shadow:\s*[^;]+;/);
     }
   );

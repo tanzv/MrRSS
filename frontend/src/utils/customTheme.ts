@@ -349,11 +349,15 @@ export function calculateContrastRatio(foreground: string, background: string): 
 
 function contrastCheck(foreground: string, background: string): ContrastCheck {
   const ratio = calculateContrastRatio(foreground, background);
+  const parsedBackground = parseCssColor(background);
+  // A translucent background inherits contrast from an unknown parent surface.
+  // Compositing it over white here would let high-contrast tokens bypass validation.
+  const hasOpaqueBackground = parsedBackground?.alpha === 1;
   return {
     foreground,
     background,
-    ratio: Number.isFinite(ratio) ? ratio : 0,
-    passes: Number.isFinite(ratio) && ratio >= 4.5,
+    ratio: hasOpaqueBackground && Number.isFinite(ratio) ? ratio : 0,
+    passes: hasOpaqueBackground && Number.isFinite(ratio) && ratio >= 4.5,
   };
 }
 
@@ -372,6 +376,24 @@ export function validateThemeContrast(tokens: Record<ThemeTokenKey, string>): Th
     primary: contrastCheck(tokens['text-primary'], background),
     secondary: contrastCheck(tokens['text-secondary'], background),
     accent: contrastCheck(tokens['accent-text-color'], background),
+    backgroundWarning: contrastCheck(tokens['state-warning-color'], background),
+    accentForeground: contrastCheck(tokens['accent-foreground'], tokens['accent-color']),
+    accentHover: contrastCheck(tokens['accent-foreground'], tokens['accent-hover']),
+    selection: contrastCheck(tokens['selection-color'], tokens['selection-background']),
+    railSecondary: contrastCheck(tokens['text-secondary'], tokens['surface-rail']),
+    railAccent: contrastCheck(tokens['accent-text-color'], tokens['surface-rail']),
+    panelPrimary: contrastCheck(tokens['text-primary'], tokens['surface-panel']),
+    panelSecondary: contrastCheck(tokens['text-secondary'], tokens['surface-panel']),
+    panelAccent: contrastCheck(tokens['accent-text-color'], tokens['surface-panel']),
+    panelWarning: contrastCheck(tokens['state-warning-color'], tokens['surface-panel']),
+    hoverPrimary: contrastCheck(tokens['text-primary'], tokens['surface-hover']),
+    hoverSecondary: contrastCheck(tokens['text-secondary'], tokens['surface-hover']),
+    hoverAccent: contrastCheck(tokens['accent-text-color'], tokens['surface-hover']),
+    hoverWarning: contrastCheck(tokens['state-warning-color'], tokens['surface-hover']),
+    selectedAccent: contrastCheck(tokens['accent-text-color'], tokens['surface-selected']),
+    selectedSecondary: contrastCheck(tokens['text-secondary'], tokens['surface-selected']),
+    selectedWarning: contrastCheck(tokens['state-warning-color'], tokens['surface-selected']),
+    unreadBadge: contrastCheck(tokens['unread-badge-color'], tokens['unread-badge-background']),
     states: states.map(([foregroundKey, backgroundKey]) =>
       contrastCheck(tokens[foregroundKey], tokens[backgroundKey])
     ),
@@ -379,9 +401,30 @@ export function validateThemeContrast(tokens: Record<ThemeTokenKey, string>): Th
 }
 
 export function themeContrastPasses(report: ThemeContrastReport): boolean {
-  return [report.primary, report.secondary, report.accent, ...report.states].every(
-    (check) => check.passes
-  );
+  return [
+    report.primary,
+    report.secondary,
+    report.accent,
+    report.backgroundWarning,
+    report.accentForeground,
+    report.accentHover,
+    report.selection,
+    report.railSecondary,
+    report.railAccent,
+    report.panelPrimary,
+    report.panelSecondary,
+    report.panelAccent,
+    report.panelWarning,
+    report.hoverPrimary,
+    report.hoverSecondary,
+    report.hoverAccent,
+    report.hoverWarning,
+    report.selectedAccent,
+    report.selectedSecondary,
+    report.selectedWarning,
+    report.unreadBadge,
+    ...report.states,
+  ].every((check) => check.passes);
 }
 
 export function createCustomThemeProfile(

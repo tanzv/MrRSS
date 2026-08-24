@@ -2,19 +2,25 @@
 import { computed, nextTick, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { PhCheckCircle } from '@phosphor-icons/vue';
-import { normalizeThemePreference, themePreferences, type ThemePreference } from '@/utils/theme';
+import type { BuiltInThemePreset, CustomThemeProfile } from '@/types/theme';
+import { getThemePreferenceId } from '@/utils/customTheme';
+import { normalizeThemePreference, type ThemePreference } from '@/utils/theme';
 
 interface Props {
   modelValue: ThemePreference | string;
+  profiles?: CustomThemeProfile[];
 }
 
 interface ThemeOption {
   value: ThemePreference;
   label: string;
   description: string;
+  previewPreset?: BuiltInThemePreset;
 }
 
-const props = defineProps<Props>();
+const props = withDefaults(defineProps<Props>(), {
+  profiles: () => [],
+});
 
 const emit = defineEmits<{
   'update:modelValue': [value: ThemePreference];
@@ -23,7 +29,6 @@ const emit = defineEmits<{
 const { t } = useI18n();
 const pickerRef = ref<HTMLElement>();
 
-const selectedValue = computed(() => normalizeThemePreference(props.modelValue));
 const options = computed<ThemeOption[]>(() => [
   {
     value: 'auto',
@@ -50,7 +55,18 @@ const options = computed<ThemeOption[]>(() => [
     label: t('setting.general.themeHighContrast'),
     description: t('setting.general.themeHighContrastDesc'),
   },
+  ...props.profiles.map((profile) => ({
+    value: getThemePreferenceId(profile),
+    label: profile.name,
+    description: t('setting.general.customTheme.themeOptionDescription'),
+    previewPreset: profile.basePreset,
+  })),
 ]);
+
+const selectedValue = computed<ThemePreference>(() => {
+  const normalized = normalizeThemePreference(props.modelValue);
+  return options.value.some((option) => option.value === normalized) ? normalized : 'auto';
+});
 
 function selectTheme(value: ThemePreference) {
   emit('update:modelValue', value);
@@ -63,7 +79,7 @@ function focusOption(value: ThemePreference) {
 }
 
 function handleKeydown(event: KeyboardEvent, currentIndex: number) {
-  const lastIndex = themePreferences.length - 1;
+  const lastIndex = options.value.length - 1;
   let nextIndex: number | null = null;
 
   if (event.key === 'ArrowRight' || event.key === 'ArrowDown') {
@@ -81,7 +97,10 @@ function handleKeydown(event: KeyboardEvent, currentIndex: number) {
   }
 
   event.preventDefault();
-  const nextValue = themePreferences[nextIndex];
+  const nextValue = options.value[nextIndex]?.value;
+  if (!nextValue) {
+    return;
+  }
   selectTheme(nextValue);
   focusOption(nextValue);
 }
@@ -102,6 +121,7 @@ function handleKeydown(event: KeyboardEvent, currentIndex: number) {
       class="theme-preset-option"
       :class="{ 'is-selected': selectedValue === option.value }"
       :data-theme-option="option.value"
+      :data-theme-preview="option.previewPreset ?? option.value"
       :aria-checked="selectedValue === option.value"
       :tabindex="selectedValue === option.value ? 0 : -1"
       @click="selectTheme(option.value)"
@@ -171,51 +191,51 @@ function handleKeydown(event: KeyboardEvent, currentIndex: number) {
   background: #0066d6;
 }
 
-.theme-preset-option[data-theme-option='auto'] .theme-preset-preview-surface {
+.theme-preset-option[data-theme-preview='auto'] .theme-preset-preview-surface {
   background: #ffffff;
 }
 
-.theme-preset-option[data-theme-option='auto'] .theme-preset-preview-secondary {
+.theme-preset-option[data-theme-preview='auto'] .theme-preset-preview-secondary {
   background: #1e1e1e;
 }
 
-.theme-preset-option[data-theme-option='auto'] .theme-preset-preview-accent {
+.theme-preset-option[data-theme-preview='auto'] .theme-preset-preview-accent {
   background: #73baff;
 }
 
-.theme-preset-option[data-theme-option='ink'] .theme-preset-preview-surface {
+.theme-preset-option[data-theme-preview='ink'] .theme-preset-preview-surface {
   background: #1e1e1e;
 }
 
-.theme-preset-option[data-theme-option='ink'] .theme-preset-preview-secondary {
+.theme-preset-option[data-theme-preview='ink'] .theme-preset-preview-secondary {
   background: #30343b;
 }
 
-.theme-preset-option[data-theme-option='ink'] .theme-preset-preview-accent {
+.theme-preset-option[data-theme-preview='ink'] .theme-preset-preview-accent {
   background: #73baff;
 }
 
-.theme-preset-option[data-theme-option='sepia'] .theme-preset-preview-surface {
+.theme-preset-option[data-theme-preview='sepia'] .theme-preset-preview-surface {
   background: #f7f1e3;
 }
 
-.theme-preset-option[data-theme-option='sepia'] .theme-preset-preview-secondary {
+.theme-preset-option[data-theme-preview='sepia'] .theme-preset-preview-secondary {
   background: #e1d3b9;
 }
 
-.theme-preset-option[data-theme-option='sepia'] .theme-preset-preview-accent {
+.theme-preset-option[data-theme-preview='sepia'] .theme-preset-preview-accent {
   background: #8b3a18;
 }
 
-.theme-preset-option[data-theme-option='high-contrast'] .theme-preset-preview-surface {
+.theme-preset-option[data-theme-preview='high-contrast'] .theme-preset-preview-surface {
   background: #000000;
 }
 
-.theme-preset-option[data-theme-option='high-contrast'] .theme-preset-preview-secondary {
+.theme-preset-option[data-theme-preview='high-contrast'] .theme-preset-preview-secondary {
   background: #252525;
 }
 
-.theme-preset-option[data-theme-option='high-contrast'] .theme-preset-preview-accent {
+.theme-preset-option[data-theme-preview='high-contrast'] .theme-preset-preview-accent {
   background: #ffe600;
 }
 
@@ -225,6 +245,7 @@ function handleKeydown(event: KeyboardEvent, currentIndex: number) {
 
 .theme-preset-label {
   @apply text-sm font-medium leading-tight;
+  overflow-wrap: anywhere;
 }
 
 .theme-preset-description {

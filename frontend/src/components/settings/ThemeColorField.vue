@@ -7,6 +7,7 @@ interface Props {
   description?: string;
   inheritedValue?: string;
   resetLabel?: string;
+  resetVersion?: number;
 }
 
 const props = withDefaults(defineProps<Props>(), {
@@ -14,6 +15,7 @@ const props = withDefaults(defineProps<Props>(), {
   description: '',
   inheritedValue: '',
   resetLabel: 'Reset to inherited value',
+  resetVersion: 0,
 });
 
 const emit = defineEmits<{
@@ -27,6 +29,14 @@ watch(
   () => props.modelValue,
   (value) => {
     draft.value = value ?? '';
+    invalid.value = false;
+  }
+);
+
+watch(
+  () => props.resetVersion,
+  () => {
+    draft.value = props.modelValue ?? '';
     invalid.value = false;
   }
 );

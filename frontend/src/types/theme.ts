@@ -55,6 +55,7 @@ export const themeTokenKeys = [
   'unread-badge-background',
   'unread-badge-color',
   'overlay-backdrop',
+  'overlay-shadow-color',
   'media-overlay-background',
   'media-overlay-hover-background',
   'media-overlay-strong-background',
@@ -84,6 +85,7 @@ export const themeTokenGroups: Record<ThemeTokenGroup, readonly ThemeTokenKey[]>
     'surface-hover',
     'surface-selected',
     'overlay-backdrop',
+    'overlay-shadow-color',
   ],
   text: ['text-primary', 'text-secondary', 'text-tertiary'],
   accent: [
@@ -174,5 +176,23 @@ export interface ThemeContrastReport {
   primary: ContrastCheck;
   secondary: ContrastCheck;
   accent: ContrastCheck;
+  backgroundWarning: ContrastCheck;
+  accentForeground: ContrastCheck;
+  accentHover: ContrastCheck;
+  selection: ContrastCheck;
+  railSecondary: ContrastCheck;
+  railAccent: ContrastCheck;
+  panelPrimary: ContrastCheck;
+  panelSecondary: ContrastCheck;
+  panelAccent: ContrastCheck;
+  panelWarning: ContrastCheck;
+  hoverPrimary: ContrastCheck;
+  hoverSecondary: ContrastCheck;
+  hoverAccent: ContrastCheck;
+  hoverWarning: ContrastCheck;
+  selectedAccent: ContrastCheck;
+  selectedSecondary: ContrastCheck;
+  selectedWarning: ContrastCheck;
+  unreadBadge: ContrastCheck;
   states: ContrastCheck[];
 }
