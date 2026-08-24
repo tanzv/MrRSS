@@ -89,6 +89,7 @@ export function useSidebarEdgeReveal({
 
   function dismissTemporaryReveal(): void {
     clearReleaseTimer();
+    isFocusWithin = false;
     isTemporarilyRevealed.value = false;
   }
 

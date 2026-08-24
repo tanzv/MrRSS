@@ -86,6 +86,23 @@ describe('useSidebarEdgeReveal', () => {
     vi.useRealTimers();
   });
 
+  it('allows pointer leave to retract after dismissal clears stale focus state', () => {
+    vi.useFakeTimers();
+    const state = useSidebarEdgeReveal({
+      isPersistentlyCollapsed: ref(true),
+      isMobile: ref(false),
+    });
+
+    state.handleFocusIn();
+    state.dismissTemporaryReveal();
+    state.handlePointerEnter(new PointerEvent('pointerenter', { pointerType: 'mouse' }));
+    state.handlePointerLeave();
+    vi.advanceTimersByTime(180);
+
+    expect(state.isTemporarilyRevealed.value).toBe(false);
+    vi.useRealTimers();
+  });
+
   it('clears transient state when persistence or mobile mode changes', async () => {
     vi.useFakeTimers();
     const collapsed = ref(true);
