@@ -258,4 +258,35 @@ describe('useArticleDetail reading mode', () => {
     expect(store.currentArticleId).toBeNull();
     expect(store.isReadingMode).toBe(false);
   });
+
+  it('does not turn text links into browser requests while attaching image interactions', async () => {
+    const { detail } = await mountDetailWithContent({ 1: '<p>First body</p>' });
+    const content = document.createElement('div');
+    content.className = 'prose-content';
+    content.innerHTML = '<a href="/related">Related</a>';
+    document.body.appendChild(content);
+
+    try {
+      const fetchMock = vi.mocked(global.fetch);
+      fetchMock.mockClear();
+      detail.attachImageEventListeners();
+
+      const link = content.querySelector<HTMLAnchorElement>('a')!;
+      let wasPreventedBeforeNativeNavigation = true;
+      link.addEventListener('click', (event) => {
+        wasPreventedBeforeNativeNavigation = event.defaultPrevented;
+        event.preventDefault();
+      });
+
+      link.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }));
+      await flushPromises();
+
+      expect(wasPreventedBeforeNativeNavigation).toBe(false);
+      expect(fetchMock.mock.calls.some(([input]) => String(input) === '/api/browser/open')).toBe(
+        false
+      );
+    } finally {
+      content.remove();
+    }
+  });
 });

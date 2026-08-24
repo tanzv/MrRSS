@@ -1,6 +1,6 @@
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { nextTick } from 'vue';
-import { flushPromises, shallowMount, type VueWrapper } from '@vue/test-utils';
+import { flushPromises, mount, shallowMount, type VueWrapper } from '@vue/test-utils';
 import { createI18n } from 'vue-i18n';
 import { createPinia } from 'pinia';
 import type { Article } from '@/types/models';
@@ -38,6 +38,14 @@ const nextArticle: Article = {
 };
 
 let wrapper: VueWrapper | undefined;
+const defaultFetch = vi.mocked(global.fetch).getMockImplementation();
+
+function response(data: unknown): Response {
+  return {
+    ok: true,
+    json: async () => data,
+  } as Response;
+}
 
 function mountReader(
   articleContent = '<p>Body</p>',
@@ -65,10 +73,111 @@ function mountReader(
   return wrapper;
 }
 
+function mountReaderWithBodyLink(articleContent: string) {
+  const pinia = createPinia();
+  wrapper = mount(ArticleContent, {
+    attachTo: document.body,
+    props: {
+      article,
+      articleContent,
+      isLoadingContent: false,
+      isReadingMode: true,
+    },
+    global: {
+      plugins: [pinia, createI18n({ legacy: false, locale: 'en', messages: { en } })],
+      stubs: {
+        ArticleTitle: true,
+        ArticleSummary: true,
+        FloatingToc: true,
+        AudioPlayer: true,
+        VideoPlayer: true,
+        ArticleChatButton: true,
+        ArticleChatPanel: true,
+      },
+    },
+  });
+
+  return wrapper;
+}
+
+function mountReaderWithDelayedSummaryLink() {
+  let resolveSummaryRequest: ((value: Response) => void) | undefined;
+
+  vi.mocked(global.fetch).mockImplementation((input) => {
+    const url = String(input);
+
+    if (url === '/api/settings') {
+      return Promise.resolve(
+        response({
+          summary_enabled: 'true',
+          summary_provider: 'ai',
+          summary_trigger_mode: 'manual',
+          translation_enabled: 'false',
+        })
+      );
+    }
+
+    if (url === '/api/articles/summarize') {
+      return new Promise<Response>((resolve) => {
+        resolveSummaryRequest = resolve;
+      });
+    }
+
+    return Promise.resolve(response({}));
+  });
+
+  const pinia = createPinia();
+  wrapper = mount(ArticleContent, {
+    attachTo: document.body,
+    props: {
+      article,
+      articleContent: '<p>Body</p>',
+      isLoadingContent: false,
+      isReadingMode: true,
+    },
+    global: {
+      plugins: [pinia, createI18n({ legacy: false, locale: 'en', messages: { en } })],
+      stubs: {
+        ArticleTitle: true,
+        ArticleSummary: {
+          props: ['summaryResult'],
+          emits: ['generate-summary'],
+          template: `
+            <div class="summary-display">
+              <button data-testid="generate-summary" @click="$emit('generate-summary')">
+                Generate summary
+              </button>
+              <a v-if="summaryResult" href="/summary-reference" target="_blank">Summary reference</a>
+            </div>
+          `,
+        },
+        FloatingToc: true,
+        AudioPlayer: true,
+        VideoPlayer: true,
+        ArticleChatButton: true,
+        ArticleChatPanel: true,
+      },
+    },
+  });
+
+  return {
+    reader: wrapper,
+    resolveSummaryRequest: (data: unknown) => {
+      if (!resolveSummaryRequest) {
+        throw new Error('The summary request did not start');
+      }
+      resolveSummaryRequest(response(data));
+    },
+  };
+}
+
 describe('ArticleContent reading mode', () => {
   afterEach(() => {
     wrapper?.unmount();
     wrapper = undefined;
+    if (defaultFetch) {
+      vi.mocked(global.fetch).mockImplementation(defaultFetch);
+    }
     setSettingsFromRawData({});
   });
 
@@ -143,6 +252,58 @@ describe('ArticleContent reading mode', () => {
     expect(
       mountedReader.get('[data-testid="article-reading-column"]').attributes('data-reader-theme')
     ).toBe('sepia');
+  });
+
+  it('leaves ordinary body links to native navigation instead of opening the default browser', async () => {
+    const mountedReader = mountReaderWithBodyLink(`
+      <p><a href="/related" target="_blank">Root-relative</a></p>
+      <p><a href="next-page">Path-relative</a></p>
+    `);
+    await flushPromises();
+    await nextTick();
+    const fetchMock = vi.mocked(global.fetch);
+    fetchMock.mockClear();
+
+    const [rootRelativeLink, pathRelativeLink] = mountedReader.findAll('.prose-content a');
+    expect(rootRelativeLink.attributes('href')).toBe('https://example.com/related');
+    expect(rootRelativeLink.attributes('target')).toBe('_self');
+    expect(pathRelativeLink.attributes('href')).toBe('https://example.com/next-page');
+
+    const link = rootRelativeLink.element;
+    let wasPreventedBeforeNativeNavigation = true;
+    link.addEventListener('click', (event) => {
+      wasPreventedBeforeNativeNavigation = event.defaultPrevented;
+      event.preventDefault();
+    });
+
+    link.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }));
+    await flushPromises();
+
+    expect(wasPreventedBeforeNativeNavigation).toBe(false);
+    expect(fetchMock.mock.calls.some(([input]) => String(input) === '/api/browser/open')).toBe(
+      false
+    );
+  });
+
+  it('normalizes links that render after a manually generated summary', async () => {
+    const { reader, resolveSummaryRequest } = mountReaderWithDelayedSummaryLink();
+    await flushPromises();
+    await nextTick();
+    await reader.get('[data-testid="generate-summary"]').trigger('click');
+    await flushPromises();
+
+    resolveSummaryRequest({
+      summary: 'Read the reference',
+      html: '<p>Read the reference</p>',
+      sentence_count: 1,
+      is_too_short: false,
+    });
+    await flushPromises();
+    await nextTick();
+
+    const link = reader.get('.summary-display a');
+    expect(link.attributes('href')).toBe('https://example.com/summary-reference');
+    expect(link.attributes('target')).toBe('_self');
   });
 
   it('passes Magazine to the reading column and title only while reading', async () => {

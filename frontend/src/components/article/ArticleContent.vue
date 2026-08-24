@@ -22,7 +22,6 @@ import {
 } from '@/composables/article/useContentTranslation';
 import { useSettings } from '@/composables/core/useSettings';
 import { useAppStore } from '@/stores/app';
-import { openInBrowser } from '@/utils/browser';
 import { proxyImagesInHtml, isMediaCacheEnabled } from '@/utils/mediaProxy';
 import {
   getReaderTypographyPreset,
@@ -778,29 +777,24 @@ async function translateContentParagraphs(content: string) {
     highlightCodeBlocks(el as HTMLElement);
   });
 
-  // Re-attach ALL event listeners after translation modifies the DOM
-  // This includes unwrapping images from links, attaching image handlers, and link handlers
-  await reattachContentInteractions();
+  // Re-attach image interactions after translation modifies the DOM.
+  await reattachImageInteractions();
 
   isTranslatingContent.value = false;
 }
 
-async function reattachContentInteractions() {
-  await nextTick();
-  await reattachImageInteractions();
-  attachExternalLinkHandlers();
-}
-
 async function reattachImageInteractions() {
+  await nextTick();
+  normalizeArticleLinks();
   if (!props.attachImageEventListeners || !displayContent.value) return;
   props.attachImageEventListeners();
 }
 
-function resolveExternalHref(rawHref: string | null): string | null {
-  if (!rawHref || rawHref.startsWith('#')) return null;
+function resolveArticleHref(rawHref: string | null): string | null {
+  if (!rawHref || rawHref.startsWith('#') || !props.article.url) return null;
 
   try {
-    const url = props.article?.url ? new URL(rawHref, props.article.url) : new URL(rawHref);
+    const url = new URL(rawHref, props.article.url);
     if (url.protocol !== 'http:' && url.protocol !== 'https:') return null;
     return url.href;
   } catch {
@@ -808,29 +802,24 @@ function resolveExternalHref(rawHref: string | null): string | null {
   }
 }
 
-function attachExternalLinkHandlers() {
+function normalizeArticleLinks(): void {
   const container = articleScrollContainer.value;
   if (!container) return;
 
-  container.querySelectorAll<HTMLAnchorElement>('.prose-content a[href]').forEach((link) => {
-    if (link.dataset.externalBrowserHandlerAttached === 'true') return;
-    if (link.querySelector('img')) return;
+  container
+    .querySelectorAll<HTMLAnchorElement>('.prose-content a[href], .summary-display a[href]')
+    .forEach((link) => {
+      if (link.querySelector('img')) return;
 
-    link.dataset.externalBrowserHandlerAttached = 'true';
-    link.addEventListener(
-      'click',
-      (event: MouseEvent) => {
-        const href = resolveExternalHref(link.getAttribute('href'));
-        if (!href) return;
+      const href = resolveArticleHref(link.getAttribute('href'));
+      if (href) {
+        link.setAttribute('href', href);
+      }
 
-        event.preventDefault();
-        event.stopPropagation();
-        event.stopImmediatePropagation();
-        void openInBrowser(href);
-      },
-      { capture: true }
-    );
-  });
+      if (link.target.toLowerCase() === '_blank') {
+        link.target = '_self';
+      }
+    });
 }
 
 // Clear text selection when clicking outside the selected content
@@ -1021,8 +1010,8 @@ watch(
       // Enhance rendering first (math formulas, etc.)
       enhanceRendering('.prose-content');
 
-      // Re-attach image and link event listeners after rendering enhancements
-      await reattachContentInteractions();
+      // Re-attach image interactions after rendering enhancements.
+      await reattachImageInteractions();
       await restorePendingArticleScrollPosition();
       scheduleReadingProgress();
 
@@ -1094,8 +1083,8 @@ onMounted(async () => {
     if (props.articleContent && !props.isLoadingContent) {
       await nextTick();
       enhanceRendering('.prose-content');
-      // Re-attach image and link event listeners after rendering
-      await reattachContentInteractions();
+      // Re-attach image interactions after rendering.
+      await reattachImageInteractions();
       await restorePendingArticleScrollPosition();
       scheduleReadingProgress();
 
@@ -1116,9 +1105,8 @@ watch(
   () => props.articleContent,
   async (content) => {
     if (content) {
-      // Wait for v-html to update the DOM before attaching event listeners
-      await nextTick();
-      await reattachContentInteractions();
+      // Wait for v-html to update the DOM before attaching image interactions.
+      await reattachImageInteractions();
       await restorePendingArticleScrollPosition();
     }
   },
@@ -1136,11 +1124,16 @@ watch(
 // but the watch above only monitors props.articleContent
 watch(fullArticleContent, async (content) => {
   if (content) {
-    // Wait for v-html to update the DOM before attaching event listeners
-    await nextTick();
-    await reattachContentInteractions();
+    // Wait for v-html to update the DOM before attaching image interactions.
+    await reattachImageInteractions();
     await restorePendingArticleScrollPosition();
   }
+});
+
+// Summaries can render after the article body, so normalize their links after each update.
+watch([summaryEnabled, summaryResult, translatedSummary], async () => {
+  await nextTick();
+  normalizeArticleLinks();
 });
 
 // Clean up event listeners
