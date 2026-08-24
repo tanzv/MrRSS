@@ -199,12 +199,12 @@ defineExpose({
       :aria-label="t('sidebar.activity.readerNavigation')"
     >
       <!-- Logo -->
-      <div class="mb-6">
+      <div class="activity-brand-mark mb-6">
         <img :src="LogoSvg" alt="MrRSS" class="w-6 h-6" />
       </div>
 
       <!-- Divider -->
-      <div class="w-8 h-px bg-border mb-3"></div>
+      <div class="activity-divider w-8 h-px bg-border mb-3"></div>
 
       <!-- Navigation Items -->
       <nav
@@ -291,7 +291,7 @@ defineExpose({
         </button>
 
         <!-- Divider -->
-        <div class="w-8 h-px bg-border my-2"></div>
+        <div class="activity-divider w-8 h-px bg-border my-2"></div>
 
         <!-- Collapse Button (at the bottom) -->
         <button
@@ -340,8 +340,8 @@ defineExpose({
 }
 
 .smart-activity-bar {
-  width: 56px;
-  min-width: 56px;
+  width: 48px;
+  min-width: 48px;
   position: absolute;
   left: 0;
   top: 0;
@@ -371,6 +371,28 @@ defineExpose({
 
 .activity-nav-button[data-active='true'] {
   color: var(--accent-text-color);
+}
+
+.activity-brand-mark,
+.activity-divider {
+  opacity: 0.72;
+  transition: opacity 0.2s ease;
+}
+
+.smart-activity-bar:hover .activity-brand-mark,
+.smart-activity-bar:hover .activity-divider,
+.smart-activity-bar:focus-within .activity-brand-mark,
+.smart-activity-bar:focus-within .activity-divider {
+  opacity: 1;
+}
+
+.activity-nav-button:not(.is-active) :deep(svg) {
+  opacity: 0.82;
+}
+
+.activity-nav-button:hover:not(.is-active) :deep(svg),
+.activity-nav-button:focus-visible:not(.is-active) :deep(svg) {
+  opacity: 1;
 }
 
 .activity-nav-button:focus-visible {
@@ -457,14 +479,6 @@ defineExpose({
     color 0.2s ease,
     background-color 0.2s ease;
   will-change: color, background-color;
-}
-
-/* Smaller screens (laptops, tablets) */
-@media (max-width: 1400px) {
-  .smart-activity-bar {
-    width: 48px;
-    min-width: 48px;
-  }
 }
 
 /* Mobile devices */

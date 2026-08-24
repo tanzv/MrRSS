@@ -308,8 +308,8 @@ onBeforeUnmount(() => {
 /* Container for both ActivityBar and Edge Toggle - uses absolute positioning */
 .sidebar-toggle-container {
   position: relative;
-  width: 56px;
-  min-width: 56px;
+  width: 48px;
+  min-width: 48px;
   height: 100%;
   flex-shrink: 0;
   /* Width transition happens after button animations */
@@ -329,11 +329,11 @@ onBeforeUnmount(() => {
   z-index: 32;
 }
 
-@media (min-width: 1401px) {
+@media (min-width: 768px) {
   .compact-sidebar-wrapper.width-collapsed.is-edge-revealed .sidebar-toggle-container {
-    width: 56px;
-    min-width: 56px;
-    margin-right: -40px;
+    width: 48px;
+    min-width: 48px;
+    margin-right: -32px;
   }
 }
 
@@ -374,27 +374,6 @@ onBeforeUnmount(() => {
 .edge-toggle-fade-enter-to,
 .edge-toggle-fade-leave-from {
   opacity: 1;
-}
-
-/* Smaller screens (laptops, tablets) */
-@media (max-width: 1400px) {
-  .sidebar-toggle-container {
-    width: 48px;
-    min-width: 48px;
-  }
-
-  .compact-sidebar-wrapper.width-collapsed .sidebar-toggle-container {
-    width: 16px;
-    min-width: 16px;
-  }
-}
-
-@media (min-width: 768px) and (max-width: 1400px) {
-  .compact-sidebar-wrapper.width-collapsed.is-edge-revealed .sidebar-toggle-container {
-    width: 48px;
-    min-width: 48px;
-    margin-right: -32px;
-  }
 }
 
 /* Mobile devices */
@@ -443,7 +422,7 @@ onBeforeUnmount(() => {
 
 .feed-drawer-wrapper:not(.pinned) {
   position: absolute;
-  left: 56px;
+  left: 48px;
   top: 0;
   bottom: 0;
   z-index: 20;
@@ -452,17 +431,6 @@ onBeforeUnmount(() => {
 /* When activity bar is collapsed, feed drawer should start from edge toggle button */
 .feed-drawer-wrapper:not(.pinned).activity-bar-collapsed {
   left: 16px;
-}
-
-/* Smaller screens (laptops, tablets) */
-@media (max-width: 1400px) {
-  .feed-drawer-wrapper:not(.pinned) {
-    left: 48px;
-  }
-
-  .feed-drawer-wrapper:not(.pinned).activity-bar-collapsed {
-    left: 16px;
-  }
 }
 
 /* Mobile devices */

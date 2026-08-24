@@ -93,6 +93,26 @@ describe('reader navigation semantics', () => {
     );
   });
 
+  it('uses a restrained 48px desktop rail without shrinking activity targets', () => {
+    expect(activityBarSource).toMatch(
+      /\.smart-activity-bar\s*\{[\s\S]*?width:\s*48px;[\s\S]*?min-width:\s*48px;/
+    );
+    expect(activityBarSource).toMatch(
+      /\.activity-nav-button\s*\{[\s\S]*?width:\s*44px;[\s\S]*?height:\s*44px;/
+    );
+    expect(activityBarSource).toContain('activity-brand-mark');
+    expect(activityBarSource).toContain('activity-divider');
+    expect(activityBarSource).toMatch(
+      /\.activity-brand-mark,\s*\.activity-divider\s*\{[\s\S]*?opacity:\s*0\.72;/
+    );
+    expect(activityBarSource).toMatch(
+      /\.smart-activity-bar:hover \.activity-brand-mark,[\s\S]*?\.smart-activity-bar:focus-within \.activity-divider\s*\{[\s\S]*?opacity:\s*1;/
+    );
+    expect(activityBarSource).toMatch(
+      /\.activity-nav-button:not\(\.is-active\) :deep\(svg\)\s*\{[\s\S]*?opacity:\s*0\.82;/
+    );
+  });
+
   it('allows category selection and expansion from the keyboard', async () => {
     const wrapper = mount(SidebarCategory, {
       props: {
@@ -197,16 +217,19 @@ describe('reader navigation semantics', () => {
       /\.compact-sidebar-wrapper\.is-edge-revealed \.sidebar-toggle-container\s*\{\s*z-index:\s*32;/
     );
     expect(sidebarSource).toMatch(
-      /@media \(min-width: 1401px\)\s*\{\s*\.compact-sidebar-wrapper\.width-collapsed\.is-edge-revealed \.sidebar-toggle-container\s*\{[\s\S]*?width:\s*56px;[\s\S]*?min-width:\s*56px;[\s\S]*?margin-right:\s*-40px;/
+      /\.sidebar-toggle-container\s*\{[\s\S]*?width:\s*48px;[\s\S]*?min-width:\s*48px;/
     );
     expect(sidebarSource).toMatch(
-      /@media \(min-width: 768px\) and \(max-width: 1400px\)\s*\{\s*\.compact-sidebar-wrapper\.width-collapsed\.is-edge-revealed \.sidebar-toggle-container\s*\{[\s\S]*?width:\s*48px;[\s\S]*?min-width:\s*48px;[\s\S]*?margin-right:\s*-32px;/
+      /@media \(min-width: 768px\)\s*\{\s*\.compact-sidebar-wrapper\.width-collapsed\.is-edge-revealed \.sidebar-toggle-container\s*\{[\s\S]*?width:\s*48px;[\s\S]*?min-width:\s*48px;[\s\S]*?margin-right:\s*-32px;/
     );
     expect(sidebarSource).toMatch(
       /\.compact-sidebar-wrapper\.is-edge-revealed \.edge-toggle-button\s*\{\s*z-index:\s*31;/
     );
     expect(sidebarSource).toContain("{ 'activity-bar-collapsed': isActivityBarCollapsed }");
     expect(sidebarSource).not.toContain("{ 'activity-bar-collapsed': !isActivityBarVisible }");
+    expect(sidebarSource).toMatch(
+      /\.feed-drawer-wrapper:not\(\.pinned\)\s*\{[\s\S]*?left:\s*48px;/
+    );
   });
 
   it('keeps saved filters at a mobile-friendly minimum height', () => {
