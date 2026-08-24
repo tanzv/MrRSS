@@ -38,6 +38,10 @@ controls visual availability of the rail.
 - The desktop bottom control has no `aria-expanded`: it changes a persistence
   preference rather than a disclosure state. Its label describes the resulting
   user action directly.
+- Keyboard activation of the bottom hide control returns focus to the control
+  that can reveal the bar again: the desktop reveal zone or mobile Expand
+  Activity Bar button. Focusing the desktop reveal zone previews the bar but
+  does not change the saved auto-hide preference.
 - On mobile there is no hover preview, so the existing explicit
   **Collapse Activity Bar** / **Expand Activity Bar** pair remains in place
   with disclosure state. This keeps the 44px off-canvas navigation behavior
@@ -50,9 +54,11 @@ controls visual availability of the rail.
 - Render a count as a compact, tabular-figure text value rather than a filled
   circular badge: no background, border, fixed pill width, or high-contrast
   foreground.
-- Default to the semantic tertiary text token with reduced opacity. The count
-  may inherit the row color on hover, keyboard focus, or active selection, so
-  it remains legible without dominating the scan path.
+- Default to an opaque semantic secondary text token at compact type. This
+  retains AA contrast on each drawer surface while the lack of a filled badge,
+  small type, and tabular figures keep it out of the primary scan path. The
+  count may inherit the row color on hover, keyboard focus, or active
+  selection.
 
 ## Layout, input, and accessibility
 
@@ -80,3 +86,16 @@ controls visual availability of the rail.
   target checks.
 - Add component assertions for unobtrusive subscription-row unread numbers and
   their hover, focus, and active-state treatment.
+
+## Verification record
+
+- Frontend unit coverage passed: 47 test files and 271 tests.
+- ESLint, Prettier, the Vite production build, `git diff --check`, and the
+  macOS `wails3 build` all completed successfully. Existing jsdom canvas,
+  Vite configuration, bundle-size, Node engine, Husky, and linker warnings
+  were non-blocking.
+- Desktop and mobile browser probes verified the reveal-zone geometry,
+  persistence behavior, focus hand-off, and unread-count contrast in each
+  supported theme. The local Cypress application binary was unavailable, so
+  the Cypress spec was retained and equivalent installed-browser probes were
+  used without downloading a binary.

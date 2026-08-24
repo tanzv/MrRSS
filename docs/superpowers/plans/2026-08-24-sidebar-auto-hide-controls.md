@@ -16,7 +16,7 @@
 - The only desktop visibility action is at the bottom of the visible activity bar: Auto-hide Activity Bar while fixed and Keep Activity Bar Visible while previewed.
 - Keep existing 44px mobile Collapse/Expand controls and their aria-expanded behavior.
 - Keep unread counts on feeds and absent from group headers; do not change count data or filtering behavior.
-- Feed unread counts use existing semantic text tokens; do not add theme settings or remove global unread-badge tokens used elsewhere.
+- Feed unread counts use existing semantic text tokens at an AA-safe contrast; do not add theme settings or remove global unread-badge tokens used elsewhere.
 - Do not stage unrelated user changes.
 
 ---
@@ -33,7 +33,7 @@
 - ActivityBar emits hide-activity-bar for auto-hide and collapse, and pin-activity-bar for pin.
 - Sidebar passes auto-hide while fixed, pin during desktop preview, and collapse on mobile.
 
-- [ ] **Step 1: Write a failing component contract test**
+- [x] **Step 1: Write a failing component contract test**
 
 ~~~
 const previewWrapper = mount(ActivityBar, {
@@ -49,13 +49,13 @@ expect(previewWrapper.find('button[aria-label="Auto-hide Activity Bar"]').exists
 
 Also assert Sidebar binds @pin-activity-bar="pinActivityBar".
 
-- [ ] **Step 2: Run the focused test to verify it fails**
+- [x] **Step 2: Run the focused test to verify it fails**
 
 Run: npm run test:unit -- src/components/sidebar/SidebarNavigation.test.ts
 
 Expected: pin visibility mode and pin-activity-bar event do not exist.
 
-- [ ] **Step 3: Implement the bottom action**
+- [x] **Step 3: Implement the bottom action**
 
 ~~~
 type ActivityBarVisibilityControl = 'auto-hide' | 'pin' | 'collapse';
@@ -98,17 +98,16 @@ function expandMobileActivityBar(event: MouseEvent): void {
 }
 ~~~
 
-- [ ] **Step 4: Run focused tests**
+- [x] **Step 4: Run focused tests**
 
 Run: npm run test:unit -- src/components/sidebar/SidebarNavigation.test.ts src/composables/ui/useSidebarEdgeReveal.test.ts
 
 Expected: all visibility and transient lifecycle tests pass.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ~~~
-git add frontend/src/components/sidebar/ActivityBar.vue frontend/src/components/sidebar/Sidebar.vue
-git commit -m "feat(sidebar): keep visibility controls in activity bar"
+git commit -m "feat(sidebar): refine activity bar visibility controls"
 ~~~
 
 ### Task 2: Make the desktop edge a visual-free reveal zone
@@ -125,7 +124,7 @@ git commit -m "feat(sidebar): keep visibility controls in activity bar"
 - data-testid="sidebar-edge-toggle" is rendered only on mobile.
 - The desktop preview exposes its pin action in ActivityBar.
 
-- [ ] **Step 1: Write failing desktop and mobile browser assertions**
+- [x] **Step 1: Write failing desktop and mobile browser assertions**
 
 At desktop startup with ActivityBarCollapsed=true:
 
@@ -140,13 +139,13 @@ Retain the mobile check for the 44px Expand Activity Bar edge control and aria-e
 Add a desktop keyboard assertion that focusing and activating the invisible
 reveal trigger moves focus to the first activity-bar button.
 
-- [ ] **Step 2: Run focused browser coverage**
+- [x] **Step 2: Run focused browser coverage**
 
 Run: npm run test:e2e:spec -- cypress/e2e/theme-sidebar.cy.ts
 
 Expected: it fails against the old desktop pin tab, or reports the known unavailable Cypress application binary without downloading it.
 
-- [ ] **Step 3: Remove the desktop pin tab**
+- [x] **Step 3: Remove the desktop pin tab**
 
 ~~~
 <button
@@ -177,15 +176,15 @@ transparent until focus-visible. Remove desktop edge-pin styles and imports,
 but retain the mobile 44px rule. Add showActivityBar translations: Show
 Activity Bar / 显示活动栏.
 
-- [ ] **Step 4: Run the installed browser probe**
+- [x] **Step 4: Run the installed browser probe**
 
 At 1440px with a pinned drawer, verify: no desktop edge action, drawer left remains 16px through preview, pointer movement from x=4 to x=36 keeps preview open, and the bottom pin action persists fixed-visible mode.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ~~~
-git add frontend/src/components/sidebar/Sidebar.vue frontend/src/components/sidebar/SidebarNavigation.test.ts frontend/cypress/e2e/theme-sidebar.cy.ts
-git commit -m "fix(sidebar): keep desktop edge as a reveal zone"
+# Included with Task 1 because the two changes form one user-facing control model.
+git show --stat cfa0becf
 ~~~
 
 ### Task 3: De-emphasize feed-row unread numbers
@@ -196,35 +195,34 @@ git commit -m "fix(sidebar): keep desktop edge as a reveal zone"
 
 **Interfaces:**
 - SidebarFeed keeps span v-if="unreadCount > 0" class="unread-badge" and its numeric content.
-- unread-badge uses --text-tertiary as text-only presentation; hover, focus, and active rows may inherit currentColor.
+- unread-badge uses opaque --text-secondary as compact text-only presentation; hover, focus, and active rows may inherit currentColor.
 
-- [ ] **Step 1: Write a failing presentation test**
+- [x] **Step 1: Write a failing presentation test**
 
 ~~~
 expect(sidebarFeedSource).toMatch(
-  /\.unread-badge\s*\{[\s\S]*?color:\s*var\(--text-tertiary\);[\s\S]*?font-variant-numeric:\s*tabular-nums;/
+  /\.unread-badge\s*\{[\s\S]*?color:\s*var\(--text-secondary\);[\s\S]*?font-variant-numeric:\s*tabular-nums;/
 );
 expect(sidebarFeedSource).not.toMatch(
   /\.unread-badge\s*\{[\s\S]*?background-color:\s*var\(--unread-badge-background\);/
 );
 ~~~
 
-- [ ] **Step 2: Run the focused test to verify it fails**
+- [x] **Step 2: Run the focused test to verify it fails**
 
 Run: npm run test:unit -- src/components/sidebar/SidebarNavigation.test.ts
 
 Expected: unread-badge still uses a filled unread-badge background.
 
-- [ ] **Step 3: Implement muted numeric styling**
+- [x] **Step 3: Implement muted numeric styling**
 
 ~~~
 .unread-badge {
   margin-left: 0.25rem;
-  color: var(--text-tertiary);
+  color: var(--text-secondary);
   font-size: 0.6875rem;
   font-weight: 500;
   line-height: 1;
-  opacity: 0.78;
   font-variant-numeric: tabular-nums;
 }
 
@@ -232,13 +230,12 @@ Expected: unread-badge still uses a filled unread-badge background.
 .feed-item:focus-visible .unread-badge,
 .feed-item.active .unread-badge {
   color: currentColor;
-  opacity: 0.9;
 }
 ~~~
 
 Do not change group-header behavior or global unread-badge theme tokens.
 
-- [ ] **Step 4: Run focused tests and formatting**
+- [x] **Step 4: Run focused tests and formatting**
 
 Run: npm run test:unit -- src/components/sidebar/SidebarNavigation.test.ts
 
@@ -246,10 +243,9 @@ Run: npx prettier --check src/components/sidebar/SidebarFeed.vue src/components/
 
 Expected: tests and formatting pass.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ~~~
-git add frontend/src/components/sidebar/SidebarFeed.vue frontend/src/components/sidebar/SidebarNavigation.test.ts
 git commit -m "style(sidebar): soften feed unread counts"
 ~~~
 
@@ -259,7 +255,7 @@ git commit -m "style(sidebar): soften feed unread counts"
 - Modify: docs/superpowers/specs/2026-08-24-sidebar-auto-hide-controls-design.md
 - Modify: docs/superpowers/plans/2026-08-24-sidebar-auto-hide-controls.md
 
-- [ ] **Step 1: Run complete verification**
+- [x] **Step 1: Run complete verification**
 
 ~~~
 cd frontend
@@ -275,13 +271,13 @@ wails3 build
 
 Expected: all commands exit 0. Record only pre-existing jsdom canvas, Vite configuration, bundle-size, and platform linker warnings.
 
-- [ ] **Step 2: Re-run browser probes**
+- [x] **Step 2: Re-run browser probes**
 
 At desktop and mobile viewports, verify labels, persistence, drawer geometry, pointer movement into the preview rail, bottom pin action, mobile Collapse → Expand, and muted unread-count appearance.
 
-- [ ] **Step 3: Commit documentation**
+- [x] **Step 3: Commit documentation**
 
 ~~~
 git add docs/superpowers/specs/2026-08-24-sidebar-auto-hide-controls-design.md docs/superpowers/plans/2026-08-24-sidebar-auto-hide-controls.md
-git commit -m "docs(sidebar): refine auto-hide control design"
+git commit -m "docs(sidebar): record auto-hide verification"
 ~~~
