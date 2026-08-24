@@ -37,6 +37,25 @@ interface KeyboardShortcutCallbacks {
   onMarkAllRead: () => Promise<void>;
 }
 
+const INTERACTIVE_SHORTCUT_TARGET_SELECTOR = [
+  'button',
+  'a[href]',
+  'summary',
+  '[role="button"]',
+  '[role="link"]',
+  '[role="checkbox"]',
+  '[role="switch"]',
+  '[role="radio"]',
+  '[role="tab"]',
+  '[role="option"]',
+  '[role="menuitem"]',
+  '[role="menuitemcheckbox"]',
+  '[role="menuitemradio"]',
+  '[role="slider"]',
+  '[role="spinbutton"]',
+  '[role="treeitem"]',
+].join(', ');
+
 export function useKeyboardShortcuts(callbacks: KeyboardShortcutCallbacks) {
   const store = useAppStore();
   const readTracking = useArticleReadTracking();
@@ -263,13 +282,18 @@ export function useKeyboardShortcuts(callbacks: KeyboardShortcutCallbacks) {
       return;
     }
 
-    // Skip if we're in an input field, textarea, or contenteditable
+    // Native controls retain their expected keyboard behavior. Escape remains available below.
     const target = e.target as HTMLElement;
     const tagName = target.tagName.toLowerCase();
     const isEditable = target.isContentEditable;
     const isInput = tagName === 'input' || tagName === 'textarea' || tagName === 'select';
+    const isInteractiveControl = target.closest(INTERACTIVE_SHORTCUT_TARGET_SELECTOR) !== null;
 
     const key = buildKeyCombo(e);
+
+    if (isInteractiveControl && key !== shortcuts.value.closeArticle) {
+      return;
+    }
 
     // Handle article detail scrolling when article is open
     // Only in RSS content view mode, not in webpage (iframe) view mode
@@ -339,8 +363,8 @@ export function useKeyboardShortcuts(callbacks: KeyboardShortcutCallbacks) {
       return;
     }
 
-    // Skip shortcuts if in input field (except escape)
-    if (isInput || isEditable) {
+    // Skip shortcuts if an editable or interactive control has focus (except escape).
+    if (isInput || isEditable || isInteractiveControl) {
       return;
     }
 
