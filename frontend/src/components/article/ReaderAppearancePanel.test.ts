@@ -4,9 +4,9 @@ import { mount, type VueWrapper } from '@vue/test-utils';
 import { createI18n } from 'vue-i18n';
 import { createPinia } from 'pinia';
 import FontFamilySelect from '@/components/settings/FontFamilySelect.vue';
+import ReaderCanvasColorControls from '@/components/settings/ReaderCanvasColorControls.vue';
 import { useKeyboardShortcuts } from '@/composables/ui/useKeyboardShortcuts';
 import { useAppStore } from '@/stores/app';
-import type { ThemePreset } from '@/utils/theme';
 import type { ReaderTypographyInput } from '@/utils/readerTypography';
 import en from '@/i18n/locales/en';
 import ReaderAppearancePanel from './ReaderAppearancePanel.vue';
@@ -76,7 +76,6 @@ function mountPanel(options: {
   mobile: boolean;
   settings?: ReaderTypographyInput;
   saveError?: boolean;
-  themePreset?: ThemePreset;
 }) {
   mockAppearanceMedia(options.mobile);
   const anchor = document.createElement('button');
@@ -90,7 +89,6 @@ function mountPanel(options: {
     props: {
       anchor,
       settings: options.settings ?? focusSettings,
-      themePreset: options.themePreset ?? 'paper',
       saveError: options.saveError ?? false,
     },
     global: {
@@ -127,12 +125,42 @@ describe('ReaderAppearancePanel', () => {
     ]);
   });
 
-  it('forwards a font-family selection as a typography patch', () => {
+  it('forwards a local font-family selection as a typography patch', () => {
     const wrapper = mountPanel({ mobile: false });
 
-    wrapper.findComponent(FontFamilySelect).vm.$emit('update:modelValue', 'serif');
+    wrapper.findComponent(FontFamilySelect).vm.$emit('update:modelValue', 'PingFang SC');
 
-    expect(wrapper.emitted('update-typography')).toEqual([[{ content_font_family: 'serif' }]]);
+    expect(wrapper.emitted('update-typography')).toEqual([
+      [{ content_font_family: 'PingFang SC' }],
+    ]);
+  });
+
+  it('forwards a complete canvas pair from the reader appearance panel', () => {
+    const wrapper = mountPanel({ mobile: false });
+
+    wrapper.findComponent(ReaderCanvasColorControls).vm.$emit('update:canvas', {
+      content_background_color: '#111111',
+      content_text_color: '#ffffff',
+    });
+
+    expect(wrapper.emitted('update-canvas')).toEqual([
+      [{ content_background_color: '#111111', content_text_color: '#ffffff' }],
+    ]);
+  });
+
+  it('keeps four quick styles while placing local-font selection before size and preview', () => {
+    mountPanel({ mobile: false });
+    const panel = getPanelElement();
+    const fontControl = panel.querySelector('[data-testid="reader-font-family-control"]');
+    const sizeControl = panel.querySelector('[data-testid="reader-font-size-control"]');
+
+    expect(panel.querySelectorAll('[role="radio"]')).toHaveLength(4);
+    expect(fontControl).not.toBeNull();
+    expect(sizeControl).not.toBeNull();
+    expect(fontControl?.compareDocumentPosition(sizeControl!)).toBe(
+      Node.DOCUMENT_POSITION_FOLLOWING
+    );
+    expect(panel.querySelector('[data-testid="reader-typography-preview"]')).not.toBeNull();
   });
 
   it('disables font-size endpoints and exposes explicit restore and retry commands', async () => {
@@ -155,7 +183,7 @@ describe('ReaderAppearancePanel', () => {
     panel.querySelector<HTMLButtonElement>('[data-testid="reader-appearance-restore"]')?.click();
     panel.querySelector<HTMLButtonElement>('[data-testid="reader-appearance-retry"]')?.click();
 
-    expect(max.emitted('restore-theme-recommendation')).toEqual([[]]);
+    expect(max.emitted('restore-default-typography')).toEqual([[]]);
     expect(max.emitted('retry-save')).toEqual([[]]);
   });
 

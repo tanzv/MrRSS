@@ -59,6 +59,11 @@ func HandleSettings(h *core.Handler, w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
+		if err := normalizeReaderCanvasSettingsRequest(req); err != nil {
+			response.Error(w, err, http.StatusBadRequest)
+			return
+		}
+
 		if themeProfiles, ok := req["theme_profiles"]; ok {
 			if err := validateThemeProfilesJSON(themeProfiles); err != nil {
 				response.Error(w, err, http.StatusBadRequest)

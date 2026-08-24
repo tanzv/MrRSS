@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
+  getDefaultReaderTypographyPreset,
   getReaderTypographyPreset,
-  getRecommendedReaderTypographyPreset,
   readerTypographyPresets,
   resolveReaderTypography,
 } from './readerTypography';
@@ -82,32 +82,31 @@ describe('reader typography', () => {
     ).toBe('custom');
   });
 
-  it('maps each resolved application theme to its recommended reader style', () => {
-    expect(getRecommendedReaderTypographyPreset('paper').id).toBe('focus');
-    expect(getRecommendedReaderTypographyPreset('ink').id).toBe('night');
-    expect(getRecommendedReaderTypographyPreset('sepia').id).toBe('book');
-    expect(getRecommendedReaderTypographyPreset('high-contrast').id).toBe('clarity');
-    expect(getRecommendedReaderTypographyPreset('unknown').id).toBe('focus');
+  it('offers only the typography styles that remain meaningful without an app theme', () => {
+    expect(readerTypographyPresets.map((preset) => preset.id)).toEqual([
+      'focus',
+      'magazine',
+      'book',
+      'compact',
+    ]);
   });
 
-  it('recognizes the complete Night and Clarity typography values', () => {
+  it('restores the complete Focus values without consulting the current app theme', () => {
+    expect(getDefaultReaderTypographyPreset().values).toEqual({
+      content_font_family: 'system',
+      content_font_size: 16,
+      content_line_height: '1.6',
+      content_width: 'comfortable',
+      content_paragraph_spacing: 'comfortable',
+    });
+  });
+
+  it('reports Custom after a one-field change from the default preset', () => {
     expect(
       getReaderTypographyPreset({
-        content_font_family: 'system',
-        content_font_size: 17,
-        content_line_height: '1.7',
-        content_width: 'comfortable',
-        content_paragraph_spacing: 'relaxed',
+        ...getDefaultReaderTypographyPreset().values,
+        content_font_family: 'PingFang SC',
       })
-    ).toBe('night');
-    expect(
-      getReaderTypographyPreset({
-        content_font_family: 'system',
-        content_font_size: 18,
-        content_line_height: '1.8',
-        content_width: 'comfortable',
-        content_paragraph_spacing: 'relaxed',
-      })
-    ).toBe('clarity');
+    ).toBe('custom');
   });
 });

@@ -28,6 +28,7 @@ import {
   resolveReaderTypography,
   type ReaderTypographyPresetId,
 } from '@/utils/readerTypography';
+import { resolveReaderCanvas } from '@/utils/readerCanvas';
 import './ArticleContent.css';
 
 interface SummaryResult {
@@ -78,6 +79,9 @@ function handleRetryLoad() {
 const { settings: appSettings, fetchSettings } = useSettings();
 const store = useAppStore();
 const readerTypography = computed(() => resolveReaderTypography(appSettings.value));
+const readerCanvas = computed(() =>
+  props.isReadingMode ? resolveReaderCanvas(appSettings.value) : resolveReaderCanvas({})
+);
 const readerStyle = computed<ReaderTypographyPresetId | 'custom'>(() =>
   props.isReadingMode ? getReaderTypographyPreset(appSettings.value) : 'custom'
 );
@@ -1179,7 +1183,12 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
-  <div class="relative flex-1 overflow-hidden bg-bg-primary">
+  <div
+    data-testid="article-reader-canvas"
+    class="article-reader-canvas relative flex-1 overflow-hidden bg-bg-primary text-text-primary"
+    :data-reader-canvas="readerCanvas.mode"
+    :style="readerCanvas.cssVariables"
+  >
     <div
       ref="articleScrollContainer"
       data-testid="article-reader"

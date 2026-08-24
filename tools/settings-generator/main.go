@@ -5,6 +5,7 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"go/format"
 	"os"
 	"sort"
 	"strings"
@@ -26,6 +27,7 @@ type SettingDef struct {
 	Default     interface{} `json:"default"`
 	Category    string      `json:"category"`
 	Encrypted   bool        `json:"encrypted"`
+	AllowEmpty  bool        `json:"allow_empty"`
 	FrontendKey string      `json:"frontend_key"`
 }
 
@@ -246,7 +248,7 @@ func GetString(key string) string {
 		strings.Join(structFields, "\n"),
 		strings.Join(switchCases, "\n"))
 
-	return os.WriteFile("internal/config/config.go", []byte(content), 0644)
+	return writeGeneratedGoFile("internal/config/config.go", []byte(content))
 }
 
 func generateSettingsKeysGo(schema *SettingsSchema) error {
@@ -275,7 +277,7 @@ func SettingsKeys() []string {
 `
 
 	content := fmt.Sprintf(tmpl, strings.Join(keyStrings, ", "))
-	return os.WriteFile("internal/config/settings_keys.go", []byte(content), 0644)
+	return writeGeneratedGoFile("internal/config/settings_keys.go", []byte(content))
 }
 
 func generateSettingsBaseGo(schema *SettingsSchema) error {
@@ -290,7 +292,11 @@ func generateSettingsBaseGo(schema *SettingsSchema) error {
 	var settingDefs []string
 	for _, key := range keys {
 		def := schema.Settings[key]
-		settingDefs = append(settingDefs, fmt.Sprintf("\t{Key: \"%s\", Encrypted: %v},", key, def.Encrypted))
+		settingDef := fmt.Sprintf("\t{Key: \"%s\", Encrypted: %v", key, def.Encrypted)
+		if def.AllowEmpty {
+			settingDef += ", AllowEmpty: true"
+		}
+		settingDefs = append(settingDefs, settingDef+"},")
 	}
 
 	tmpl := `// Package settings provides handlers for application settings management.
@@ -305,8 +311,9 @@ import (
 
 // SettingDef defines a single setting's metadata
 type SettingDef struct {
-	Key       string // Database key (snake_case)
-	Encrypted bool   // Whether the value should be encrypted in the database
+	Key        string // Database key (snake_case)
+	Encrypted  bool   // Whether the value should be encrypted in the database
+	AllowEmpty bool   // Whether an empty value should overwrite the stored setting
 }
 
 // AllSettings returns all setting definitions in alphabetical order by key.
@@ -334,14 +341,18 @@ func GetAllSettings(h *core.Handler) map[string]string {
 }
 
 // SaveSettings saves settings from a map to the database.
-// Empty string values are skipped (to allow partial updates).
+// Empty string values are skipped unless the setting allows an explicit empty value.
 // Encrypted settings are automatically encrypted.
 func SaveSettings(h *core.Handler, settings map[string]string) error {
 	// Create a lookup for encrypted keys
 	encryptedKeys := make(map[string]bool, len(AllSettings))
+	allowEmptyKeys := make(map[string]bool, len(AllSettings))
 	for _, def := range AllSettings {
 		if def.Encrypted {
 			encryptedKeys[def.Key] = true
+		}
+		if def.AllowEmpty {
+			allowEmptyKeys[def.Key] = true
 		}
 	}
 
@@ -351,7 +362,7 @@ func SaveSettings(h *core.Handler, settings map[string]string) error {
 			if err := h.DB.SetEncryptedSetting(key, value); err != nil {
 				return err
 			}
-		} else if value != "" {
+		} else if value != "" || allowEmptyKeys[key] {
 			h.DB.SetSetting(key, value)
 		}
 	}
@@ -371,7 +382,16 @@ func IsEncryptedSetting(key string) bool {
 `
 
 	content := fmt.Sprintf(tmpl, strings.Join(settingDefs, "\n"))
-	return os.WriteFile("internal/handlers/settings/settings_base.go", []byte(content), 0644)
+	return writeGeneratedGoFile("internal/handlers/settings/settings_base.go", []byte(content))
+}
+
+func writeGeneratedGoFile(path string, content []byte) error {
+	formatted, err := format.Source(content)
+	if err != nil {
+		return fmt.Errorf("format generated Go source: %w", err)
+	}
+
+	return os.WriteFile(path, formatted, 0644)
 }
 
 func generateFrontendTypes(schema *SettingsSchema) error {

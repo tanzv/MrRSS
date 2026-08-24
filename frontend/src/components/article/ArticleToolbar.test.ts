@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { flushPromises, mount } from '@vue/test-utils';
 import { nextTick } from 'vue';
 import { createI18n } from 'vue-i18n';
@@ -47,7 +47,7 @@ function mountToolbar(
       stubs: {
         ReaderAppearancePanel: {
           name: 'ReaderAppearancePanel',
-          emits: ['close'],
+          emits: ['close', 'restore-default-typography', 'update-canvas'],
           template: '<div />',
         },
       },
@@ -97,6 +97,22 @@ describe('ArticleToolbar', () => {
     expect(wrapper.emitted('toggleReadingMode')).toHaveLength(1);
   });
 
+  it('keeps the reading-mode exit control available over the original webpage', async () => {
+    const wrapper = mountToolbar({
+      showContent: false,
+      isReadingMode: true,
+    });
+
+    const readingModeButton = wrapper.get('[data-testid="toggle-reading-mode"]');
+    expect(readingModeButton.attributes('aria-pressed')).toBe('true');
+    expect(readingModeButton.attributes('aria-label')).toBe('Exit reading mode');
+    expect(wrapper.find('[data-testid="close-article"]').exists()).toBe(false);
+
+    await readingModeButton.trigger('click');
+
+    expect(wrapper.emitted('toggleReadingMode')).toHaveLength(1);
+  });
+
   it('names the mobile back action', () => {
     const wrapper = mountToolbar();
 
@@ -129,9 +145,24 @@ describe('ArticleToolbar', () => {
     await trigger.trigger('click');
     expect(trigger.attributes('aria-expanded')).toBe('true');
 
-    wrapper.getComponent({ name: 'ReaderAppearancePanel' }).vm.$emit('close');
+    const panel = wrapper.getComponent({ name: 'ReaderAppearancePanel' });
+    vi.mocked(global.fetch).mockClear();
+    panel.vm.$emit('update-canvas', {
+      content_background_color: '#111111',
+      content_text_color: '#ffffff',
+    });
+    panel.vm.$emit('close');
     await flushPromises();
     await nextTick();
+
+    const save = vi
+      .mocked(global.fetch)
+      .mock.calls.find(([, init]) => (init as RequestInit | undefined)?.method === 'POST');
+    expect(save).toBeDefined();
+    expect(JSON.parse((save?.[1] as RequestInit).body as string)).toMatchObject({
+      content_background_color: '#111111',
+      content_text_color: '#ffffff',
+    });
     expect(document.activeElement).toBe(trigger.element);
 
     await wrapper.setProps({ isReadingMode: false });

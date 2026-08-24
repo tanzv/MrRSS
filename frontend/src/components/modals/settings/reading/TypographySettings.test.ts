@@ -1,12 +1,11 @@
 import { describe, expect, it } from 'vitest';
-import { defineComponent, h } from 'vue';
 import { mount } from '@vue/test-utils';
 import { createI18n } from 'vue-i18n';
 import { createPinia } from 'pinia';
 import type { SettingsData } from '@/types/settings';
 import { generateInitialSettings } from '@/composables/core/useSettings.generated';
 import SettingWithSelect from '@/components/settings/composite/SettingWithSelect.vue';
-import { useAppStore } from '@/stores/app';
+import ReaderCanvasColorControls from '@/components/settings/ReaderCanvasColorControls.vue';
 import en from '@/i18n/locales/en';
 import TypographySettings from './TypographySettings.vue';
 
@@ -114,24 +113,28 @@ describe('TypographySettings reader layout controls', () => {
     expect(updated.content_width).toBe('comfortable');
   });
 
-  it('passes the resolved Ink theme to the reader picker without overwriting Focus typography', () => {
-    const pinia = createPinia();
-    const ThemeHarness = defineComponent({
-      setup() {
-        useAppStore().theme = 'ink';
-        return () => h(TypographySettings, { settings: createSettings() });
-      },
-    });
-    const wrapper = mount(ThemeHarness, {
-      props: { settings: createSettings() },
+  it('writes a complete canvas pair through the existing settings update event', () => {
+    const settings = createSettings();
+    const wrapper = mount(TypographySettings, {
+      props: { settings },
       global: {
-        plugins: [pinia, createI18n({ legacy: false, locale: 'en', messages: { en } })],
+        plugins: [createPinia(), createI18n({ legacy: false, locale: 'en', messages: { en } })],
       },
     });
 
-    expect(
-      wrapper.get('[data-reader-preset="night"]').attributes('data-reader-theme-recommendation')
-    ).toBe('true');
-    expect(wrapper.get('[data-reader-preset="focus"]').attributes('aria-checked')).toBe('true');
+    wrapper.findComponent(ReaderCanvasColorControls).vm.$emit('update:canvas', {
+      content_background_color: '#111111',
+      content_text_color: '#ffffff',
+    });
+
+    expect(wrapper.emitted('update:settings')?.at(-1)?.[0]).toMatchObject({
+      content_background_color: '#111111',
+      content_text_color: '#ffffff',
+      content_font_family: settings.content_font_family,
+      content_font_size: settings.content_font_size,
+      content_line_height: settings.content_line_height,
+      content_width: settings.content_width,
+      content_paragraph_spacing: settings.content_paragraph_spacing,
+    });
   });
 });

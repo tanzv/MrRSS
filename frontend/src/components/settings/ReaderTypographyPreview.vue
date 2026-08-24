@@ -1,14 +1,19 @@
 <script setup lang="ts">
+import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
-import type { ThemePreset } from '@/utils/theme';
+import type { ReaderCanvas } from '@/utils/readerCanvas';
 import type { ReaderTypography } from '@/utils/readerTypography';
 
-defineProps<{
+const props = defineProps<{
   typography: ReaderTypography;
-  themePreset: ThemePreset;
+  canvas?: ReaderCanvas;
 }>();
 
 const { t } = useI18n();
+const previewStyle = computed(() => ({
+  ...props.typography.cssVariables,
+  ...(props.canvas?.cssVariables ?? {}),
+}));
 </script>
 
 <template>
@@ -19,8 +24,8 @@ const { t } = useI18n();
     :aria-label="t('setting.typography.readerPreview')"
     :data-reader-width="typography.width"
     :data-paragraph-spacing="typography.paragraphSpacing"
-    :data-reader-theme="themePreset"
-    :style="typography.cssVariables"
+    :data-reader-canvas="canvas?.mode ?? 'theme'"
+    :style="previewStyle"
   >
     <div class="reader-typography-preview-copy">
       <h3>{{ t('setting.typography.readerPreviewHeading') }}</h3>
@@ -35,6 +40,22 @@ const { t } = useI18n();
 
 .reader-typography-preview {
   @apply border-y border-border py-3 text-text-primary;
+}
+
+.reader-typography-preview[data-reader-canvas='custom'] {
+  --text-primary: var(--reader-canvas-text);
+  --text-secondary: color-mix(
+    in srgb,
+    var(--reader-canvas-text) 72%,
+    var(--reader-canvas-background)
+  );
+  --border-color: color-mix(
+    in srgb,
+    var(--reader-canvas-text) 24%,
+    var(--reader-canvas-background)
+  );
+  background: var(--reader-canvas-background);
+  color: var(--reader-canvas-text);
 }
 
 .reader-typography-preview-copy {

@@ -29,8 +29,15 @@ const { settings, fetchSettings } = useSettings();
 const store = useAppStore();
 const appearanceTrigger = ref<HTMLButtonElement | null>(null);
 const isReaderAppearanceOpen = ref(false);
-const { applyPreset, applyThemeRecommendation, flushSave, retrySave, saveError, updateTypography } =
-  useReaderTypographyPreferences({ settings });
+const {
+  applyPreset,
+  flushSave,
+  restoreDefaultTypography,
+  retrySave,
+  saveError,
+  updateCanvas,
+  updateTypography,
+} = useReaderTypographyPreferences({ settings });
 
 onMounted(async () => {
   try {
@@ -167,7 +174,7 @@ onBeforeUnmount(() => {
           <PhArticle v-else :size="18" class="sm:w-5 sm:h-5" />
         </button>
         <button
-          v-if="showContent && !isModal"
+          v-if="(showContent || isReadingMode) && !isModal"
           data-testid="toggle-reading-mode"
           class="action-btn"
           :title="isReadingMode ? t('article.readingMode.exit') : t('article.readingMode.enter')"
@@ -359,12 +366,12 @@ onBeforeUnmount(() => {
       v-if="isReaderAppearanceOpen"
       :anchor="appearanceTrigger"
       :settings="settings"
-      :theme-preset="store.theme"
       :save-error="saveError"
       @close="closeReaderAppearance"
       @select-preset="applyPreset"
       @update-typography="updateTypography"
-      @restore-theme-recommendation="applyThemeRecommendation(store.theme)"
+      @update-canvas="updateCanvas"
+      @restore-default-typography="restoreDefaultTypography"
       @retry-save="retrySave"
     />
   </div>

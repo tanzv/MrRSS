@@ -164,6 +164,47 @@
 }
 
 /* Reader preferences stay scoped to the article column so other app surfaces retain their own type. */
+.article-reader-canvas[data-reader-canvas='custom'] {
+  --bg-primary: var(--reader-canvas-background);
+  --bg-secondary: color-mix(
+    in srgb,
+    var(--reader-canvas-background) 90%,
+    var(--reader-canvas-text)
+  );
+  --bg-tertiary: color-mix(
+    in srgb,
+    var(--reader-canvas-background) 82%,
+    var(--reader-canvas-text)
+  );
+  --text-primary: var(--reader-canvas-text);
+  --text-secondary: color-mix(
+    in srgb,
+    var(--reader-canvas-text) 72%,
+    var(--reader-canvas-background)
+  );
+  --text-tertiary: color-mix(
+    in srgb,
+    var(--reader-canvas-text) 58%,
+    var(--reader-canvas-background)
+  );
+  --border-color: color-mix(
+    in srgb,
+    var(--reader-canvas-text) 24%,
+    var(--reader-canvas-background)
+  );
+  --code-bg-color: color-mix(
+    in srgb,
+    var(--reader-canvas-background) 86%,
+    var(--reader-canvas-text)
+  );
+  --code-border-color: color-mix(
+    in srgb,
+    var(--reader-canvas-text) 28%,
+    var(--reader-canvas-background)
+  );
+  --syntax-plain: var(--reader-canvas-text);
+}
+
 .article-reading-column .prose {
   font-family: var(--reader-font-family);
   font-size: var(--reader-font-size);

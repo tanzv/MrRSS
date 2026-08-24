@@ -41,6 +41,23 @@ jobs:
             echo "This is a stable release version: $VERSION"
           fi
 
+      - uses: actions/setup-go@v7
+        with:
+          go-version: '1.25'
+
+      - name: Verify release version and package metadata
+        run: |
+          VERSION="${{ steps.get_version.outputs.version }}"
+          FRONTEND_VERSION=$(sed -nE 's/.*"version"[[:space:]]*:[[:space:]]*"([^"]+)".*/\1/p' frontend/package.json | head -1)
+          GO_VERSION=$(sed -nE 's/^const Version = "([^"]+)"/\1/p' internal/version/version.go)
+
+          if [ "$VERSION" != "$FRONTEND_VERSION" ] || [ "$VERSION" != "$GO_VERSION" ]; then
+            echo "Release version $VERSION does not match frontend ($FRONTEND_VERSION) and backend ($GO_VERSION)."
+            exit 1
+          fi
+
+          go test ./internal/version
+
       - name: Check if tag exists
         id: check_tag
         run: |

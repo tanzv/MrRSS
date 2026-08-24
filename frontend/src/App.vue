@@ -24,6 +24,7 @@ import { useWindowState } from './composables/core/useWindowState';
 import { useAppUpdates } from './composables/core/useAppUpdates';
 import { useSettings } from './composables/core/useSettings';
 import { useResponsiveShell } from './composables/ui/useResponsiveShell';
+import { useSidebarEdgeReveal } from './composables/ui/useSidebarEdgeReveal';
 import { resolveFontFamily } from './utils/fontDetector';
 import { applyCustomTheme, clearCustomThemeOverrides, getSystemPrefersDark } from './utils/theme';
 import { parseThemeProfiles } from './utils/customTheme';
@@ -95,6 +96,30 @@ const isImageGalleryMode = computed(() => store.currentFilter === 'imageGallery'
 
 // Check if we're in card mode
 const isCardMode = ref(false);
+
+const isReaderArticleListRevealEnabled = computed(
+  () => store.isReadingMode && !isMobileViewport.value && !isCardMode.value
+);
+const {
+  isTemporarilyRevealed: isReaderArticleListRevealed,
+  handlePointerEnter: handleReaderArticleListPointerEnter,
+  handlePointerLeave: handleReaderArticleListPointerLeave,
+  handleFocusIn: handleReaderArticleListFocusIn,
+  handleFocusOut: handleReaderArticleListFocusOut,
+  dismissTemporaryReveal: dismissReaderArticleListReveal,
+} = useSidebarEdgeReveal({
+  isAutoHideEnabled: isReaderArticleListRevealEnabled,
+  isMobile: isMobileViewport,
+});
+
+watch(
+  () => store.currentArticleId,
+  (articleId, previousArticleId) => {
+    if (store.isReadingMode && articleId !== previousArticleId) {
+      dismissReaderArticleListReveal();
+    }
+  }
+);
 
 // Use composables
 const {
@@ -385,8 +410,26 @@ function onFeedUpdated(): void {
     <template v-else>
       <div
         data-testid="reading-article-list-container"
-        :class="['contents', { 'md:hidden': store.isReadingMode }]"
+        :class="[
+          isReaderArticleListRevealEnabled ? 'reader-article-list-edge-shell' : 'contents',
+          {
+            'md:hidden': store.isReadingMode && !isReaderArticleListRevealEnabled,
+            'is-revealed': isReaderArticleListRevealed,
+          },
+        ]"
+        @pointerenter="handleReaderArticleListPointerEnter"
+        @pointerleave="handleReaderArticleListPointerLeave"
+        @focusin="handleReaderArticleListFocusIn"
+        @focusout="handleReaderArticleListFocusOut"
       >
+        <button
+          v-if="isReaderArticleListRevealEnabled"
+          type="button"
+          data-testid="reader-article-list-edge"
+          class="reader-article-list-edge-trigger"
+          :aria-label="t('article.readingMode.showArticleList')"
+          @pointerenter="handleReaderArticleListPointerEnter"
+        ></button>
         <ArticleList :is-sidebar-open="isSidebarOpen" @toggle-sidebar="toggleSidebar" />
       </div>
 
@@ -527,6 +570,65 @@ function onFeedUpdated(): void {
   z-index: 10;
   margin-left: -2px;
   margin-right: -2px;
+}
+
+.reader-article-list-edge-shell {
+  position: fixed;
+  inset: 0 auto 0 0;
+  z-index: 40;
+  width: 1rem;
+  overflow: hidden;
+  background-color: transparent;
+  box-shadow: none;
+  transition:
+    width 0.18s ease,
+    box-shadow 0.18s ease;
+}
+
+.reader-article-list-edge-shell.is-revealed {
+  width: min(var(--article-list-width), calc(100vw - 3rem));
+  box-shadow: var(--overlay-shadow);
+}
+
+.reader-article-list-edge-shell > .article-list {
+  display: none;
+}
+
+.reader-article-list-edge-shell.is-revealed > .article-list {
+  display: flex;
+  width: 100%;
+}
+
+.reader-article-list-edge-trigger {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  width: 100%;
+  border: 0;
+  cursor: e-resize;
+  background: transparent;
+  opacity: 1;
+}
+
+.reader-article-list-edge-trigger:focus-visible {
+  outline: 2px solid var(--accent-color);
+  outline-offset: -2px;
+}
+
+.reader-article-list-edge-shell.is-revealed > .reader-article-list-edge-trigger {
+  pointer-events: none;
+  opacity: 0;
+}
+
+.reader-article-list-edge-shell:focus-within {
+  outline: 2px solid var(--accent-color);
+  outline-offset: -2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .reader-article-list-edge-shell {
+    transition: none;
+  }
 }
 .resizer:hover,
 .resizer:active {

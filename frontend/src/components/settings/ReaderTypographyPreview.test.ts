@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { mount } from '@vue/test-utils';
 import { createI18n } from 'vue-i18n';
 import en from '@/i18n/locales/en';
+import { resolveReaderCanvas } from '@/utils/readerCanvas';
 import { resolveReaderTypography } from '@/utils/readerTypography';
 import ReaderTypographyPreview from './ReaderTypographyPreview.vue';
 
@@ -16,7 +17,6 @@ describe('ReaderTypographyPreview', () => {
           content_width: 'narrow',
           content_paragraph_spacing: 'relaxed',
         }),
-        themePreset: 'sepia',
       },
       global: {
         plugins: [createI18n({ legacy: false, locale: 'en', messages: { en } })],
@@ -28,9 +28,29 @@ describe('ReaderTypographyPreview', () => {
     expect(preview.attributes('aria-label')).toBe('Reading Preview');
     expect(preview.attributes('data-reader-width')).toBe('narrow');
     expect(preview.attributes('data-paragraph-spacing')).toBe('relaxed');
-    expect(preview.attributes('data-reader-theme')).toBe('sepia');
+    expect(preview.attributes('data-reader-theme')).toBeUndefined();
     expect(preview.attributes('style')).toContain('--reader-font-size: 18px');
     expect(preview.get('h3').text()).toBe('A measured reading rhythm');
     expect(preview.findAll('p')).toHaveLength(2);
+  });
+
+  it('merges custom canvas variables into the typography preview', () => {
+    const wrapper = mount(ReaderTypographyPreview, {
+      props: {
+        typography: resolveReaderTypography({}),
+        canvas: resolveReaderCanvas({
+          content_background_color: '#111111',
+          content_text_color: '#ffffff',
+        }),
+      },
+      global: {
+        plugins: [createI18n({ legacy: false, locale: 'en', messages: { en } })],
+      },
+    });
+
+    const preview = wrapper.get('[data-testid="reader-typography-preview"]');
+    expect(preview.attributes('data-reader-canvas')).toBe('custom');
+    expect(preview.attributes('style')).toContain('--reader-canvas-background: #111111');
+    expect(preview.attributes('style')).toContain('--reader-font-size: 16px');
   });
 });

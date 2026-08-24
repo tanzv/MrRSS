@@ -254,6 +254,23 @@ describe('ArticleContent reading mode', () => {
     ).toBe('sepia');
   });
 
+  it('uses custom canvas variables only while article content is in reading mode', async () => {
+    document.documentElement.style.removeProperty('--bg-primary');
+    setSettingsFromRawData({
+      content_background_color: '#111111',
+      content_text_color: '#ffffff',
+    });
+    const mountedReader = mountReader('<p>Body</p>', { isReadingMode: true });
+    const canvas = mountedReader.get('[data-testid="article-reader-canvas"]');
+
+    expect(canvas.attributes('data-reader-canvas')).toBe('custom');
+    expect(canvas.attributes('style')).toContain('--reader-canvas-background: #111111');
+    expect(document.documentElement.style.getPropertyValue('--bg-primary')).toBe('');
+
+    await mountedReader.setProps({ isReadingMode: false });
+    expect(canvas.attributes('data-reader-canvas')).toBe('theme');
+  });
+
   it('requests an in-app reader link view instead of allowing native navigation', async () => {
     const mountedReader = mountReaderWithBodyLink(`
       <p><a href="/related" target="_blank">Root-relative</a></p>

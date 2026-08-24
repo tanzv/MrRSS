@@ -87,7 +87,6 @@ func HandleCheckUpdates(h *core.Handler, w http.ResponseWriter, r *http.Request)
 
 	currentVersion := version.Version
 	// Use /releases endpoint to get all releases, then filter for stable versions
-	const githubAPI = "https://api.github.com/repos/DevXDojo/MrRSS/releases"
 
 	// Create HTTP client with global proxy support
 	var proxyURL string
@@ -112,7 +111,7 @@ func HandleCheckUpdates(h *core.Handler, w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	resp, err := client.Get(githubAPI)
+	resp, err := client.Get(githubReleasesAPIURL)
 	if err != nil {
 		log.Printf("Error checking for updates: %v", err)
 		errorType := "error_checking_updates"

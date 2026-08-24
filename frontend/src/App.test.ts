@@ -1,3 +1,5 @@
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
 import { describe, it, expect, vi } from 'vitest';
 import { nextTick } from 'vue';
 import { flushPromises, mount } from '@vue/test-utils';
@@ -9,11 +11,68 @@ import { setSettingsFromRawData } from './composables/core/useSettings';
 import { useAppStore } from './stores/app';
 import { getRecommendedFonts } from './utils/fontDetector';
 
+const appSource = readFileSync(resolve(process.cwd(), 'src/App.vue'), 'utf8');
+
 // Create stub components for complex child components
 const createStub = (name: string) => ({
   name,
   template: `<div class="stub-component" data-component="${name}"><slot /></div>`,
 });
+
+function mountDesktopApp() {
+  const originalMatchMedia = window.matchMedia;
+  window.matchMedia = vi.fn((query: string) => ({
+    matches: false,
+    media: query,
+    onchange: null,
+    addEventListener: vi.fn(),
+    removeEventListener: vi.fn(),
+    addListener: vi.fn(),
+    removeListener: vi.fn(),
+    dispatchEvent: vi.fn(),
+  })) as typeof window.matchMedia;
+
+  const pinia = createPinia();
+  const i18n = createI18n({
+    legacy: false,
+    locale: 'en',
+    messages: { en },
+  });
+  const propAwareStub = (name: string) => ({
+    name,
+    props: ['isOpen', 'isCompact', 'isMobile', 'isSidebarOpen'],
+    template: `<div class="article-list stub-component" data-component="${name}"></div>`,
+  });
+  const wrapper = mount(App, {
+    global: {
+      plugins: [pinia, i18n],
+      stubs: {
+        Sidebar: propAwareStub('Sidebar'),
+        ArticleList: propAwareStub('ArticleList'),
+        ArticleDetail: createStub('ArticleDetail'),
+        ImageGalleryView: createStub('ImageGalleryView'),
+        AddFeedModal: createStub('AddFeedModal'),
+        EditFeedModal: createStub('EditFeedModal'),
+        SettingsModal: createStub('SettingsModal'),
+        DiscoverFeedsModal: createStub('DiscoverFeedsModal'),
+        UpdateAvailableDialog: createStub('UpdateAvailableDialog'),
+        ContextMenu: createStub('ContextMenu'),
+        ConfirmDialog: createStub('ConfirmDialog'),
+        InputDialog: createStub('InputDialog'),
+        MultiSelectDialog: createStub('MultiSelectDialog'),
+        Toast: createStub('Toast'),
+      },
+    },
+  });
+
+  return {
+    wrapper,
+    store: useAppStore(pinia),
+    restoreMatchMedia: () => {
+      window.matchMedia = originalMatchMedia;
+    },
+  };
+}
 
 describe('App', () => {
   it('passes compact navigation state to the sidebar and article list', async () => {
@@ -298,7 +357,7 @@ describe('App', () => {
     getContextSpy.mockRestore();
   });
 
-  it('hides desktop navigation panels while reading without unmounting them', async () => {
+  it('hides the desktop sidebar while keeping the reader article list mounted', async () => {
     setSettingsFromRawData({});
     const pinia = createPinia();
     const i18n = createI18n({
@@ -337,11 +396,99 @@ describe('App', () => {
       'md:hidden'
     );
     expect(wrapper.get('[data-testid="reading-article-list-container"]').classes()).toContain(
-      'md:hidden'
+      'reader-article-list-edge-shell'
     );
     expect(wrapper.find('[data-component="Sidebar"]').exists()).toBe(true);
     expect(wrapper.find('[data-component="ArticleList"]').exists()).toBe(true);
 
     wrapper.unmount();
+  });
+
+  it('reveals only the article list when the desktop reader edge is entered', async () => {
+    const { wrapper, store, restoreMatchMedia } = mountDesktopApp();
+
+    try {
+      store.setReadingMode(true);
+      await nextTick();
+
+      const edge = wrapper.get('[data-testid="reader-article-list-edge"]');
+      edge.element.dispatchEvent(new PointerEvent('pointerenter', { pointerType: 'mouse' }));
+      await nextTick();
+
+      expect(wrapper.get('[data-testid="reading-article-list-container"]').classes()).toContain(
+        'is-revealed'
+      );
+      expect(wrapper.get('[data-testid="reading-sidebar-container"]').classes()).toContain(
+        'md:hidden'
+      );
+
+      vi.useFakeTimers();
+      wrapper
+        .get('[data-testid="reading-article-list-container"]')
+        .element.dispatchEvent(new PointerEvent('pointerleave', { pointerType: 'mouse' }));
+      vi.advanceTimersByTime(180);
+      await nextTick();
+
+      expect(wrapper.get('[data-testid="reading-article-list-container"]').classes()).not.toContain(
+        'is-revealed'
+      );
+    } finally {
+      vi.useRealTimers();
+      wrapper.unmount();
+      restoreMatchMedia();
+    }
+  });
+
+  it('keeps the collapsed reader edge visually transparent', () => {
+    expect(appSource).toMatch(
+      /\.reader-article-list-edge-shell\s*\{[\s\S]*?background-color:\s*transparent;/
+    );
+    expect(appSource).toMatch(
+      /\.reader-article-list-edge-trigger\s*\{[\s\S]*?background:\s*transparent;/
+    );
+    expect(appSource).not.toContain(
+      'background: color-mix(in srgb, var(--accent-color) 55%, transparent)'
+    );
+  });
+
+  it('reveals the article list when the invisible edge receives keyboard focus', async () => {
+    const { wrapper, store, restoreMatchMedia } = mountDesktopApp();
+
+    try {
+      store.setReadingMode(true);
+      await nextTick();
+      await wrapper.get('[data-testid="reader-article-list-edge"]').trigger('focusin');
+
+      expect(wrapper.get('[data-testid="reading-article-list-container"]').classes()).toContain(
+        'is-revealed'
+      );
+    } finally {
+      wrapper.unmount();
+      restoreMatchMedia();
+    }
+  });
+
+  it('retracts the temporary reader list after selecting another article', async () => {
+    const { wrapper, store, restoreMatchMedia } = mountDesktopApp();
+
+    try {
+      store.setReadingMode(true);
+      await nextTick();
+
+      wrapper
+        .get('[data-testid="reader-article-list-edge"]')
+        .element.dispatchEvent(new PointerEvent('pointerenter', { pointerType: 'mouse' }));
+      await nextTick();
+
+      store.currentArticleId = 42;
+      await nextTick();
+
+      expect(wrapper.get('[data-testid="reading-article-list-container"]').classes()).not.toContain(
+        'is-revealed'
+      );
+    } finally {
+      wrapper.unmount();
+      restoreMatchMedia();
+    }
   });
 });

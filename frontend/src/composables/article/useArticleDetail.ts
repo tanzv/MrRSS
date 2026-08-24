@@ -196,12 +196,6 @@ export function useArticleDetail() {
     }
   );
 
-  watch(showContent, (contentVisible) => {
-    if (!contentVisible) {
-      store.setReadingMode(false);
-    }
-  });
-
   // Watch for feed/filter changes and close image viewer
   watch(
     () => [store.currentFeedId, store.currentFilter, store.currentCategory],
@@ -281,9 +275,6 @@ export function useArticleDetail() {
       }
     }
     showContent.value = !showContent.value;
-    if (!showContent.value) {
-      store.setReadingMode(false);
-    }
     // Remember user's preference for this specific article
     if (article.value) {
       const mode = showContent.value ? 'rendered' : 'original';

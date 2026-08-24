@@ -4,6 +4,7 @@ import { useI18n } from 'vue-i18n';
 import { PhArrowCircleUp, PhDownloadSimple, PhCircleNotch, PhGear } from '@phosphor-icons/vue';
 import BaseModal from '@/components/common/BaseModal.vue';
 import ModalFooter from '@/components/common/ModalFooter.vue';
+import { latestReleaseURL } from '@/config/repository';
 
 interface UpdateInfo {
   has_update: boolean;
@@ -111,8 +112,9 @@ onUnmounted(() => {
       <p v-if="!updateInfo.download_url" class="text-text-secondary text-xs mt-4">
         {{ t('setting.update.noInstallerAvailable') }}
         <a
-          href="https://github.com/DevXDojo/MrRSS/releases/latest"
+          :href="latestReleaseURL"
           target="_blank"
+          data-testid="manual-update-link"
           class="text-accent hover:underline"
         >
           {{ t('setting.about.viewOnGitHub') }}

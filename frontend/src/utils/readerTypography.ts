@@ -1,13 +1,11 @@
 import { resolveFontFamily } from './fontDetector';
-import type { ThemePreset } from './theme';
 
 export const readerContentWidths = ['narrow', 'comfortable', 'wide'] as const;
 export const readerParagraphSpacings = ['compact', 'comfortable', 'relaxed'] as const;
 
 export type ReaderContentWidth = (typeof readerContentWidths)[number];
 export type ReaderParagraphSpacing = (typeof readerParagraphSpacings)[number];
-export type ReaderTypographyPresetId =
-  'focus' | 'magazine' | 'night' | 'book' | 'clarity' | 'compact';
+export type ReaderTypographyPresetId = 'focus' | 'magazine' | 'book' | 'compact';
 
 export interface ReaderTypographyInput {
   content_font_family?: unknown;
@@ -81,32 +79,12 @@ export const readerTypographyPresets = [
     },
   },
   {
-    id: 'night',
-    values: {
-      content_font_family: 'system',
-      content_font_size: 17,
-      content_line_height: '1.7',
-      content_width: 'comfortable',
-      content_paragraph_spacing: 'relaxed',
-    },
-  },
-  {
     id: 'book',
     values: {
       content_font_family: 'serif',
       content_font_size: 18,
       content_line_height: '1.8',
       content_width: 'narrow',
-      content_paragraph_spacing: 'relaxed',
-    },
-  },
-  {
-    id: 'clarity',
-    values: {
-      content_font_family: 'system',
-      content_font_size: 18,
-      content_line_height: '1.8',
-      content_width: 'comfortable',
       content_paragraph_spacing: 'relaxed',
     },
   },
@@ -122,12 +100,9 @@ export const readerTypographyPresets = [
   },
 ] as const satisfies readonly ReaderTypographyPreset[];
 
-export const readerThemePresetMap = {
-  paper: 'focus',
-  ink: 'night',
-  sepia: 'book',
-  'high-contrast': 'clarity',
-} as const satisfies Readonly<Record<ThemePreset, ReaderTypographyPresetId>>;
+export function getDefaultReaderTypographyPreset(): ReaderTypographyPreset {
+  return readerTypographyPresets[0];
+}
 
 function isReaderContentWidth(value: unknown): value is ReaderContentWidth {
   return typeof value === 'string' && readerContentWidths.includes(value as ReaderContentWidth);
@@ -215,11 +190,4 @@ export function getReaderTypographyPreset(
   const preset = readerTypographyPresets.find((candidate) => matchesPreset(values, candidate));
 
   return preset?.id ?? 'custom';
-}
-
-export function getRecommendedReaderTypographyPreset(theme: unknown): ReaderTypographyPreset {
-  const presetId = readerThemePresetMap[theme as ThemePreset] ?? 'focus';
-  const preset = readerTypographyPresets.find((candidate) => candidate.id === presetId);
-
-  return preset ?? readerTypographyPresets[0];
 }

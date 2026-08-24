@@ -1,8 +1,9 @@
 import { onUnmounted, readonly, ref, type Ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import type { SettingsData } from '@/types/settings';
+import type { ReaderCanvasValues } from '@/utils/readerCanvas';
 import {
-  getRecommendedReaderTypographyPreset,
+  getDefaultReaderTypographyPreset,
   type ReaderTypographyValues,
 } from '@/utils/readerTypography';
 import { buildAutoSavePayload } from '@/composables/core/useSettings.generated';
@@ -13,8 +14,9 @@ export interface ReaderTypographyPreferences {
   isSaving: Readonly<Ref<boolean>>;
   saveError: Readonly<Ref<boolean>>;
   updateTypography: (patch: Partial<ReaderTypographyValues>) => void;
+  updateCanvas: (values: ReaderCanvasValues) => void;
   applyPreset: (values: ReaderTypographyValues) => void;
-  applyThemeRecommendation: (theme: unknown) => void;
+  restoreDefaultTypography: () => void;
   flushSave: () => Promise<void>;
   retrySave: () => Promise<void>;
 }
@@ -103,12 +105,18 @@ export function useReaderTypographyPreferences(
     scheduleSave();
   }
 
+  function updateCanvas(values: ReaderCanvasValues): void {
+    settings.value = { ...settings.value, ...values };
+    isDirty = true;
+    scheduleSave();
+  }
+
   function applyPreset(values: ReaderTypographyValues): void {
     updateTypography(values);
   }
 
-  function applyThemeRecommendation(theme: unknown): void {
-    applyPreset(getRecommendedReaderTypographyPreset(theme).values);
+  function restoreDefaultTypography(): void {
+    applyPreset(getDefaultReaderTypographyPreset().values);
   }
 
   async function flushSave(): Promise<void> {
@@ -134,8 +142,9 @@ export function useReaderTypographyPreferences(
     isSaving: readonly(isSaving),
     saveError: readonly(saveError),
     updateTypography,
+    updateCanvas,
     applyPreset,
-    applyThemeRecommendation,
+    restoreDefaultTypography,
     flushSave,
     retrySave,
   };

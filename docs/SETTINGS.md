@@ -117,9 +117,12 @@ Profile colors are limited to registered semantic tokens and six/eight-digit hex
 backend rejects malformed, oversized, unknown, or unsafe profile data before saving. Profiles are
 cached locally for first-paint startup and are re-applied after settings load.
 
-Reader typography remains separate. `content_font_family`, `content_font_size`, line height, width,
-paragraph spacing, and article custom CSS are edited in the Reading settings and are never written by
-the application-theme editor.
+Reader appearance remains separate. `content_font_family`, `content_font_size`, line height, width,
+paragraph spacing, `content_background_color`, `content_text_color`, and article custom CSS are
+edited in the Reading settings and are never written by the application-theme editor. The two reader
+canvas colors are a pair: two empty values follow the active application theme; otherwise both must
+be opaque six-digit hexadecimal values with at least 4.5:1 text contrast. The settings API rejects
+incomplete, transparent, malformed, or low-contrast pairs.
 
 When adding a new editable theme token, update `frontend/src/types/theme.ts`, the corresponding
 token definitions in `frontend/src/style.css`, the frontend sanitizer, the backend allowlist in
@@ -140,6 +143,7 @@ Edit `internal/config/settings_schema.json`, add to the `settings` object:
   "default": false,            // Default value
   "category": "general",       // Category (see reference below)
   "encrypted": false,          // Set to true for sensitive data
+  "allow_empty": false,        // Permit an empty string to overwrite a saved value
   "frontend_key": "your_new_setting"  // Use same snake_case as key
 }
 ```
@@ -152,6 +156,7 @@ Edit `internal/config/settings_schema.json`, add to the `settings` object:
 | `default` | mixed | Required: Default value (must match type) |
 | `category` | string | Required: See [Categories](#categories) below |
 | `encrypted` | boolean | Required: `true` for sensitive data (API keys, passwords) |
+| `allow_empty` | boolean | Optional: allow `""` to overwrite an existing stored value; defaults to `false` |
 | `frontend_key` | string | Required: Use the same snake_case as the key (for reference) |
 
 **Note:** The `frontend_key` is currently for reference only and should match the key in snake_case. The actual frontend implementation uses snake_case property names.

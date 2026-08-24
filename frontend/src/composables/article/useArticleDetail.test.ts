@@ -239,14 +239,14 @@ describe('useArticleDetail reading mode', () => {
     expect(detail.showContent.value).toBe(true);
   });
 
-  it('exits reading mode when switching to the original webpage', async () => {
+  it('keeps reading mode when switching to the original webpage', async () => {
     const { detail, store } = await mountDetailWithContent({ 1: '<p>First body</p>' });
 
     await detail.toggleReadingMode();
     await detail.toggleContentView();
 
     expect(detail.showContent.value).toBe(false);
-    expect(store.isReadingMode).toBe(false);
+    expect(store.isReadingMode).toBe(true);
   });
 
   it('exits reading mode when the article closes', async () => {

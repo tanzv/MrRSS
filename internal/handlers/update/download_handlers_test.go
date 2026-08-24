@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 
 	"MrRSS/internal/handlers/core"
@@ -33,7 +34,7 @@ func TestHandleDownloadUpdate_InvalidURLPrefix(t *testing.T) {
 }
 
 func TestHandleDownloadUpdate_InvalidAssetName(t *testing.T) {
-	body := bytes.NewReader([]byte(`{"download_url":"https://github.com/DevXDojo/MrRSS/releases/download/v1/app.zip","asset_name":"../secret"}`))
+	body := bytes.NewReader([]byte(`{"download_url":"https://github.com/tanzv/MrRSS/releases/download/v1/app.zip","asset_name":"../secret"}`))
 	req := httptest.NewRequest(http.MethodPost, "/update/download", body)
 	rr := httptest.NewRecorder()
 
@@ -41,5 +42,8 @@ func TestHandleDownloadUpdate_InvalidAssetName(t *testing.T) {
 
 	if rr.Code != http.StatusBadRequest {
 		t.Fatalf("expected 400 for invalid asset name, got %d", rr.Code)
+	}
+	if !strings.Contains(rr.Body.String(), "invalid asset name") {
+		t.Fatalf("expected asset validation response, got %s", rr.Body.String())
 	}
 }

@@ -4,15 +4,15 @@ import { useI18n } from 'vue-i18n';
 import { PhTextT, PhTextIndent, PhTextAa, PhTextColumns, PhParagraph } from '@phosphor-icons/vue';
 import { SettingGroup, SettingItem, NumberControl, SettingWithSelect } from '@/components/settings';
 import FontFamilySelect from '@/components/settings/FontFamilySelect.vue';
+import ReaderCanvasColorControls from '@/components/settings/ReaderCanvasColorControls.vue';
 import ReaderTypographyPresetPicker from '@/components/settings/ReaderTypographyPresetPicker.vue';
 import ReaderTypographyPreview from '@/components/settings/ReaderTypographyPreview.vue';
-import { useAppStore } from '@/stores/app';
 import '@/components/settings/styles.css';
 import type { SettingsData } from '@/types/settings';
+import { resolveReaderCanvas } from '@/utils/readerCanvas';
 import { resolveReaderTypography, type ReaderTypographyValues } from '@/utils/readerTypography';
 
 const { t } = useI18n();
-const store = useAppStore();
 
 interface Props {
   settings: SettingsData;
@@ -32,7 +32,7 @@ const displayLineHeight = computed(() => {
   return parseFloat(props.settings.content_line_height) || 1.6;
 });
 const readerTypography = computed(() => resolveReaderTypography(props.settings));
-const themePreset = computed(() => store.theme);
+const readerCanvas = computed(() => resolveReaderCanvas(props.settings));
 
 function updateSetting<K extends keyof SettingsData>(key: K, value: SettingsData[K]) {
   emit('update:settings', {
@@ -51,11 +51,7 @@ function applyReaderPreset(values: ReaderTypographyValues): void {
 
 <template>
   <SettingGroup :icon="PhTextT" :title="t('setting.tab.typography')">
-    <ReaderTypographyPresetPicker
-      :settings="settings"
-      :theme-preset="themePreset"
-      @select="applyReaderPreset"
-    />
+    <ReaderTypographyPresetPicker :settings="settings" @select="applyReaderPreset" />
 
     <!-- Content Font Family -->
     <SettingItem :icon="PhTextT" :title="t('setting.typography.contentFontFamily')">
@@ -134,7 +130,12 @@ function applyReaderPreset(values: ReaderTypographyValues): void {
       @update:model-value="updateSetting('content_paragraph_spacing', $event)"
     />
 
-    <ReaderTypographyPreview :typography="readerTypography" :theme-preset="themePreset" />
+    <ReaderCanvasColorControls
+      :canvas="settings"
+      @update:canvas="(canvas) => emit('update:settings', { ...settings, ...canvas })"
+    />
+
+    <ReaderTypographyPreview :typography="readerTypography" :canvas="readerCanvas" />
   </SettingGroup>
 </template>
 

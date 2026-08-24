@@ -24,10 +24,12 @@ export interface SettingsData {
   baidu_app_id: string;
   baidu_secret_key: string;
   close_to_tray: boolean;
+  content_background_color: string;
   content_font_family: string;
   content_font_size: number;
   content_line_height: string;
   content_paragraph_spacing: string;
+  content_text_color: string;
   content_width: string;
   custom_css_file: string;
   custom_translation_body_template: string;

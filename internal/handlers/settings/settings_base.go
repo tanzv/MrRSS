@@ -10,8 +10,9 @@ import (
 
 // SettingDef defines a single setting's metadata
 type SettingDef struct {
-	Key       string // Database key (snake_case)
-	Encrypted bool   // Whether the value should be encrypted in the database
+	Key        string // Database key (snake_case)
+	Encrypted  bool   // Whether the value should be encrypted in the database
+	AllowEmpty bool   // Whether an empty value should overwrite the stored setting
 }
 
 // AllSettings returns all setting definitions in alphabetical order by key.
@@ -36,10 +37,12 @@ var AllSettings = []SettingDef{
 	{Key: "baidu_app_id", Encrypted: false},
 	{Key: "baidu_secret_key", Encrypted: true},
 	{Key: "close_to_tray", Encrypted: false},
+	{Key: "content_background_color", Encrypted: false, AllowEmpty: true},
 	{Key: "content_font_family", Encrypted: false},
 	{Key: "content_font_size", Encrypted: false},
 	{Key: "content_line_height", Encrypted: false},
 	{Key: "content_paragraph_spacing", Encrypted: false},
+	{Key: "content_text_color", Encrypted: false, AllowEmpty: true},
 	{Key: "content_width", Encrypted: false},
 	{Key: "custom_css_file", Encrypted: false},
 	{Key: "custom_translation_body_template", Encrypted: false},
@@ -155,14 +158,18 @@ func GetAllSettings(h *core.Handler) map[string]string {
 }
 
 // SaveSettings saves settings from a map to the database.
-// Empty string values are skipped (to allow partial updates).
+// Empty string values are skipped unless the setting allows an explicit empty value.
 // Encrypted settings are automatically encrypted.
 func SaveSettings(h *core.Handler, settings map[string]string) error {
 	// Create a lookup for encrypted keys
 	encryptedKeys := make(map[string]bool, len(AllSettings))
+	allowEmptyKeys := make(map[string]bool, len(AllSettings))
 	for _, def := range AllSettings {
 		if def.Encrypted {
 			encryptedKeys[def.Key] = true
+		}
+		if def.AllowEmpty {
+			allowEmptyKeys[def.Key] = true
 		}
 	}
 
@@ -172,7 +179,7 @@ func SaveSettings(h *core.Handler, settings map[string]string) error {
 			if err := h.DB.SetEncryptedSetting(key, value); err != nil {
 				return err
 			}
-		} else if value != "" {
+		} else if value != "" || allowEmptyKeys[key] {
 			h.DB.SetSetting(key, value)
 		}
 	}

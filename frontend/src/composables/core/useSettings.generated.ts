@@ -32,10 +32,12 @@ export function generateInitialSettings(): SettingsData {
     baidu_app_id: settingsDefaults.baidu_app_id,
     baidu_secret_key: settingsDefaults.baidu_secret_key,
     close_to_tray: settingsDefaults.close_to_tray,
+    content_background_color: settingsDefaults.content_background_color,
     content_font_family: settingsDefaults.content_font_family,
     content_font_size: settingsDefaults.content_font_size,
     content_line_height: settingsDefaults.content_line_height,
     content_paragraph_spacing: settingsDefaults.content_paragraph_spacing,
+    content_text_color: settingsDefaults.content_text_color,
     content_width: settingsDefaults.content_width,
     custom_css_file: settingsDefaults.custom_css_file,
     custom_translation_body_template: settingsDefaults.custom_translation_body_template,
@@ -159,11 +161,14 @@ export function parseSettingsData(data: Record<string, string>): SettingsData {
     baidu_app_id: data.baidu_app_id || settingsDefaults.baidu_app_id,
     baidu_secret_key: data.baidu_secret_key || settingsDefaults.baidu_secret_key,
     close_to_tray: data.close_to_tray === 'true',
+    content_background_color:
+      data.content_background_color || settingsDefaults.content_background_color,
     content_font_family: data.content_font_family || settingsDefaults.content_font_family,
     content_font_size: parseInt(data.content_font_size) || settingsDefaults.content_font_size,
     content_line_height: data.content_line_height || settingsDefaults.content_line_height,
     content_paragraph_spacing:
       data.content_paragraph_spacing || settingsDefaults.content_paragraph_spacing,
+    content_text_color: data.content_text_color || settingsDefaults.content_text_color,
     content_width: data.content_width || settingsDefaults.content_width,
     custom_css_file: data.custom_css_file || settingsDefaults.custom_css_file,
     custom_translation_body_template:
@@ -314,6 +319,8 @@ export function buildAutoSavePayload(settingsRef: Ref<SettingsData>): Record<str
     baidu_app_id: settingsRef.value.baidu_app_id ?? settingsDefaults.baidu_app_id,
     baidu_secret_key: settingsRef.value.baidu_secret_key ?? settingsDefaults.baidu_secret_key,
     close_to_tray: (settingsRef.value.close_to_tray ?? settingsDefaults.close_to_tray).toString(),
+    content_background_color:
+      settingsRef.value.content_background_color ?? settingsDefaults.content_background_color,
     content_font_family:
       settingsRef.value.content_font_family ?? settingsDefaults.content_font_family,
     content_font_size: (
@@ -323,6 +330,7 @@ export function buildAutoSavePayload(settingsRef: Ref<SettingsData>): Record<str
       settingsRef.value.content_line_height ?? settingsDefaults.content_line_height,
     content_paragraph_spacing:
       settingsRef.value.content_paragraph_spacing ?? settingsDefaults.content_paragraph_spacing,
+    content_text_color: settingsRef.value.content_text_color ?? settingsDefaults.content_text_color,
     content_width: settingsRef.value.content_width ?? settingsDefaults.content_width,
     custom_css_file: settingsRef.value.custom_css_file ?? settingsDefaults.custom_css_file,
     custom_translation_body_template:

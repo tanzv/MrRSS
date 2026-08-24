@@ -37,10 +37,12 @@ type Defaults struct {
 	BaiduAppId                    string `json:"baidu_app_id"`
 	BaiduSecretKey                string `json:"baidu_secret_key"`
 	CloseToTray                   bool   `json:"close_to_tray"`
+	ContentBackgroundColor        string `json:"content_background_color"`
 	ContentFontFamily             string `json:"content_font_family"`
 	ContentFontSize               int    `json:"content_font_size"`
 	ContentLineHeight             string `json:"content_line_height"`
 	ContentParagraphSpacing       string `json:"content_paragraph_spacing"`
+	ContentTextColor              string `json:"content_text_color"`
 	ContentWidth                  string `json:"content_width"`
 	CustomCssFile                 string `json:"custom_css_file"`
 	CustomTranslationBodyTemplate string `json:"custom_translation_body_template"`
@@ -191,6 +193,8 @@ func GetString(key string) string {
 		return defaults.BaiduSecretKey
 	case "close_to_tray":
 		return strconv.FormatBool(defaults.CloseToTray)
+	case "content_background_color":
+		return defaults.ContentBackgroundColor
 	case "content_font_family":
 		return defaults.ContentFontFamily
 	case "content_font_size":
@@ -199,6 +203,8 @@ func GetString(key string) string {
 		return defaults.ContentLineHeight
 	case "content_paragraph_spacing":
 		return defaults.ContentParagraphSpacing
+	case "content_text_color":
+		return defaults.ContentTextColor
 	case "content_width":
 		return defaults.ContentWidth
 	case "custom_css_file":

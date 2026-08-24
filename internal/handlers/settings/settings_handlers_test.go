@@ -91,6 +91,76 @@ func TestHandleSettings_POST(t *testing.T) {
 	}
 }
 
+func TestHandleSettingsReaderCanvasRoundTripAndClear(t *testing.T) {
+	h := setupHandlerWithDB(t)
+	post := func(payload map[string]string) *httptest.ResponseRecorder {
+		body, err := json.Marshal(payload)
+		if err != nil {
+			t.Fatal(err)
+		}
+		recorder := httptest.NewRecorder()
+		req := httptest.NewRequest(http.MethodPost, "/api/settings", bytes.NewReader(body))
+		req.Header.Set("Content-Type", "application/json")
+		HandleSettings(h, recorder, req)
+		return recorder
+	}
+
+	if response := post(map[string]string{
+		"content_background_color": "#F7F1E3",
+		"content_text_color":       "#352C24",
+	}); response.Code != http.StatusOK {
+		t.Fatalf("custom status = %d: %s", response.Code, response.Body.String())
+	}
+	if got, err := h.DB.GetSetting("content_background_color"); err != nil || got != "#f7f1e3" {
+		t.Fatalf("background = %q, %v", got, err)
+	}
+
+	if response := post(map[string]string{
+		"content_background_color": "",
+		"content_text_color":       "",
+	}); response.Code != http.StatusOK {
+		t.Fatalf("clear status = %d: %s", response.Code, response.Body.String())
+	}
+	if got, err := h.DB.GetSetting("content_text_color"); err != nil || got != "" {
+		t.Fatalf("text after clear = %q, %v", got, err)
+	}
+}
+
+func TestHandleSettingsRejectsInvalidReaderCanvas(t *testing.T) {
+	for name, payload := range map[string]map[string]string{
+		"partial": {
+			"content_background_color": "#ffffff",
+		},
+		"alpha": {
+			"content_background_color": "#ffffff00",
+			"content_text_color":       "#000000",
+		},
+		"named": {
+			"content_background_color": "white",
+			"content_text_color":       "#000000",
+		},
+		"low contrast": {
+			"content_background_color": "#ffffff",
+			"content_text_color":       "#eeeeee",
+		},
+	} {
+		t.Run(name, func(t *testing.T) {
+			h := setupHandlerWithDB(t)
+			body, err := json.Marshal(payload)
+			if err != nil {
+				t.Fatal(err)
+			}
+			recorder := httptest.NewRecorder()
+			req := httptest.NewRequest(http.MethodPost, "/api/settings", bytes.NewReader(body))
+			HandleSettings(h, recorder, req)
+
+			if recorder.Code != http.StatusBadRequest {
+				t.Fatalf("status = %d: %s", recorder.Code, recorder.Body.String())
+			}
+		})
+	}
+}
+
 func TestHandleSettingsThemeProfilesRoundTrip(t *testing.T) {
 	h := setupHandlerWithDB(t)
 	profileJSON := `[{"id":"custom-1","name":"Focus","basePreset":"ink","appearance":"dark","light":{},"dark":{},"uiFontFamily":"system","uiFontSize":16,"updatedAt":"2026-08-23T00:00:00.000Z"}]`

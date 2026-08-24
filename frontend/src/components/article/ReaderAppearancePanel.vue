@@ -3,18 +3,24 @@ import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n';
 import { PhMinus, PhPlus, PhX } from '@phosphor-icons/vue';
 import FontFamilySelect from '@/components/settings/FontFamilySelect.vue';
+import ReaderCanvasColorControls from '@/components/settings/ReaderCanvasColorControls.vue';
 import ReaderTypographyPresetPicker from '@/components/settings/ReaderTypographyPresetPicker.vue';
-import type { ThemePreset } from '@/utils/theme';
+import ReaderTypographyPreview from '@/components/settings/ReaderTypographyPreview.vue';
+import {
+  resolveReaderCanvas,
+  type ReaderCanvasInput,
+  type ReaderCanvasValues,
+} from '@/utils/readerCanvas';
 import {
   normalizeReaderTypography,
+  resolveReaderTypography,
   type ReaderTypographyInput,
   type ReaderTypographyValues,
 } from '@/utils/readerTypography';
 
 interface Props {
   anchor: HTMLElement | null;
-  settings: ReaderTypographyInput;
-  themePreset?: ThemePreset;
+  settings: ReaderTypographyInput & ReaderCanvasInput;
   saveError?: boolean;
 }
 
@@ -27,7 +33,6 @@ const densityValues: Record<Density, Partial<ReaderTypographyValues>> = {
 };
 
 const props = withDefaults(defineProps<Props>(), {
-  themePreset: 'paper',
   saveError: false,
 });
 
@@ -35,7 +40,8 @@ const emit = defineEmits<{
   close: [];
   'select-preset': [values: ReaderTypographyValues];
   'update-typography': [patch: Partial<ReaderTypographyValues>];
-  'restore-theme-recommendation': [];
+  'update-canvas': [values: ReaderCanvasValues];
+  'restore-default-typography': [];
   'retry-save': [];
 }>();
 
@@ -44,6 +50,8 @@ const panelRef = ref<HTMLElement | null>(null);
 const isMobile = ref(false);
 const position = ref({ left: 8, top: 8 });
 const typography = computed(() => normalizeReaderTypography(props.settings));
+const readerTypography = computed(() => resolveReaderTypography(props.settings));
+const readerCanvas = computed(() => resolveReaderCanvas(props.settings));
 const popoverStyle = computed(() => ({
   left: `${position.value.left}px`,
   top: `${position.value.top}px`,
@@ -267,12 +275,21 @@ onBeforeUnmount(() => {
         <div class="reader-appearance-content">
           <ReaderTypographyPresetPicker
             :settings="settings"
-            :theme-preset="themePreset"
             variant="compact"
             @select="emit('select-preset', $event)"
           />
 
-          <div class="reader-appearance-control">
+          <div class="reader-appearance-control" data-testid="reader-font-family-control">
+            <span class="reader-appearance-label">{{
+              t('setting.typography.contentFontFamily')
+            }}</span>
+            <FontFamilySelect
+              :model-value="typography.content_font_family"
+              @update:model-value="updateFontFamily"
+            />
+          </div>
+
+          <div class="reader-appearance-control" data-testid="reader-font-size-control">
             <span class="reader-appearance-label">{{
               t('article.readingMode.appearanceFontSize')
             }}</span>
@@ -303,16 +320,6 @@ onBeforeUnmount(() => {
                 <PhPlus :size="16" aria-hidden="true" />
               </button>
             </div>
-          </div>
-
-          <div class="reader-appearance-control">
-            <span class="reader-appearance-label">{{
-              t('setting.typography.contentFontFamily')
-            }}</span>
-            <FontFamilySelect
-              :model-value="typography.content_font_family"
-              @update:model-value="updateFontFamily"
-            />
           </div>
 
           <div class="reader-appearance-control">
@@ -366,6 +373,13 @@ onBeforeUnmount(() => {
               </button>
             </div>
           </div>
+
+          <ReaderCanvasColorControls
+            :canvas="settings"
+            @update:canvas="emit('update-canvas', $event)"
+          />
+
+          <ReaderTypographyPreview :typography="readerTypography" :canvas="readerCanvas" />
         </div>
 
         <footer class="reader-appearance-footer">
@@ -373,9 +387,9 @@ onBeforeUnmount(() => {
             type="button"
             class="reader-appearance-text-button"
             data-testid="reader-appearance-restore"
-            @click="emit('restore-theme-recommendation')"
+            @click="emit('restore-default-typography')"
           >
-            {{ t('article.readingMode.appearanceUseThemeStyle') }}
+            {{ t('article.readingMode.appearanceRestoreDefault') }}
           </button>
           <button
             v-if="saveError"
@@ -410,7 +424,7 @@ onBeforeUnmount(() => {
 }
 
 .reader-appearance-panel--popover {
-  @apply fixed w-[22rem] max-w-[calc(100vw-1rem)] max-h-[calc(100vh-1rem)] overflow-y-auto rounded-xl;
+  @apply fixed w-[24rem] max-w-[calc(100vw-1rem)] max-h-[calc(100vh-1rem)] overflow-y-auto rounded-xl;
 }
 
 .reader-appearance-panel--sheet {

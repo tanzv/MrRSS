@@ -753,6 +753,14 @@
       "encrypted": false,
       "frontend_key": "contentFontFamily"
     },
+    "content_background_color": {
+      "type": "string",
+      "default": "",
+      "category": "reading",
+      "encrypted": false,
+      "allow_empty": true,
+      "frontend_key": "contentBackgroundColor"
+    },
     "content_font_size": {
       "type": "int",
       "default": 16,
@@ -780,6 +788,14 @@
       "category": "reading",
       "encrypted": false,
       "frontend_key": "contentParagraphSpacing"
+    },
+    "content_text_color": {
+      "type": "string",
+      "default": "",
+      "category": "reading",
+      "encrypted": false,
+      "allow_empty": true,
+      "frontend_key": "contentTextColor"
     },
     "ui_font_family": {
       "type": "string",

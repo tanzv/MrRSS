@@ -4,6 +4,7 @@ import { mount } from '@vue/test-utils';
 import { createI18n } from 'vue-i18n';
 import { generateInitialSettings } from '@/composables/core/useSettings.generated';
 import en from '@/i18n/locales/en';
+import type { ReaderCanvasValues } from '@/utils/readerCanvas';
 import type { ReaderTypographyValues } from '@/utils/readerTypography';
 import {
   useReaderTypographyPreferences,
@@ -17,6 +18,11 @@ const magazineValues: ReaderTypographyValues = {
   content_line_height: '1.7',
   content_width: 'comfortable',
   content_paragraph_spacing: 'comfortable',
+};
+
+const canvasValues: ReaderCanvasValues = {
+  content_background_color: '#111111',
+  content_text_color: '#ffffff',
 };
 
 function mountPreferences(options: ReaderTypographyPreferencesOptions = {}) {
@@ -72,6 +78,21 @@ describe('useReaderTypographyPreferences', () => {
     wrapper.unmount();
   });
 
+  it('debounces one valid canvas pair into the shared settings payload', async () => {
+    vi.useFakeTimers();
+    const request = vi.fn().mockResolvedValue({ ok: true } as Response);
+    const { wrapper, preferences, settings } = mountPreferences({ request, debounceMs: 500 });
+
+    preferences.updateCanvas(canvasValues);
+
+    expect(settings.value.content_background_color).toBe('#111111');
+    expect(settings.value.content_text_color).toBe('#ffffff');
+    await vi.advanceTimersByTimeAsync(500);
+    expect(request).toHaveBeenCalledWith(expect.objectContaining(canvasValues));
+
+    wrapper.unmount();
+  });
+
   it('keeps the preview after a failed flush and exposes a retry that clears the error', async () => {
     const showToast = vi.spyOn(window, 'showToast');
     const request = vi
@@ -122,17 +143,18 @@ describe('useReaderTypographyPreferences', () => {
     wrapper.unmount();
   });
 
-  it('applies the current theme recommendation only when the restore command is invoked', () => {
+  it('restores the Focus typography without consulting the current app theme', () => {
     const { wrapper, preferences, settings } = mountPreferences({ debounceMs: 500 });
 
-    preferences.applyThemeRecommendation('sepia');
+    preferences.applyPreset(magazineValues);
+    preferences.restoreDefaultTypography();
 
     expect(settings.value).toMatchObject({
-      content_font_family: 'serif',
-      content_font_size: 18,
-      content_line_height: '1.8',
-      content_width: 'narrow',
-      content_paragraph_spacing: 'relaxed',
+      content_font_family: 'system',
+      content_font_size: 16,
+      content_line_height: '1.6',
+      content_width: 'comfortable',
+      content_paragraph_spacing: 'comfortable',
     });
 
     wrapper.unmount();

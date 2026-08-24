@@ -10,6 +10,7 @@ import {
   PhGithubLogo,
   PhDownloadSimple,
 } from '@phosphor-icons/vue';
+import { latestReleaseURL, repositoryURL } from '@/config/repository';
 import { openInBrowser } from '@/utils/browser';
 
 const { t } = useI18n();
@@ -74,11 +75,11 @@ function handleDownloadInstall() {
 }
 
 function openGitHubRepo() {
-  openInBrowser('https://github.com/DevXDojo/MrRSS');
+  openInBrowser(repositoryURL);
 }
 
 function openGitHubRelease() {
-  openInBrowser('https://github.com/DevXDojo/MrRSS/releases/latest');
+  openInBrowser(latestReleaseURL);
 }
 </script>
 
@@ -163,6 +164,7 @@ function openGitHubRelease() {
             <p class="mb-2">No installer available for your platform. Please download manually:</p>
             <button
               type="button"
+              data-testid="about-manual-update-link"
               class="text-accent hover:underline break-all"
               @click="openGitHubRelease"
             >
@@ -176,6 +178,7 @@ function openGitHubRelease() {
     <div class="mt-4 sm:mt-6">
       <button
         type="button"
+        data-testid="about-repository-link"
         class="inline-flex items-center gap-1.5 sm:gap-2 text-accent hover:text-accent-hover transition-colors text-xs sm:text-sm font-medium"
         @click="openGitHubRepo"
       >
