@@ -3,11 +3,11 @@ import { describe, expect, it, vi } from 'vitest';
 import { useSidebarEdgeReveal } from './useSidebarEdgeReveal';
 
 describe('useSidebarEdgeReveal', () => {
-  it('temporarily reveals only while a collapsed desktop rail is entered with a mouse', () => {
-    const collapsed = ref(true);
+  it('temporarily reveals only while an auto-hidden desktop rail is entered with a mouse', () => {
+    const autoHideEnabled = ref(true);
     const mobile = ref(false);
     const state = useSidebarEdgeReveal({
-      isPersistentlyCollapsed: collapsed,
+      isAutoHideEnabled: autoHideEnabled,
       isMobile: mobile,
     });
 
@@ -15,7 +15,7 @@ describe('useSidebarEdgeReveal', () => {
 
     expect(state.isTemporarilyRevealed.value).toBe(true);
     expect(state.isActivityBarVisible.value).toBe(true);
-    expect(collapsed.value).toBe(true);
+    expect(autoHideEnabled.value).toBe(true);
   });
 
   it('keeps the rail open while focus stays in its region and retracts after release', () => {
@@ -25,7 +25,7 @@ describe('useSidebarEdgeReveal', () => {
     const second = document.createElement('button');
     region.append(first, second);
     const state = useSidebarEdgeReveal({
-      isPersistentlyCollapsed: ref(true),
+      isAutoHideEnabled: ref(true),
       isMobile: ref(false),
     });
 
@@ -38,10 +38,10 @@ describe('useSidebarEdgeReveal', () => {
     vi.useRealTimers();
   });
 
-  it('does not reveal for touch, mobile, or an expanded rail', () => {
-    const collapsed = ref(true);
+  it('does not reveal for touch, mobile, or a fixed-visible rail', () => {
+    const autoHideEnabled = ref(true);
     const mobile = ref(false);
-    const state = useSidebarEdgeReveal({ isPersistentlyCollapsed: collapsed, isMobile: mobile });
+    const state = useSidebarEdgeReveal({ isAutoHideEnabled: autoHideEnabled, isMobile: mobile });
 
     state.handlePointerEnter(new PointerEvent('pointerenter', { pointerType: 'touch' }));
     expect(state.isTemporarilyRevealed.value).toBe(false);
@@ -49,7 +49,7 @@ describe('useSidebarEdgeReveal', () => {
     state.handlePointerEnter(new PointerEvent('pointerenter', { pointerType: 'mouse' }));
     expect(state.isTemporarilyRevealed.value).toBe(false);
     mobile.value = false;
-    collapsed.value = false;
+    autoHideEnabled.value = false;
     state.handlePointerEnter(new PointerEvent('pointerenter', { pointerType: 'mouse' }));
     expect(state.isTemporarilyRevealed.value).toBe(false);
     expect(state.isActivityBarVisible.value).toBe(true);
@@ -58,7 +58,7 @@ describe('useSidebarEdgeReveal', () => {
   it('retracts after pointer leave and cancels release when re-entered', () => {
     vi.useFakeTimers();
     const state = useSidebarEdgeReveal({
-      isPersistentlyCollapsed: ref(true),
+      isAutoHideEnabled: ref(true),
       isMobile: ref(false),
     });
     state.handlePointerEnter(new PointerEvent('pointerenter', { pointerType: 'mouse' }));
@@ -74,7 +74,7 @@ describe('useSidebarEdgeReveal', () => {
   it('keeps the rail revealed when the pointer leaves while focus remains inside', () => {
     vi.useFakeTimers();
     const state = useSidebarEdgeReveal({
-      isPersistentlyCollapsed: ref(true),
+      isAutoHideEnabled: ref(true),
       isMobile: ref(false),
     });
 
@@ -89,7 +89,7 @@ describe('useSidebarEdgeReveal', () => {
   it('allows pointer leave to retract after dismissal clears stale focus state', () => {
     vi.useFakeTimers();
     const state = useSidebarEdgeReveal({
-      isPersistentlyCollapsed: ref(true),
+      isAutoHideEnabled: ref(true),
       isMobile: ref(false),
     });
 
@@ -105,12 +105,12 @@ describe('useSidebarEdgeReveal', () => {
 
   it('clears transient state when persistence or mobile mode changes', async () => {
     vi.useFakeTimers();
-    const collapsed = ref(true);
+    const autoHideEnabled = ref(true);
     const mobile = ref(false);
-    const state = useSidebarEdgeReveal({ isPersistentlyCollapsed: collapsed, isMobile: mobile });
+    const state = useSidebarEdgeReveal({ isAutoHideEnabled: autoHideEnabled, isMobile: mobile });
     state.handlePointerEnter(new PointerEvent('pointerenter', { pointerType: 'mouse' }));
     state.handlePointerLeave();
-    collapsed.value = false;
+    autoHideEnabled.value = false;
     await nextTick();
     expect(state.isTemporarilyRevealed.value).toBe(false);
     vi.advanceTimersByTime(180);
@@ -123,7 +123,7 @@ describe('useSidebarEdgeReveal', () => {
   it('dismisses and disposes the pending reveal release', () => {
     vi.useFakeTimers();
     const state = useSidebarEdgeReveal({
-      isPersistentlyCollapsed: ref(true),
+      isAutoHideEnabled: ref(true),
       isMobile: ref(false),
     });
     state.handlePointerEnter(new PointerEvent('pointerenter', { pointerType: 'mouse' }));

@@ -98,6 +98,39 @@ describe('useKeyboardShortcuts reading mode', () => {
     expect(store.currentArticleId).toBeNull();
   });
 
+  it('does not intercept native or ARIA control activation keys', async () => {
+    mountShortcuts();
+    await nextTick();
+    const roleLink = document.createElement('div');
+    roleLink.setAttribute('role', 'link');
+    const roleCheckbox = document.createElement('div');
+    roleCheckbox.setAttribute('role', 'checkbox');
+    const roleSwitch = document.createElement('div');
+    roleSwitch.setAttribute('role', 'switch');
+    const roleRadio = document.createElement('div');
+    roleRadio.setAttribute('role', 'radio');
+    const controls = [
+      document.createElement('button'),
+      document.createElement('summary'),
+      roleLink,
+      roleCheckbox,
+      roleSwitch,
+      roleRadio,
+    ];
+
+    controls.forEach((control) => {
+      document.body.appendChild(control);
+      const event = new KeyboardEvent('keydown', {
+        key: 'Enter',
+        bubbles: true,
+        cancelable: true,
+      });
+      control.dispatchEvent(event);
+      expect(event.defaultPrevented).toBe(false);
+      control.remove();
+    });
+  });
+
   it('does not mark an RSS article while keyboard navigation waits for scroll progress', async () => {
     const fetchMock = vi.fn().mockResolvedValue({ ok: true, json: vi.fn().mockResolvedValue({}) });
     vi.stubGlobal('fetch', fetchMock);

@@ -7,6 +7,7 @@ import { createI18n } from 'vue-i18n';
 import { createPinia } from 'pinia';
 import en from '@/i18n/locales/en';
 import ActivityBar from './ActivityBar.vue';
+import Sidebar from './Sidebar.vue';
 import SidebarCategory from './SidebarCategory.vue';
 import SidebarFeed from './SidebarFeed.vue';
 import SavedFilterItem from './SavedFilterItem.vue';
@@ -40,6 +41,21 @@ const savedFilter = {
   created_at: '2026-08-23T00:00:00.000Z',
   updated_at: '2026-08-23T00:00:00.000Z',
 } as SavedFilter;
+
+const activityBarStub = {
+  props: ['isCollapsed'],
+  emits: ['hide-activity-bar'],
+  template: `
+    <button
+      v-if="!isCollapsed"
+      type="button"
+      data-testid="activity-bar-hide"
+      @click="$emit('hide-activity-bar', $event)"
+    >
+      Hide activity bar
+    </button>
+  `,
+};
 
 const activityBarSource = readFileSync(
   resolve(process.cwd(), 'src/components/sidebar/ActivityBar.vue'),
@@ -85,6 +101,89 @@ describe('reader navigation semantics', () => {
     expect(allArticles.attributes('data-active')).toBe('true');
     expect(allArticles.classes()).not.toContain('text-accent');
     expect(wrapper.find('nav').attributes('aria-label')).toBe('Article filters');
+  });
+
+  it('shows the matching visibility action in each activity-bar mode', async () => {
+    const fixedWrapper = mount(ActivityBar, {
+      props: { visibilityControl: 'auto-hide' },
+      global: { plugins: [createPinia(), i18n] },
+    });
+    wrappers.push(fixedWrapper);
+
+    const autoHideControl = fixedWrapper.get('button[aria-label="Auto-hide Activity Bar"]');
+    expect(autoHideControl.attributes('title')).toBe('Auto-hide Activity Bar');
+    await autoHideControl.trigger('click');
+    expect(fixedWrapper.emitted('hide-activity-bar')).toHaveLength(1);
+
+    const previewWrapper = mount(ActivityBar, {
+      props: { visibilityControl: 'pin' },
+      global: { plugins: [createPinia(), i18n] },
+    });
+    wrappers.push(previewWrapper);
+
+    const pinControl = previewWrapper.get('button[aria-label="Keep Activity Bar Visible"]');
+    expect(pinControl.attributes('title')).toBe('Keep Activity Bar Visible');
+    await pinControl.trigger('click');
+    expect(previewWrapper.emitted('pin-activity-bar')).toHaveLength(1);
+    expect(previewWrapper.find('button[aria-label="Auto-hide Activity Bar"]').exists()).toBe(false);
+    expect(previewWrapper.find('button[aria-label="Collapse Activity Bar"]').exists()).toBe(false);
+
+    const mobileWrapper = mount(ActivityBar, {
+      props: { visibilityControl: 'collapse' },
+      global: { plugins: [createPinia(), i18n] },
+    });
+    wrappers.push(mobileWrapper);
+
+    const collapseControl = mobileWrapper.get('button[aria-label="Collapse Activity Bar"]');
+    await collapseControl.trigger('click');
+    expect(mobileWrapper.emitted('hide-activity-bar')).toHaveLength(1);
+  });
+
+  it('returns keyboard focus to the desktop reveal zone after auto-hiding the rail', async () => {
+    localStorage.setItem('ActivityBarCollapsed', 'false');
+    const wrapper = mount(Sidebar, {
+      attachTo: document.body,
+      global: {
+        plugins: [createPinia(), i18n],
+        stubs: {
+          ActivityBar: activityBarStub,
+          FeedList: { template: '<div />' },
+        },
+      },
+    });
+    wrappers.push(wrapper);
+
+    wrapper
+      .get('[data-testid="activity-bar-hide"]')
+      .element.dispatchEvent(new MouseEvent('click', { bubbles: true, detail: 0 }));
+    await nextTick();
+    await nextTick();
+
+    expect(document.activeElement).toBe(wrapper.get('.sidebar-reveal-bridge').element);
+  });
+
+  it('returns keyboard focus to the mobile expand control after collapsing the rail', async () => {
+    localStorage.setItem('ActivityBarCollapsed', 'false');
+    const wrapper = mount(Sidebar, {
+      props: { isMobile: true, isOpen: true },
+      attachTo: document.body,
+      global: {
+        plugins: [createPinia(), i18n],
+        stubs: {
+          ActivityBar: activityBarStub,
+          FeedList: { template: '<div />' },
+        },
+      },
+    });
+    wrappers.push(wrapper);
+
+    wrapper
+      .get('[data-testid="activity-bar-hide"]')
+      .element.dispatchEvent(new MouseEvent('click', { bubbles: true, detail: 0 }));
+    await nextTick();
+    await nextTick();
+
+    expect(document.activeElement).toBe(wrapper.get('[data-testid="sidebar-edge-toggle"]').element);
   });
 
   it('uses the active theme token for selected activity-bar controls', () => {
@@ -157,6 +256,19 @@ describe('reader navigation semantics', () => {
     expect(feedListSource).not.toContain(':unread-count="categoryUnreadCounts');
   });
 
+  it('renders feed unread counts as subdued text rather than filled badges', () => {
+    expect(sidebarFeedSource).toMatch(
+      /\.unread-badge\s*\{[\s\S]*?color:\s*var\(--text-secondary\);[\s\S]*?font-variant-numeric:\s*tabular-nums;/
+    );
+    expect(sidebarFeedSource).not.toMatch(
+      /\.unread-badge\s*\{[\s\S]*?background-color:\s*var\(--unread-badge-background\);/
+    );
+    expect(sidebarFeedSource).not.toContain('opacity: 0.78');
+    expect(sidebarFeedSource).toMatch(
+      /\.feed-item:hover \.unread-badge,[\s\S]*?\.feed-item\.active \.unread-badge\s*\{[\s\S]*?color:\s*currentColor;/
+    );
+  });
+
   it('allows feed selection from the keyboard and exposes current state', async () => {
     const wrapper = mount(SidebarFeed, {
       props: {
@@ -204,52 +316,71 @@ describe('reader navigation semantics', () => {
       /@media \(max-width: 767px\)\s*\{[\s\S]*?\.category-toggle\s*\{[\s\S]*?width:\s*44px;[\s\S]*?height:\s*44px;/
     );
     expect(sidebarSource).toMatch(
-      /@media \(max-width: 767px\)\s*\{[\s\S]*?\.compact-sidebar-wrapper\.width-collapsed \.sidebar-toggle-container\s*\{[\s\S]*?width:\s*44px;/
+      /@media \(max-width: 767px\)\s*\{[\s\S]*?\.compact-sidebar-wrapper\.width-auto-hidden \.sidebar-toggle-container\s*\{[\s\S]*?width:\s*44px;/
     );
     expect(sidebarSource).toMatch(
-      /@media \(max-width: 767px\)\s*\{[\s\S]*?\.edge-toggle-button\s*\{[\s\S]*?width:\s*44px;/
+      /@media \(max-width: 767px\)\s*\{[\s\S]*?\.edge-pin-button\s*\{[\s\S]*?width:\s*44px;/
     );
   });
 
-  it('reveals a collapsed desktop rail transiently without moving its feed drawer', () => {
+  it('separates auto-hide preview from the action that fixes the desktop rail visible', () => {
     expect(sidebarSource).toMatch(/import \{[^}]*\btoRef\b[^}]*\} from 'vue';/);
     expect(sidebarSource).toContain(
       "import { useSidebarEdgeReveal } from '@/composables/ui/useSidebarEdgeReveal';"
     );
     expect(sidebarSource).toMatch(
-      /useSidebarEdgeReveal\(\{\s*isPersistentlyCollapsed:\s*isActivityBarCollapsed,\s*isMobile:\s*toRef\(props, 'isMobile'\),\s*}\)/
+      /useSidebarEdgeReveal\(\{\s*isAutoHideEnabled:\s*isActivityBarAutoHideEnabled,\s*isMobile:\s*toRef\(props, 'isMobile'\),\s*}\)/
+    );
+    expect(sidebarSource).toContain(
+      "return isActivityBarAutoHideEnabled.value ? 'pin' : 'auto-hide';"
     );
     expect(sidebarSource).toContain("'is-edge-revealed': isTemporarilyRevealed");
+    expect(sidebarSource).toContain("'width-auto-hidden': isActivityBarAutoHideEnabled");
     expect(sidebarSource).toMatch(
-      /<div\s+class="sidebar-toggle-container"\s+@pointerenter="handlePointerEnter"\s+@pointerleave="handlePointerLeave"\s+@focusin="handleFocusIn"\s+@focusout="handleFocusOut"\s*>/
+      /<div\s+ref="sidebarToggleContainerRef"\s+class="sidebar-toggle-container"[\s\S]*?@pointerenter="handlePointerEnter"[\s\S]*?@pointerleave="handlePointerLeave"[\s\S]*?@focusin="handleFocusIn"[\s\S]*?@focusout="handleFocusOut"/
     );
     expect(sidebarSource).toContain(':is-collapsed="!isActivityBarVisible"');
     expect(sidebarSource).toMatch(
-      /v-if="isActivityBarCollapsed"\s+type="button"\s+data-testid="sidebar-edge-toggle"[\s\S]*?:title="t\('sidebar\.activity\.expandActivityBar'\)"\s+:aria-label="t\('sidebar\.activity\.expandActivityBar'\)"\s+:aria-expanded="isActivityBarVisible"[\s\S]*?@click="persistExpandedFromEdge"/
+      /v-if="!props\.isMobile && isActivityBarAutoHideEnabled"\s+ref="desktopRevealBridgeRef"\s+type="button"\s+class="sidebar-reveal-bridge"[\s\S]*?:aria-label="t\('sidebar\.activity\.showActivityBar'\)"[\s\S]*?@click="focusDesktopPreview"/
     );
     expect(sidebarSource).toMatch(
-      /function persistExpandedFromEdge\(\) \{\s*dismissTemporaryReveal\(\);\s*isActivityBarCollapsed\.value = false;\s*saveActivityBarState\(\);\s*}/
+      /v-if="props\.isMobile && isActivityBarAutoHideEnabled"\s+ref="mobileEdgeToggleRef"\s+type="button"\s+data-testid="sidebar-edge-toggle"[\s\S]*?:title="t\('sidebar\.activity\.expandActivityBar'\)"\s+:aria-label="t\('sidebar\.activity\.expandActivityBar'\)"\s+:aria-expanded="isActivityBarVisible"[\s\S]*?@click="expandMobileActivityBar"/
     );
     expect(sidebarSource).toMatch(
-      /function toggleActivityBar\(\) \{\s*if \(isActivityBarCollapsed\.value\) \{\s*dismissTemporaryReveal\(\);\s*return;\s*}\s*isActivityBarCollapsed\.value = true;\s*saveActivityBarState\(\);\s*}/
+      /function pinActivityBar\(\): void \{\s*dismissTemporaryReveal\(\);\s*isActivityBarAutoHideEnabled\.value = false;\s*saveActivityBarAutoHideState\(\);\s*}/
     );
+    expect(sidebarSource).toMatch(
+      /function expandMobileActivityBar\(event: MouseEvent\)[\s\S]*?nextTick\(focusFirstActivityBarAction\);/
+    );
+    expect(sidebarSource).toMatch(
+      /function focusFirstActivityBarAction\(\): void \{[\s\S]*?sidebarToggleContainerRef\.value[\s\S]*?\.focus\(\);/
+    );
+    expect(sidebarSource).toMatch(
+      /function hideActivityBar\(event\?: MouseEvent\): void \{\s*const shouldRestoreKeyboardFocus = event\?\.detail === 0;\s*dismissTemporaryReveal\(\);\s*isActivityBarAutoHideEnabled\.value = true;\s*saveActivityBarAutoHideState\(\);\s*if \(shouldRestoreKeyboardFocus\) \{\s*nextTick\(focusActivityBarRevealControl\);\s*}\s*}/
+    );
+    expect(sidebarSource).toContain(':visibility-control="activityBarVisibilityControl"');
+    expect(sidebarSource).toContain('@hide-activity-bar="hideActivityBar"');
+    expect(sidebarSource).toContain('@pin-activity-bar="pinActivityBar"');
     expect(sidebarSource).toMatch(
       /\.compact-sidebar-wrapper\.is-edge-revealed \.sidebar-toggle-container\s*\{\s*z-index:\s*32;/
     );
     expect(sidebarSource).toMatch(
       /\.sidebar-toggle-container\s*\{[\s\S]*?width:\s*48px;[\s\S]*?min-width:\s*48px;/
     );
+    expect(sidebarSource).toContain('class="sidebar-reveal-bridge"');
+    expect(sidebarSource).toMatch(/\.sidebar-reveal-bridge\s*\{[\s\S]*?pointer-events:\s*none;/);
     expect(sidebarSource).toMatch(
-      /@media \(min-width: 768px\)\s*\{\s*\.compact-sidebar-wrapper\.width-collapsed\.is-edge-revealed \.sidebar-toggle-container\s*\{[\s\S]*?width:\s*48px;[\s\S]*?min-width:\s*48px;[\s\S]*?margin-right:\s*-32px;/
+      /\.compact-sidebar-wrapper\.is-edge-revealed \.sidebar-reveal-bridge\s*\{[\s\S]*?width:\s*48px;[\s\S]*?pointer-events:\s*auto;/
     );
-    expect(sidebarSource).toMatch(
-      /\.compact-sidebar-wrapper\.is-edge-revealed \.edge-toggle-button\s*\{\s*z-index:\s*31;/
-    );
-    expect(sidebarSource).toContain("{ 'activity-bar-collapsed': isActivityBarCollapsed }");
+    expect(sidebarSource).not.toContain('margin-right: -32px;');
+    expect(sidebarSource).toContain("{ 'activity-bar-auto-hidden': isActivityBarAutoHideEnabled }");
     expect(sidebarSource).not.toContain("{ 'activity-bar-collapsed': !isActivityBarVisible }");
     expect(sidebarSource).toMatch(
       /\.feed-drawer-wrapper:not\(\.pinned\)\s*\{[\s\S]*?left:\s*48px;/
     );
+    expect(activityBarSource).toContain("'auto-hide' | 'pin' | 'collapse'");
+    expect(activityBarSource).toContain("emit('pin-activity-bar')");
+    expect(activityBarSource).toContain("emit('hide-activity-bar', event)");
   });
 
   it('keeps saved filters at a mobile-friendly minimum height', () => {

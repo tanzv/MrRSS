@@ -121,10 +121,12 @@ describe('Theme-aware sidebar', () => {
     });
   });
 
-  it('temporarily reveals a collapsed desktop rail without opening or moving the feed drawer', () => {
+  it('previews an auto-hidden desktop rail without a persistent edge button', () => {
     cy.viewport(1440, 900);
-    cy.get('[aria-label="Collapse Activity Bar"]').click();
-    cy.get('[data-testid="sidebar-edge-toggle"]').should('have.attr', 'aria-expanded', 'false');
+    cy.get('[aria-label="Auto-hide Activity Bar"]').click();
+    cy.get('[data-testid="sidebar-edge-toggle"]').should('not.exist');
+    cy.get('.sidebar-reveal-bridge').should('have.attr', 'aria-label', 'Show Activity Bar');
+    cy.window().its('localStorage.ActivityBarCollapsed').should('equal', 'true');
 
     let collapsedDrawerLeft = 0;
     cy.get('.reader-feed-drawer')
@@ -133,31 +135,73 @@ describe('Theme-aware sidebar', () => {
         collapsedDrawerLeft = $drawer[0].getBoundingClientRect().left;
       });
 
-    cy.get('[data-testid="sidebar-edge-toggle"]')
-      .trigger('pointerenter', { pointerType: 'mouse' })
-      .should('have.attr', 'aria-expanded', 'true');
+    cy.get('.sidebar-toggle-container').trigger('pointerenter', { pointerType: 'mouse' });
     cy.get('.smart-activity-bar').should('be.visible');
+    cy.get('[aria-label="Keep Activity Bar Visible"]').should('be.visible');
+    cy.get('[aria-label="Auto-hide Activity Bar"]').should('not.exist');
     cy.get('.reader-feed-drawer').should(($drawer) => {
       expect($drawer[0].getBoundingClientRect().left).to.equal(collapsedDrawerLeft);
     });
 
-    cy.get('[data-testid="sidebar-edge-toggle"]')
-      .focus()
-      .should('have.focus')
-      .trigger('pointerleave', { pointerType: 'mouse' });
-    cy.wait(230);
-    cy.get('.smart-activity-bar').should('be.visible');
-
-    cy.get('[data-testid="sidebar-edge-toggle"]').blur();
+    cy.get('.sidebar-toggle-container').trigger('pointerleave', { pointerType: 'mouse' });
     cy.wait(230);
     cy.get('.smart-activity-bar').should('not.exist');
-    cy.get('[data-testid="sidebar-edge-toggle"]').should('have.attr', 'aria-expanded', 'false');
+    cy.window().its('localStorage.ActivityBarCollapsed').should('equal', 'true');
 
-    cy.get('[data-testid="sidebar-edge-toggle"]').click();
-    cy.get('[data-testid="sidebar-edge-toggle"]').should('not.exist');
+    cy.get('.sidebar-toggle-container').trigger('pointerenter', { pointerType: 'mouse' });
+    cy.get('[aria-label="Keep Activity Bar Visible"]').click();
+    cy.get('.sidebar-reveal-bridge').should('not.exist');
     cy.get('.smart-activity-bar').should('be.visible');
+    cy.get('[aria-label="Auto-hide Activity Bar"]').should('be.visible');
     cy.get('.reader-feed-drawer').should('be.visible');
     cy.window().its('localStorage.ActivityBarCollapsed').should('equal', 'false');
+  });
+
+  it('keeps a pinned desktop drawer stationary while the edge preview opens', () => {
+    cy.viewport(1440, 900);
+    cy.window().then((window) => {
+      window.localStorage.setItem('FeedListPinned', 'true');
+      window.localStorage.setItem('FeedListExpanded', 'true');
+      // Retain compatibility with the historical preference value on startup.
+      window.localStorage.setItem('ActivityBarCollapsed', 'true');
+    });
+    cy.reload();
+
+    cy.get('.reader-feed-drawer').should('have.class', 'is-pinned');
+    cy.get('[data-testid="sidebar-edge-toggle"]').should('not.exist');
+    cy.get('.sidebar-reveal-bridge').should('have.attr', 'aria-label', 'Show Activity Bar');
+
+    let collapsedDrawerLeft = 0;
+    cy.get('.reader-feed-drawer').then(($drawer) => {
+      collapsedDrawerLeft = $drawer[0].getBoundingClientRect().left;
+    });
+
+    cy.get('.sidebar-toggle-container').trigger('pointerenter', { pointerType: 'mouse' });
+    cy.get('[aria-label="Keep Activity Bar Visible"]').should('be.visible');
+    cy.get('.reader-feed-drawer').then(($drawer) => {
+      expect($drawer[0].getBoundingClientRect().left).to.equal(collapsedDrawerLeft);
+    });
+    cy.wait(100);
+    cy.get('.reader-feed-drawer').then(($drawer) => {
+      expect($drawer[0].getBoundingClientRect().left).to.equal(collapsedDrawerLeft);
+    });
+  });
+
+  it('moves keyboard focus from the desktop reveal zone into the preview rail', () => {
+    cy.viewport(1440, 900);
+    cy.get('[aria-label="Auto-hide Activity Bar"]').click();
+
+    cy.get('.sidebar-reveal-bridge').focus().type('{enter}');
+    cy.get('[aria-label="Keep Activity Bar Visible"]').should('be.visible');
+    cy.get('.smart-activity-bar button').first().should('have.focus');
+  });
+
+  it('returns keyboard focus to the desktop reveal zone after auto-hiding', () => {
+    cy.viewport(1440, 900);
+
+    cy.get('[aria-label="Auto-hide Activity Bar"]').focus().type('{enter}');
+    cy.get('.sidebar-reveal-bridge').should('have.focus');
+    cy.window().its('localStorage.ActivityBarCollapsed').should('equal', 'true');
   });
 
   it('keeps sidebar controls and list rows at 44px on a mobile viewport', () => {
@@ -192,10 +236,41 @@ describe('Theme-aware sidebar', () => {
       expect(styles.height).to.equal('44px');
     });
     cy.get('button[aria-label="Collapse Activity Bar"]').click();
-    cy.get('.edge-toggle-button').should(($button) => {
-      const styles = window.getComputedStyle($button[0]);
-      expect(styles.width).to.equal('44px');
-      expect(styles.height).to.equal('800px');
+    cy.get('.edge-pin-button')
+      .should('have.attr', 'aria-label', 'Expand Activity Bar')
+      .should('have.attr', 'aria-expanded', 'false')
+      .should(($button) => {
+        const styles = window.getComputedStyle($button[0]);
+        expect(styles.width).to.equal('44px');
+        expect(styles.height).to.equal('800px');
+      });
+    cy.get('.edge-pin-button').click();
+    cy.get('.edge-pin-button').should('not.exist');
+    cy.get('button[aria-label="Collapse Activity Bar"]').should('be.visible');
+  });
+
+  it('returns keyboard focus to mobile expansion after collapsing the rail', () => {
+    cy.viewport(375, 667);
+    cy.get('button[aria-label="Toggle Sidebar"]').click();
+    cy.get('button[aria-label="Collapse Activity Bar"]').focus().type('{enter}');
+
+    cy.get('.edge-pin-button')
+      .should('have.focus')
+      .should('have.attr', 'aria-label', 'Expand Activity Bar');
+    cy.window().its('localStorage.ActivityBarCollapsed').should('equal', 'true');
+  });
+
+  it('interprets a saved collapsed rail as the mobile collapsed state on startup', () => {
+    cy.viewport(375, 667);
+    cy.window().then((window) => {
+      window.localStorage.setItem('ActivityBarCollapsed', 'true');
+      window.localStorage.setItem('FeedListExpanded', 'true');
     });
+    cy.reload();
+
+    cy.get('button[aria-label="Toggle Sidebar"]').click();
+    cy.get('.edge-pin-button')
+      .should('have.attr', 'aria-label', 'Expand Activity Bar')
+      .should('have.attr', 'aria-expanded', 'false');
   });
 });
