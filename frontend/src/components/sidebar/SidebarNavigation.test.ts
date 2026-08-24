@@ -171,6 +171,35 @@ describe('reader navigation semantics', () => {
     );
   });
 
+  it('reveals a collapsed desktop rail transiently without moving its feed drawer', () => {
+    expect(sidebarSource).toMatch(/import \{[^}]*\btoRef\b[^}]*\} from 'vue';/);
+    expect(sidebarSource).toContain(
+      "import { useSidebarEdgeReveal } from '@/composables/ui/useSidebarEdgeReveal';"
+    );
+    expect(sidebarSource).toMatch(
+      /useSidebarEdgeReveal\(\{\s*isPersistentlyCollapsed:\s*isActivityBarCollapsed,\s*isMobile:\s*toRef\(props, 'isMobile'\),\s*}\)/
+    );
+    expect(sidebarSource).toContain("'is-edge-revealed': isTemporarilyRevealed");
+    expect(sidebarSource).toMatch(
+      /<div\s+class="sidebar-toggle-container"\s+@pointerenter="handlePointerEnter"\s+@pointerleave="handlePointerLeave"\s+@focusin="handleFocusIn"\s+@focusout="handleFocusOut"\s*>/
+    );
+    expect(sidebarSource).toContain(':is-collapsed="!isActivityBarVisible"');
+    expect(sidebarSource).toMatch(
+      /v-if="isActivityBarCollapsed"\s+type="button"\s+data-testid="sidebar-edge-toggle"[\s\S]*?:aria-expanded="isActivityBarVisible"[\s\S]*?@click="persistExpandedFromEdge"/
+    );
+    expect(sidebarSource).toMatch(
+      /function persistExpandedFromEdge\(\) \{\s*dismissTemporaryReveal\(\);\s*isActivityBarCollapsed\.value = false;\s*saveActivityBarState\(\);\s*}/
+    );
+    expect(sidebarSource).toMatch(
+      /function toggleActivityBar\(\) \{\s*if \(isActivityBarCollapsed\.value\) \{\s*dismissTemporaryReveal\(\);\s*return;\s*}\s*isActivityBarCollapsed\.value = true;\s*saveActivityBarState\(\);\s*}/
+    );
+    expect(sidebarSource).toMatch(
+      /\.compact-sidebar-wrapper\.is-edge-revealed \.sidebar-toggle-container\s*\{\s*z-index:\s*32;/
+    );
+    expect(sidebarSource).toContain("{ 'activity-bar-collapsed': isActivityBarCollapsed }");
+    expect(sidebarSource).not.toContain("{ 'activity-bar-collapsed': !isActivityBarVisible }");
+  });
+
   it('keeps saved filters at a mobile-friendly minimum height', () => {
     const wrapper = mount(SavedFilterItem, {
       props: { filter: savedFilter, isActive: false },

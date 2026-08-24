@@ -1,7 +1,8 @@
 <script setup lang="ts">
-import { ref, onMounted, onBeforeUnmount, nextTick, watch } from 'vue';
+import { ref, onMounted, onBeforeUnmount, nextTick, toRef, watch } from 'vue';
 import { PhCaretRight } from '@phosphor-icons/vue';
 import { useI18n } from 'vue-i18n';
+import { useSidebarEdgeReveal } from '@/composables/ui/useSidebarEdgeReveal';
 import ActivityBar from './ActivityBar.vue';
 import FeedList from './FeedList.vue';
 
@@ -32,6 +33,18 @@ let focusTimer: number | null = null;
 // Activity bar collapse state - use localStorage for persistence
 const savedActivityBarCollapsed = localStorage.getItem('ActivityBarCollapsed');
 const isActivityBarCollapsed = ref(savedActivityBarCollapsed === 'true');
+const {
+  isTemporarilyRevealed,
+  isActivityBarVisible,
+  handlePointerEnter,
+  handlePointerLeave,
+  handleFocusIn,
+  handleFocusOut,
+  dismissTemporaryReveal,
+} = useSidebarEdgeReveal({
+  isPersistentlyCollapsed: isActivityBarCollapsed,
+  isMobile: toRef(props, 'isMobile'),
+});
 
 // Save activity bar state to localStorage
 function saveActivityBarState() {
@@ -157,7 +170,18 @@ function focusMobileDrawer() {
 }
 
 function toggleActivityBar() {
-  isActivityBarCollapsed.value = !isActivityBarCollapsed.value;
+  if (isActivityBarCollapsed.value) {
+    dismissTemporaryReveal();
+    return;
+  }
+
+  isActivityBarCollapsed.value = true;
+  saveActivityBarState();
+}
+
+function persistExpandedFromEdge() {
+  dismissTemporaryReveal();
+  isActivityBarCollapsed.value = false;
   saveActivityBarState();
 }
 
@@ -186,6 +210,7 @@ onBeforeUnmount(() => {
     class="compact-sidebar-wrapper flex h-full relative"
     :class="{
       'width-collapsed': isActivityBarCollapsed,
+      'is-edge-revealed': isTemporarilyRevealed,
       'is-compact-shell': props.isCompact,
       'is-mobile-shell': props.isMobile,
       'is-shell-open': props.isOpen,
@@ -201,14 +226,23 @@ onBeforeUnmount(() => {
     ></button>
 
     <!-- Shared container for ActivityBar and Edge Toggle -->
-    <div class="sidebar-toggle-container">
+    <div
+      class="sidebar-toggle-container"
+      @pointerenter="handlePointerEnter"
+      @pointerleave="handlePointerLeave"
+      @focusin="handleFocusIn"
+      @focusout="handleFocusOut"
+    >
       <!-- Edge Toggle Button (visible when ActivityBar is collapsed) -->
       <Transition name="edge-toggle-fade">
         <button
           v-if="isActivityBarCollapsed"
+          type="button"
+          data-testid="sidebar-edge-toggle"
           class="edge-toggle-button flex items-center justify-center text-text-secondary hover:text-accent-text transition-all"
           :title="t('sidebar.activity.expandActivityBar')"
-          @click="toggleActivityBar"
+          :aria-expanded="isActivityBarVisible"
+          @click="persistExpandedFromEdge"
         >
           <PhCaretRight :size="20" weight="regular" />
         </button>
@@ -217,7 +251,7 @@ onBeforeUnmount(() => {
       <!-- Smart Activity Bar (Left) -->
       <ActivityBar
         ref="activityBarRef"
-        :is-collapsed="isActivityBarCollapsed"
+        :is-collapsed="!isActivityBarVisible"
         @add-feed="emitShowAddFeed"
         @settings="emitShowSettings"
         @toggle-feed-drawer="handleToggleFeedList"
@@ -289,6 +323,10 @@ onBeforeUnmount(() => {
 .compact-sidebar-wrapper.width-collapsed .sidebar-toggle-container {
   width: 16px;
   min-width: 16px;
+}
+
+.compact-sidebar-wrapper.is-edge-revealed .sidebar-toggle-container {
+  z-index: 32;
 }
 
 /* Edge toggle button - absolutely positioned in shared space */
