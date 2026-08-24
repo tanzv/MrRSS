@@ -343,9 +343,19 @@ function handleFeedKeydown(event: KeyboardEvent) {
 }
 
 .unread-badge {
-  @apply text-[9px] sm:text-[10px] font-medium rounded-full min-w-[14px] sm:min-w-[16px] h-[14px] sm:h-[16px] px-0.5 sm:px-1 flex items-center justify-center;
-  background-color: var(--unread-badge-background);
-  color: var(--unread-badge-color);
+  flex-shrink: 0;
+  margin-left: 0.25rem;
+  color: var(--text-secondary);
+  font-size: 0.6875rem;
+  font-weight: 500;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+
+.feed-item:hover .unread-badge,
+.feed-item:focus-visible .unread-badge,
+.feed-item.active .unread-badge {
+  color: currentColor;
 }
 
 .state-warning-icon {
