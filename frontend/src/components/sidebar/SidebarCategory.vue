@@ -259,12 +259,13 @@ function handleCategoryKeydown(event: KeyboardEvent) {
         />
       </span>
       <span v-if="unreadCount > 0" class="unread-badge mr-1">{{ unreadCount }}</span>
-      <PhCaretDown
-        :size="20"
-        class="p-1 cursor-pointer transition-transform text-text-secondary"
-        :class="{ 'rotate-180': isOpen }"
-        @click.stop="handleCaretClick"
-      />
+      <span class="category-toggle" @click.stop="handleCaretClick">
+        <PhCaretDown
+          :size="20"
+          class="p-1 cursor-pointer transition-transform"
+          :class="[isActive ? 'text-accent-text' : 'text-text-secondary', { 'rotate-180': isOpen }]"
+        />
+      </span>
     </div>
     <div
       v-show="isOpen"
@@ -356,8 +357,8 @@ function handleCategoryKeydown(event: KeyboardEvent) {
 <style scoped>
 @reference "../../style.css";
 .category-header {
-  @apply px-2 sm:px-3 py-1.5 sm:py-2 cursor-pointer font-semibold text-xs sm:text-sm text-text-secondary flex items-center justify-between hover:bg-bg-tertiary hover:text-text-primary transition-colors;
-  @apply sticky z-10 bg-bg-secondary;
+  @apply px-2 sm:px-3 py-1.5 sm:py-2 cursor-pointer font-semibold text-xs sm:text-sm text-text-secondary flex items-center justify-between hover:text-accent-text transition-colors;
+  @apply sticky z-10;
   top: -0.375rem; /* matches container's p-1.5 */
   margin-left: -0.375rem;
   margin-right: -0.375rem;
@@ -369,6 +370,23 @@ function handleCategoryKeydown(event: KeyboardEvent) {
 /* Compact mode: reduce padding for category headers */
 .category-header.compact {
   @apply px-1.5 sm:px-2 py-1 sm:py-1.5;
+}
+
+@media (max-width: 767px) {
+  .category-header {
+    min-height: 44px;
+  }
+
+  .category-toggle {
+    display: inline-flex;
+    width: 44px;
+    min-width: 44px;
+    height: 44px;
+    min-height: 44px;
+    align-items: center;
+    justify-content: center;
+    margin: -0.5rem;
+  }
 }
 
 /* Indentation for nested categories */
@@ -407,7 +425,7 @@ function handleCategoryKeydown(event: KeyboardEvent) {
 
 /* Special styling for category header when its container is a drag target */
 .category-container.drag-over .category-header {
-  @apply text-accent font-bold;
+  @apply text-accent-text font-bold;
   background-color: transparent;
 }
 @media (min-width: 640px) {
@@ -446,7 +464,7 @@ function handleCategoryKeydown(event: KeyboardEvent) {
   }
 }
 .category-header.active {
-  @apply text-accent;
+  @apply text-accent-text;
   background-color: var(--surface-selected);
 }
 

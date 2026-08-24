@@ -217,12 +217,13 @@ defineExpose({
             v-show="item.id !== 'imageGallery' || imageGalleryEnabled"
             :key="item.id"
             :class="[
-              'activity-nav-button relative flex items-center justify-center text-text-secondary flex-shrink-0 transition-all hover:text-accent',
-              store.currentFilter === item.filterType ? 'is-active text-accent' : '',
+              'activity-nav-button relative flex items-center justify-center text-text-secondary flex-shrink-0 transition-all hover:text-accent-text',
+              store.currentFilter === item.filterType ? 'is-active' : '',
             ]"
             :title="item.label"
             :aria-label="item.label"
             :aria-current="store.currentFilter === item.filterType ? 'page' : undefined"
+            :data-active="store.currentFilter === item.filterType ? 'true' : undefined"
             @click="handleNavClick(item)"
           >
             <!-- Icon -->
@@ -233,7 +234,7 @@ defineExpose({
               :size="24"
               :weight="store.currentFilter === item.filterType ? 'fill' : 'regular'"
               :class="[
-                store.currentFilter === item.filterType ? 'text-accent scale-105' : '',
+                store.currentFilter === item.filterType ? 'scale-105' : '',
                 'transition-all',
               ]"
             />
@@ -252,7 +253,7 @@ defineExpose({
       <!-- Bottom Actions -->
       <div class="flex flex-col items-center gap-1 mt-auto w-full">
         <button
-          class="activity-nav-button relative flex items-center justify-center text-text-secondary flex-shrink-0 transition-all hover:text-accent"
+          class="activity-nav-button relative flex items-center justify-center text-text-secondary flex-shrink-0 transition-all hover:text-accent-text"
           :title="t('sidebar.activity.addFeed')"
           :aria-label="t('sidebar.activity.addFeed')"
           @click="emit('add-feed')"
@@ -262,7 +263,7 @@ defineExpose({
 
         <!-- Feed List Button -->
         <button
-          class="activity-nav-button relative flex items-center justify-center text-text-secondary flex-shrink-0 transition-all hover:text-accent"
+          class="activity-nav-button relative flex items-center justify-center text-text-secondary flex-shrink-0 transition-all hover:text-accent-text"
           :title="
             isFeedListExpanded
               ? t('sidebar.activity.collapseFeedList')
@@ -281,7 +282,7 @@ defineExpose({
         </button>
 
         <button
-          class="activity-nav-button relative flex items-center justify-center text-text-secondary flex-shrink-0 transition-all hover:text-accent"
+          class="activity-nav-button relative flex items-center justify-center text-text-secondary flex-shrink-0 transition-all hover:text-accent-text"
           :title="t('setting.tab.settings')"
           :aria-label="t('setting.tab.settings')"
           @click="emit('settings')"
@@ -294,7 +295,7 @@ defineExpose({
 
         <!-- Collapse Button (at the bottom) -->
         <button
-          class="activity-nav-button relative flex items-center justify-center text-text-secondary flex-shrink-0 transition-all hover:text-accent"
+          class="activity-nav-button relative flex items-center justify-center text-text-secondary flex-shrink-0 transition-all hover:text-accent-text"
           :title="t('sidebar.activity.collapseActivityBar')"
           :aria-label="t('sidebar.activity.collapseActivityBar')"
           @click="emit('toggle-activity-bar')"
@@ -366,6 +367,10 @@ defineExpose({
 
 .activity-nav-button.is-active {
   background: var(--surface-selected);
+}
+
+.activity-nav-button[data-active='true'] {
+  color: var(--accent-text-color);
 }
 
 .activity-nav-button:focus-visible {

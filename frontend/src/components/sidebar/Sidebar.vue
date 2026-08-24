@@ -206,7 +206,7 @@ onBeforeUnmount(() => {
       <Transition name="edge-toggle-fade">
         <button
           v-if="isActivityBarCollapsed"
-          class="edge-toggle-button flex items-center justify-center text-text-secondary hover:text-accent hover:bg-bg-secondary transition-all"
+          class="edge-toggle-button flex items-center justify-center text-text-secondary hover:text-accent-text transition-all"
           :title="t('sidebar.activity.expandActivityBar')"
           @click="toggleActivityBar"
         >
@@ -347,8 +347,13 @@ onBeforeUnmount(() => {
   }
 
   .compact-sidebar-wrapper.width-collapsed .sidebar-toggle-container {
-    width: 16px;
-    min-width: 16px;
+    width: 44px;
+    min-width: 44px;
+  }
+
+  .edge-toggle-button {
+    width: 44px;
+    min-width: 44px;
   }
 }
 

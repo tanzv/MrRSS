@@ -72,10 +72,8 @@ function handleFilterKeydown(event: KeyboardEvent) {
 <template>
   <div
     :class="[
-      'cursor-pointer select-none rounded-md transition-all duration-200 border border-transparent flex items-center justify-between gap-1.5 sm:gap-2.5',
-      isActive
-        ? 'bg-bg-tertiary hover:bg-bg-tertiary text-accent font-medium'
-        : 'bg-transparent hover:bg-bg-tertiary',
+      'saved-filter-item cursor-pointer select-none rounded-md transition-all duration-200 border border-transparent flex items-center justify-between gap-1.5 sm:gap-2.5 min-h-11 md:min-h-0',
+      isActive ? 'is-active text-accent-text font-medium' : '',
       props.compactMode ? 'px-1 sm:px-1.5 py-0.5 sm:py-1' : 'px-2 sm:px-3 py-1.5 sm:py-2 mx-1',
       isDragging ? 'opacity-50' : '',
     ]"
@@ -92,11 +90,11 @@ function handleFilterKeydown(event: KeyboardEvent) {
   >
     <!-- Icon and filter name -->
     <div class="flex items-center gap-0.5 sm:gap-1 flex-1 min-w-0">
-      <PhFunnel :size="18" class="flex-shrink-0 text-accent" />
+      <PhFunnel :size="18" class="flex-shrink-0 text-accent-text" />
       <span
         :class="[
-          'whitespace-nowrap overflow-hidden text-ellipsis text-xs sm:text-sm font-medium',
-          isActive ? 'text-accent' : 'text-text-primary',
+          'saved-filter-name whitespace-nowrap overflow-hidden text-ellipsis text-xs sm:text-sm font-medium',
+          isActive ? 'text-accent-text' : 'text-text-primary',
         ]"
         >{{ filter.name }}</span
       >
@@ -105,7 +103,8 @@ function handleFilterKeydown(event: KeyboardEvent) {
     <!-- Edit mode actions -->
     <div v-if="isEditMode" class="flex gap-1">
       <button
-        class="bg-transparent border-0 p-1 cursor-pointer text-text-secondary rounded transition-all duration-200 hover:bg-bg-secondary hover:text-text-primary"
+        type="button"
+        class="saved-filter-edit-button bg-transparent border-0 p-1 cursor-pointer text-text-secondary rounded transition-all duration-200 hover:text-accent-text min-h-11 min-w-11 md:min-h-8 md:min-w-8"
         :title="t('common.edit')"
         :aria-label="t('common.edit')"
         @click="handleEdit"
@@ -113,7 +112,8 @@ function handleFilterKeydown(event: KeyboardEvent) {
         <PhPencil :size="14" />
       </button>
       <button
-        class="state-danger-hover bg-transparent border-0 p-1 cursor-pointer text-text-secondary rounded transition-all duration-200"
+        type="button"
+        class="state-danger-hover bg-transparent border-0 p-1 cursor-pointer text-text-secondary rounded transition-all duration-200 min-h-11 min-w-11 md:min-h-8 md:min-w-8"
         :title="t('common.delete')"
         :aria-label="t('common.delete')"
         @click="handleDelete"
@@ -123,3 +123,27 @@ function handleFilterKeydown(event: KeyboardEvent) {
     </div>
   </div>
 </template>
+
+<style scoped>
+.saved-filter-item {
+  background-color: transparent;
+}
+
+.saved-filter-item:hover {
+  background-color: var(--surface-hover);
+  color: var(--accent-text-color);
+}
+
+.saved-filter-item:hover .saved-filter-name {
+  color: var(--accent-text-color);
+}
+
+.saved-filter-item.is-active,
+.saved-filter-item.is-active:hover {
+  background-color: var(--surface-selected);
+}
+
+.saved-filter-edit-button:hover {
+  background-color: var(--surface-hover);
+}
+</style>

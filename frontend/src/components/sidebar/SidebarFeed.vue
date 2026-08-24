@@ -156,13 +156,14 @@ function handleFeedKeydown(event: KeyboardEvent) {
     <PhImage
       v-if="feed.is_image_mode"
       :size="16"
-      class="text-accent shrink-0"
+      class="text-accent-text shrink-0"
       :title="t('setting.feed.imageMode')"
     />
     <PhEyeSlash
       v-if="feed.hide_from_timeline"
       :size="16"
-      class="text-text-secondary shrink-0"
+      class="shrink-0"
+      :class="isActive ? 'text-accent-text' : 'text-text-secondary'"
       :title="t('setting.reading.hideFromTimeline')"
     />
 
@@ -186,7 +187,7 @@ function handleFeedKeydown(event: KeyboardEvent) {
       >
         <div
           v-if="showErrorTooltip"
-          class="absolute right-0 top-full mt-2 z-50 w-max max-w-[180px] bg-bg-secondary rounded-lg shadow-xl"
+          class="sidebar-error-tooltip absolute right-0 top-full mt-2 z-50 w-max max-w-[180px] rounded-lg shadow-xl"
         >
           <div class="px-2.5 py-2">
             <div class="flex items-start gap-2">
@@ -212,12 +213,19 @@ function handleFeedKeydown(event: KeyboardEvent) {
 <style scoped>
 @reference "../../style.css";
 .feed-item {
-  @apply px-2 sm:px-3 py-1.5 sm:py-2 cursor-pointer rounded-md text-xs sm:text-sm text-text-primary flex items-center gap-1 hover:bg-bg-tertiary transition-colors;
+  @apply px-2 sm:px-3 py-1.5 sm:py-2 cursor-pointer rounded-md text-xs sm:text-sm text-text-primary flex items-center gap-1 transition-colors;
   background-color: transparent;
 }
 
 .feed-item:hover {
   background-color: var(--surface-hover);
+  color: var(--accent-text-color);
+}
+
+@media (max-width: 767px) {
+  .feed-item {
+    min-height: 44px;
+  }
 }
 
 /* Compact mode: reduce padding and gap */
@@ -295,7 +303,7 @@ function handleFeedKeydown(event: KeyboardEvent) {
   }
 }
 .feed-item.active {
-  @apply text-accent font-medium;
+  @apply text-accent-text font-medium;
   background-color: var(--surface-selected);
 }
 
@@ -310,7 +318,7 @@ function handleFeedKeydown(event: KeyboardEvent) {
 }
 
 .drag-handle {
-  @apply cursor-grab text-text-secondary hover:text-accent transition-colors flex items-center justify-center;
+  @apply cursor-grab text-text-secondary hover:text-accent-text transition-colors flex items-center justify-center;
   padding: 2px;
   margin-right: 2px;
   border-radius: 2px;
@@ -329,6 +337,11 @@ function handleFeedKeydown(event: KeyboardEvent) {
   border-radius: 2px;
 }
 
+.feed-item.active .drag-handle,
+.feed-item.active .freshrss-lock {
+  color: var(--accent-text-color);
+}
+
 .unread-badge {
   @apply text-[9px] sm:text-[10px] font-medium rounded-full min-w-[14px] sm:min-w-[16px] h-[14px] sm:h-[16px] px-0.5 sm:px-1 flex items-center justify-center;
   background-color: var(--unread-badge-background);
@@ -337,5 +350,9 @@ function handleFeedKeydown(event: KeyboardEvent) {
 
 .state-warning-icon {
   color: var(--state-warning-color);
+}
+
+.sidebar-error-tooltip {
+  background-color: var(--surface-panel);
 }
 </style>

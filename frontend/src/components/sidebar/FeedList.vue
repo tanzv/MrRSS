@@ -618,8 +618,10 @@ function handleFilterDragEnd() {
         <div class="flex items-center gap-1 sm:gap-2">
           <!-- Pin/Unpin Button -->
           <button
-            class="text-text-secondary hover:text-text-primary hover:bg-bg-tertiary p-1 sm:p-1.5 rounded transition-colors"
-            :class="isPinned ? 'text-accent' : ''"
+            type="button"
+            class="drawer-icon-button text-text-secondary hover:text-text-primary rounded transition-colors"
+            :class="isPinned ? 'text-accent-text' : ''"
+            data-action="toggle-pin"
             :title="isPinned ? t('sidebar.feedList.unpin') : t('sidebar.feedList.pin')"
             :aria-label="isPinned ? t('sidebar.feedList.unpin') : t('sidebar.feedList.pin')"
             @click="handleTogglePin"
@@ -629,7 +631,9 @@ function handleFilterDragEnd() {
           </button>
           <!-- Close Button -->
           <button
-            class="text-text-secondary hover:text-text-primary hover:bg-bg-tertiary p-1 sm:p-1.5 rounded transition-colors"
+            type="button"
+            class="drawer-icon-button text-text-secondary hover:text-text-primary rounded transition-colors"
+            data-action="close-drawer"
             :title="t('common.close')"
             :aria-label="t('common.close')"
             data-responsive-nav-close
@@ -653,7 +657,7 @@ function handleFilterDragEnd() {
                   type="text"
                   :placeholder="t('common.search.searchFeeds')"
                   :aria-label="t('common.search.searchFeeds')"
-                  class="feed-search-input w-full bg-bg-tertiary px-3 py-2 pl-8 text-sm focus:outline-none transition-colors"
+                  class="feed-search-input w-full px-3 py-2 pl-8 pr-12 text-sm focus:outline-none transition-colors"
                 />
                 <PhMagnifyingGlass
                   :size="14"
@@ -661,7 +665,9 @@ function handleFilterDragEnd() {
                 />
                 <button
                   v-if="searchQuery"
-                  class="absolute right-2 top-1/2 -translate-y-1/2 p-1 text-text-secondary hover:text-text-primary"
+                  type="button"
+                  class="drawer-icon-button absolute right-0 top-1/2 -translate-y-1/2 text-text-secondary hover:text-text-primary"
+                  data-action="clear-search"
                   :title="t('common.clear')"
                   :aria-label="t('common.clear')"
                   @click="searchQuery = ''"
@@ -671,8 +677,10 @@ function handleFilterDragEnd() {
               </div>
               <!-- Edit Toggle Button -->
               <button
-                class="text-text-secondary hover:text-accent p-1 sm:p-1.5 transition-colors flex-shrink-0"
-                :class="isEditMode ? 'text-accent' : ''"
+                type="button"
+                class="drawer-icon-button text-text-secondary hover:text-accent-text transition-colors flex-shrink-0"
+                :class="isEditMode ? 'text-accent-text' : ''"
+                data-action="toggle-edit"
                 :title="isEditMode ? t('common.done') : t('common.edit')"
                 :aria-label="isEditMode ? t('common.done') : t('common.edit')"
                 @click="toggleEditMode"
@@ -771,7 +779,7 @@ function handleFilterDragEnd() {
             <!-- Saved Filters Header -->
             <div
               :class="[
-                'flex-shrink-0 transition-colors duration-200 bg-bg-secondary cursor-default flex items-center justify-between',
+                'saved-filters-header flex-shrink-0 transition-colors duration-200 cursor-default flex items-center justify-between',
                 compactMode ? 'px-1.5 sm:px-2 py-1 sm:py-1.5' : 'px-3 py-1.5 sm:px-3 sm:py-2',
               ]"
             >
@@ -783,10 +791,11 @@ function handleFilterDragEnd() {
 
               <!-- Save Current Filter Button -->
               <button
+                type="button"
                 :class="[
-                  'bg-transparent border-0 cursor-pointer text-text-secondary rounded transition-all duration-200 flex items-center justify-center hover:not(:disabled):bg-bg-tertiary hover:not(:disabled):text-accent disabled:opacity-40 disabled:cursor-not-allowed',
-                  'w-8 h-8',
+                  'drawer-icon-button bg-transparent border-0 cursor-pointer text-text-secondary rounded transition-all duration-200 hover:not(:disabled):text-accent-text disabled:opacity-40 disabled:cursor-not-allowed',
                 ]"
+                data-action="save-filter"
                 :disabled="!hasActiveFilters"
                 :title="
                   !hasActiveFilters
@@ -898,8 +907,27 @@ function handleFilterDragEnd() {
   box-shadow: none;
 }
 
+.drawer-icon-button {
+  display: inline-flex;
+  width: 44px;
+  min-width: 44px;
+  height: 44px;
+  min-height: 44px;
+  align-items: center;
+  justify-content: center;
+}
+
+.drawer-icon-button:hover:not(:disabled) {
+  background-color: var(--surface-hover);
+}
+
+.saved-filters-header {
+  background-color: var(--surface-panel);
+}
+
 .feed-search-input {
   background-color: var(--surface-hover);
+  min-height: 44px;
 }
 
 .feed-search-input:focus-visible {
@@ -912,6 +940,19 @@ function handleFilterDragEnd() {
   .feed-drawer-width {
     width: 240px !important;
     min-width: 240px !important;
+  }
+}
+
+@media (min-width: 768px) {
+  .drawer-icon-button {
+    width: 36px;
+    min-width: 36px;
+    height: 36px;
+    min-height: 36px;
+  }
+
+  .feed-search-input {
+    min-height: 36px;
   }
 }
 
