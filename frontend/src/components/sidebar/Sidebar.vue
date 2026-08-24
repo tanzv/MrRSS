@@ -241,6 +241,7 @@ onBeforeUnmount(() => {
           data-testid="sidebar-edge-toggle"
           class="edge-toggle-button flex items-center justify-center text-text-secondary hover:text-accent-text transition-all"
           :title="t('sidebar.activity.expandActivityBar')"
+          :aria-label="t('sidebar.activity.expandActivityBar')"
           :aria-expanded="isActivityBarVisible"
           @click="persistExpandedFromEdge"
         >

@@ -205,7 +205,7 @@ describe('reader navigation semantics', () => {
     );
     expect(sidebarSource).toContain(':is-collapsed="!isActivityBarVisible"');
     expect(sidebarSource).toMatch(
-      /v-if="isActivityBarCollapsed"\s+type="button"\s+data-testid="sidebar-edge-toggle"[\s\S]*?:aria-expanded="isActivityBarVisible"[\s\S]*?@click="persistExpandedFromEdge"/
+      /v-if="isActivityBarCollapsed"\s+type="button"\s+data-testid="sidebar-edge-toggle"[\s\S]*?:title="t\('sidebar\.activity\.expandActivityBar'\)"\s+:aria-label="t\('sidebar\.activity\.expandActivityBar'\)"\s+:aria-expanded="isActivityBarVisible"[\s\S]*?@click="persistExpandedFromEdge"/
     );
     expect(sidebarSource).toMatch(
       /function persistExpandedFromEdge\(\) \{\s*dismissTemporaryReveal\(\);\s*isActivityBarCollapsed\.value = false;\s*saveActivityBarState\(\);\s*}/
