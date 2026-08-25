@@ -1,82 +1,136 @@
-import { ref, onBeforeUnmount } from 'vue';
+import { computed, onBeforeUnmount, ref } from 'vue';
+
+const SIDEBAR_DRAWER_WIDTH_KEY = 'mrrss.sidebar-drawer-width';
+const ARTICLE_LIST_WIDTH_KEY = 'mrrss.article-list-width';
+
+export const SIDEBAR_DRAWER_MIN_WIDTH = 240;
+export const SIDEBAR_DRAWER_MAX_WIDTH = 420;
+export const SIDEBAR_DRAWER_DEFAULT_WIDTH = 280;
+
+const ARTICLE_LIST_NORMAL_MIN_WIDTH = 280;
+const ARTICLE_LIST_NORMAL_MAX_WIDTH = 600;
+const ARTICLE_LIST_COMPACT_MIN_WIDTH = 300;
+const ARTICLE_LIST_COMPACT_MAX_WIDTH = 800;
+const ARTICLE_LIST_NORMAL_DEFAULT_WIDTH = 350;
+const ARTICLE_LIST_COMPACT_DEFAULT_WIDTH = 500;
+
+interface PanelWidthBounds {
+  min: number;
+  max: number;
+}
+
+export function getArticleListBounds(compact: boolean): PanelWidthBounds {
+  return compact
+    ? { min: ARTICLE_LIST_COMPACT_MIN_WIDTH, max: ARTICLE_LIST_COMPACT_MAX_WIDTH }
+    : { min: ARTICLE_LIST_NORMAL_MIN_WIDTH, max: ARTICLE_LIST_NORMAL_MAX_WIDTH };
+}
+
+export function getArticleListDefaultWidth(compact: boolean): number {
+  return compact ? ARTICLE_LIST_COMPACT_DEFAULT_WIDTH : ARTICLE_LIST_NORMAL_DEFAULT_WIDTH;
+}
+
+function clampWidth(width: number, { min, max }: PanelWidthBounds): number {
+  return Math.min(Math.max(width, min), max);
+}
+
+function readSavedWidth(storageKey: string, bounds: PanelWidthBounds): number | null {
+  try {
+    const savedValue = localStorage.getItem(storageKey);
+    if (savedValue === null) return null;
+
+    const width = Number(savedValue);
+    if (!Number.isFinite(width) || width < bounds.min || width > bounds.max) {
+      return null;
+    }
+
+    return width;
+  } catch {
+    return null;
+  }
+}
+
+function saveWidth(storageKey: string, width: number): void {
+  try {
+    localStorage.setItem(storageKey, String(width));
+  } catch {
+    // The layout still works when browser storage is unavailable.
+  }
+}
 
 export function useResizablePanels() {
-  const sidebarWidth = ref<number>(256);
-  const articleListWidth = ref<number>(400);
-  const isResizingSidebar = ref<boolean>(false);
-  const isResizingArticleList = ref<boolean>(false);
-  const compactMode = ref<boolean>(false);
+  const compactMode = ref(false);
+  const sidebarPreference = ref(
+    readSavedWidth(SIDEBAR_DRAWER_WIDTH_KEY, {
+      min: SIDEBAR_DRAWER_MIN_WIDTH,
+      max: SIDEBAR_DRAWER_MAX_WIDTH,
+    }) ?? SIDEBAR_DRAWER_DEFAULT_WIDTH
+  );
+  const savedArticleListWidth = readSavedWidth(ARTICLE_LIST_WIDTH_KEY, {
+    min: ARTICLE_LIST_NORMAL_MIN_WIDTH,
+    max: ARTICLE_LIST_COMPACT_MAX_WIDTH,
+  });
+  const articleListPreference = ref(
+    savedArticleListWidth ?? getArticleListDefaultWidth(compactMode.value)
+  );
+  const hasArticleListPreference = ref(savedArticleListWidth !== null);
 
-  // Track if user has manually resized the article list
-  const userManuallyResized = ref<boolean>(false);
+  const sidebarWidth = computed(() =>
+    clampWidth(sidebarPreference.value, {
+      min: SIDEBAR_DRAWER_MIN_WIDTH,
+      max: SIDEBAR_DRAWER_MAX_WIDTH,
+    })
+  );
+  const articleListWidth = computed(() =>
+    clampWidth(articleListPreference.value, getArticleListBounds(compactMode.value))
+  );
 
-  // Track initial mouse position when starting resize
-  const initialMouseX = ref<number>(0);
-  const initialArticleListWidth = ref<number>(400);
+  // This compatibility path keeps the existing mouse divider working until App uses PanelResizeHandle.
+  const isResizingArticleList = ref(false);
+  let initialMouseX = 0;
+  let initialArticleListWidth = 0;
 
-  // Set compact mode state (doesn't change width by itself)
   function setCompactMode(enabled: boolean): void {
     compactMode.value = enabled;
-  }
-
-  // Set article list width (called when settings are loaded or user changes compact mode)
-  function setArticleListWidth(width: number): void {
-    articleListWidth.value = width;
-    // Reset user resize flag when setting from settings
-    userManuallyResized.value = false;
-  }
-
-  // Sidebar resize handlers
-  function startResizeSidebar(): void {
-    isResizingSidebar.value = true;
-    document.body.style.cursor = 'col-resize';
-    document.body.style.userSelect = 'none';
-    window.addEventListener('mousemove', handleResizeSidebar);
-    window.addEventListener('mouseup', stopResizeSidebar);
-  }
-
-  function handleResizeSidebar(): void {
-    if (!isResizingSidebar.value) return;
-    const newWidth = (window.event as MouseEvent).clientX;
-    if (newWidth >= 180 && newWidth <= 450) {
-      sidebarWidth.value = newWidth;
+    if (!hasArticleListPreference.value) {
+      articleListPreference.value = getArticleListDefaultWidth(enabled);
     }
   }
 
-  function stopResizeSidebar(): void {
-    isResizingSidebar.value = false;
-    document.body.style.cursor = '';
-    document.body.style.userSelect = '';
-    window.removeEventListener('mousemove', handleResizeSidebar);
-    window.removeEventListener('mouseup', stopResizeSidebar);
+  function setSidebarWidth(width: number): void {
+    sidebarPreference.value = clampWidth(width, {
+      min: SIDEBAR_DRAWER_MIN_WIDTH,
+      max: SIDEBAR_DRAWER_MAX_WIDTH,
+    });
+    saveWidth(SIDEBAR_DRAWER_WIDTH_KEY, sidebarPreference.value);
   }
 
-  // Article list resize handlers
+  function resetSidebarWidth(): void {
+    setSidebarWidth(SIDEBAR_DRAWER_DEFAULT_WIDTH);
+  }
+
+  function setArticleListWidth(width: number): void {
+    articleListPreference.value = clampWidth(width, getArticleListBounds(compactMode.value));
+    hasArticleListPreference.value = true;
+    saveWidth(ARTICLE_LIST_WIDTH_KEY, articleListPreference.value);
+  }
+
+  function resetArticleListWidth(): void {
+    setArticleListWidth(getArticleListDefaultWidth(compactMode.value));
+  }
+
   function startResizeArticleList(event: MouseEvent): void {
     isResizingArticleList.value = true;
-    // Store initial mouse position and article list width
-    initialMouseX.value = event.clientX;
-    initialArticleListWidth.value = articleListWidth.value;
+    initialMouseX = event.clientX;
+    initialArticleListWidth = articleListWidth.value;
     document.body.style.cursor = 'col-resize';
     document.body.style.userSelect = 'none';
     window.addEventListener('mousemove', handleResizeArticleList);
     window.addEventListener('mouseup', stopResizeArticleList);
   }
 
-  function handleResizeArticleList(): void {
+  function handleResizeArticleList(event: MouseEvent): void {
     if (!isResizingArticleList.value) return;
-    const currentMouseX = (window.event as MouseEvent).clientX;
-    // Calculate the delta from the initial position and apply to initial width
-    const deltaX = currentMouseX - initialMouseX.value;
-    const newWidth = initialArticleListWidth.value + deltaX;
-    // In compact mode, allow wider range (300-800), in normal mode (250-600)
-    const minWidth = compactMode.value ? 300 : 280;
-    const maxWidth = compactMode.value ? 800 : 600;
-    if (newWidth >= minWidth && newWidth <= maxWidth) {
-      articleListWidth.value = newWidth;
-      // Mark that user has manually resized
-      userManuallyResized.value = true;
-    }
+    setArticleListWidth(initialArticleListWidth + event.clientX - initialMouseX);
   }
 
   function stopResizeArticleList(): void {
@@ -87,20 +141,16 @@ export function useResizablePanels() {
     window.removeEventListener('mouseup', stopResizeArticleList);
   }
 
-  // Cleanup
-  onBeforeUnmount(() => {
-    window.removeEventListener('mousemove', handleResizeSidebar);
-    window.removeEventListener('mouseup', stopResizeSidebar);
-    window.removeEventListener('mousemove', handleResizeArticleList);
-    window.removeEventListener('mouseup', stopResizeArticleList);
-  });
+  onBeforeUnmount(stopResizeArticleList);
 
   return {
     sidebarWidth,
     articleListWidth,
-    startResizeSidebar,
     startResizeArticleList,
     setCompactMode,
+    setSidebarWidth,
+    resetSidebarWidth,
     setArticleListWidth,
+    resetArticleListWidth,
   };
 }
