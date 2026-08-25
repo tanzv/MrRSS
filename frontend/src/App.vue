@@ -143,13 +143,8 @@ const {
 
 const { contextMenu, openContextMenu, handleContextMenuAction } = useContextMenu();
 
-const {
-  sidebarWidth,
-  articleListWidth,
-  setSidebarWidth,
-  setArticleListWidth,
-  setCompactMode,
-} = useResizablePanels();
+const { sidebarWidth, articleListWidth, setSidebarWidth, setArticleListWidth, setCompactMode } =
+  useResizablePanels();
 
 // Use app updates composable
 const {
@@ -444,9 +439,9 @@ function onFeedUpdated(): void {
       <!-- Hide resizer and ArticleDetail when in card mode -->
       <template v-if="!isCardMode">
         <PanelResizeHandle
-          v-show="!store.isReadingMode"
+          v-show="!store.isReadingMode && !isMobileViewport"
           data-testid="article-list-resize-handle"
-          class="article-list-resize-handle hidden md:block"
+          class="article-list-resize-handle"
           :model-value="articleListWidth"
           :min="articleListBounds.min"
           :max="articleListBounds.max"
@@ -578,8 +573,6 @@ function onFeedUpdated(): void {
 .article-list-resize-handle {
   flex-shrink: 0;
   z-index: 10;
-  margin-left: -3px;
-  margin-right: -3px;
 }
 
 .reader-article-list-edge-shell {

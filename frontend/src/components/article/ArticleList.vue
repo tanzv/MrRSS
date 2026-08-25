@@ -1089,10 +1089,7 @@ async function markAllVisibleAsRead(): Promise<void> {
 
 @media (min-width: 1280px) {
   .article-list {
-    width: min(
-      var(--article-list-width, 400px),
-      calc(100vw - var(--sidebar-width, 280px) - 25rem)
-    );
+    width: min(var(--article-list-width, 400px), calc(100vw - var(--sidebar-width, 280px) - 25rem));
   }
 }
 

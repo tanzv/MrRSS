@@ -131,6 +131,7 @@ describe('App', () => {
     expect(wrapper.findComponent({ name: 'Sidebar' }).props('isMobile')).toBe(true);
     expect(wrapper.findComponent({ name: 'Sidebar' }).props('isCompact')).toBe(true);
     expect(wrapper.findComponent({ name: 'ArticleList' }).props('isSidebarOpen')).toBe(false);
+    expect(wrapper.get('[data-testid="article-list-resize-handle"]').isVisible()).toBe(false);
 
     const navigationTrigger = document.createElement('button');
     navigationTrigger.dataset.responsiveNavTrigger = 'true';

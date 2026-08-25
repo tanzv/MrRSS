@@ -84,7 +84,8 @@ function stopResize(event?: PointerEvent): void {
   if (!isResizing.value || (event && event.pointerId !== activePointerId)) return;
 
   const pointerId = activePointerId;
-  const target = event?.currentTarget instanceof HTMLElement ? event.currentTarget : handleRef.value;
+  const target =
+    event?.currentTarget instanceof HTMLElement ? event.currentTarget : handleRef.value;
   activePointerId = null;
   isResizing.value = false;
   document.body.style.cursor = previousBodyCursor;
