@@ -40,29 +40,25 @@ export function useMasonryLayout(articles: { value: Article[] }): MasonryLayoutR
   function setupResizeObserver(): void {
     if (isObserverSetup) return; // Already set up
 
-    // Watch for containerRef to become available
-    const stopWatch = watch(
-      containerRef,
-      (el) => {
-        if (el && !isObserverSetup) {
-          // Set up the observer
-          resizeObserver = new ResizeObserver(() => {
-            calculateColumns();
-          });
-          resizeObserver.observe(el);
-          isObserverSetup = true;
+    let stopWatch: (() => void) | undefined;
+    const setupForContainer = (el: HTMLElement | null): void => {
+      if (!el || isObserverSetup) return;
 
-          // Calculate columns immediately after setting up observer
-          nextTick(() => {
-            calculateColumns();
-          });
+      resizeObserver = new ResizeObserver(() => {
+        calculateColumns();
+      });
+      resizeObserver.observe(el);
+      isObserverSetup = true;
 
-          // Stop watching once observer is set up
-          stopWatch();
-        }
-      },
-      { immediate: true }
-    );
+      nextTick(() => {
+        calculateColumns();
+      });
+
+      stopWatch?.();
+    };
+
+    stopWatch = watch(containerRef, setupForContainer);
+    setupForContainer(containerRef.value);
   }
 
   /**
