@@ -99,20 +99,47 @@ describe('Theme-aware sidebar', () => {
         return color;
       };
 
-      const railColors = new Set<string>();
-      ['paper', 'ink', 'sepia', 'high-contrast'].forEach((preset) => {
+      const expectedTokens = {
+        paper: {
+          '--surface-rail': 'rgb(238, 242, 246)',
+          '--surface-panel': 'rgb(248, 250, 252)',
+          '--text-secondary': 'rgb(71, 85, 105)',
+          '--accent-text-color': 'rgb(29, 78, 216)',
+        },
+        ink: {
+          '--surface-rail': 'rgb(17, 21, 26)',
+          '--surface-panel': 'rgb(25, 30, 37)',
+          '--text-secondary': 'rgb(186, 197, 209)',
+          '--accent-text-color': 'rgb(141, 203, 255)',
+        },
+        sepia: {
+          '--surface-rail': 'rgb(233, 224, 211)',
+          '--surface-panel': 'rgb(247, 243, 236)',
+          '--text-secondary': 'rgb(97, 87, 78)',
+          '--accent-text-color': 'rgb(136, 63, 27)',
+        },
+        'high-contrast': {
+          '--surface-rail': 'rgb(10, 10, 10)',
+          '--surface-panel': 'rgb(0, 0, 0)',
+          '--text-secondary': 'rgb(245, 245, 245)',
+          '--accent-text-color': 'rgb(255, 230, 0)',
+        },
+      } as const;
+
+      Object.entries(expectedTokens).forEach(([preset, tokens]) => {
         root.dataset.themePreset = preset;
         void active!.offsetWidth;
         const railColor = window.getComputedStyle(rail!).backgroundColor;
-        railColors.add(railColor);
         expect(railColor).to.not.equal('rgba(0, 0, 0, 0)');
         expect(window.getComputedStyle(drawer!).backgroundColor).to.not.equal('rgba(0, 0, 0, 0)');
         expect(window.getComputedStyle(active!).color).to.equal(
           resolveTokenColor('--accent-text-color')
         );
+        Object.entries(tokens).forEach(([token, expected]) => {
+          expect(resolveTokenColor(token)).to.equal(expected);
+        });
       });
 
-      expect(railColors.size).to.equal(4);
       root.dataset.themePreset = 'paper';
       const shadowBefore = window.getComputedStyle(drawer!).boxShadow;
       root.style.setProperty('--overlay-shadow-color', '#123456');

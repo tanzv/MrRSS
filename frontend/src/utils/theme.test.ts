@@ -8,6 +8,7 @@ import {
   isDarkThemePreset,
   normalizeThemePreference,
   resolveThemePreset,
+  themeBackgroundColors,
 } from './theme';
 import { themeContrastPasses, validateThemeContrast } from './customTheme';
 import type { CustomThemeProfile, ThemeTokenKey } from '@/types/theme';
@@ -15,6 +16,58 @@ import { themeTokenKeys } from '@/types/theme';
 const themeStyles = readFileSync(resolve(process.cwd(), 'src/style.css'), 'utf8');
 
 const presetIds = ['paper', 'ink', 'sepia', 'high-contrast'] as const;
+
+const visualAnchors = {
+  paper: {
+    'bg-primary': '#f8fafc',
+    'surface-rail': '#eef2f6',
+    'surface-panel': '#f8fafc',
+    'surface-selected': '#dbeafe',
+    'text-primary': '#18212f',
+    'text-secondary': '#475569',
+    'text-tertiary': '#59697a',
+    'accent-color': '#2563eb',
+    'accent-text-color': '#1d4ed8',
+    'accent-foreground': '#ffffff',
+    'selection-background': '#2563eb',
+  },
+  ink: {
+    'bg-primary': '#15181d',
+    'surface-rail': '#11151a',
+    'surface-panel': '#191e25',
+    'surface-selected': '#24384b',
+    'text-primary': '#eef3f8',
+    'text-secondary': '#bac5d1',
+    'text-tertiary': '#93a1b0',
+    'accent-color': '#69b7ff',
+    'accent-text-color': '#8dcbff',
+    'accent-foreground': '#0e1720',
+  },
+  sepia: {
+    'bg-primary': '#f5f1ea',
+    'surface-rail': '#e9e0d3',
+    'surface-panel': '#f7f3ec',
+    'surface-selected': '#ead8c5',
+    'text-primary': '#2f2924',
+    'text-secondary': '#61574e',
+    'text-tertiary': '#6b6158',
+    'accent-color': '#9a4d24',
+    'accent-text-color': '#883f1b',
+    'accent-foreground': '#ffffff',
+  },
+  'high-contrast': {
+    'bg-primary': '#000000',
+    'surface-rail': '#0a0a0a',
+    'surface-panel': '#000000',
+    'surface-selected': '#3d3500',
+    'text-primary': '#ffffff',
+    'text-secondary': '#f5f5f5',
+    'text-tertiary': '#f5f5f5',
+    'accent-color': '#ffe600',
+    'accent-text-color': '#ffe600',
+    'accent-foreground': '#000000',
+  },
+} as const satisfies Record<(typeof presetIds)[number], Partial<Record<ThemeTokenKey, string>>>;
 
 function presetTokenBlock(preset: (typeof presetIds)[number]): string {
   const selector = preset === 'paper' ? ':root {' : `:root[data-theme-preset='${preset}'] {`;
@@ -49,6 +102,12 @@ function resetThemeDom() {
 afterEach(resetThemeDom);
 
 describe('theme preferences', () => {
+  it.each(presetIds)('matches the documented shell palette for %s', (preset) => {
+    expect(presetTokens(preset)).toMatchObject(visualAnchors[preset]);
+    expect(themeBackgroundColors[preset]).toBe(visualAnchors[preset]['bg-primary']);
+    expect(themeContrastPasses(validateThemeContrast(presetTokens(preset)))).toBe(true);
+  });
+
   it.each(presetIds)('defines every editable token for the %s preset', (preset) => {
     const selector = preset === 'paper' ? ':root {' : `:root[data-theme-preset='${preset}'] {`;
     const start = themeStyles.indexOf(selector);

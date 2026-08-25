@@ -13,9 +13,9 @@ export type ThemePreference = ThemePreferenceValue;
 export type ThemePreset = BuiltInThemePreset;
 
 export const themeBackgroundColors: Record<ThemePreset, string> = {
-  paper: '#ffffff',
-  ink: '#1e1e1e',
-  sepia: '#f7f1e3',
+  paper: '#f8fafc',
+  ink: '#15181d',
+  sepia: '#f5f1ea',
   'high-contrast': '#000000',
 };
 
