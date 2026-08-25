@@ -66,6 +66,7 @@ const drawerActivityBarStub = {
 const drawerFeedListStub = {
   name: 'FeedList',
   props: ['isExpanded', 'isPinned', 'isMobile'],
+  emits: ['collapse'],
   template: '<div class="reader-feed-drawer" />',
 };
 
@@ -247,6 +248,107 @@ describe('reader navigation semantics', () => {
     await nextTick();
 
     expect(mobileWrapper.find('[data-testid="feed-drawer-resize-handle"]').exists()).toBe(false);
+
+    const disabledWrapper = mount(Sidebar, {
+      props: { drawerWidth: 320, isDrawerResizeEnabled: false },
+      global: {
+        plugins: [createPinia(), i18n],
+        stubs: {
+          ActivityBar: drawerActivityBarStub,
+          FeedList: drawerFeedListStub,
+        },
+      },
+    });
+    wrappers.push(disabledWrapper);
+    disabledWrapper
+      .findComponent({ name: 'ActivityBar' })
+      .vm.$emit('ready', { expanded: true, pinned: true });
+    await nextTick();
+    expect(disabledWrapper.find('[data-testid="feed-drawer-resize-handle"]').exists()).toBe(false);
+    localStorage.removeItem('ActivityBarCollapsed');
+  });
+
+  it('reports the rail width that actually participates in desktop layout', async () => {
+    localStorage.setItem('ActivityBarCollapsed', 'false');
+    const wrapper = mount(Sidebar, {
+      global: {
+        plugins: [createPinia(), i18n],
+        stubs: {
+          ActivityBar: activityBarStub,
+          FeedList: { template: '<div />' },
+        },
+      },
+    });
+    wrappers.push(wrapper);
+    await nextTick();
+
+    let events = wrapper.emitted('update:rail-width') ?? [];
+    expect(events[events.length - 1]).toEqual([48]);
+
+    await wrapper.get('[data-testid="activity-bar-hide"]').trigger('click');
+    await nextTick();
+    events = wrapper.emitted('update:rail-width') ?? [];
+    expect(events[events.length - 1]).toEqual([16]);
+
+    localStorage.setItem('ActivityBarCollapsed', 'false');
+    const compactWrapper = mount(Sidebar, {
+      props: { isCompact: true },
+      global: {
+        plugins: [createPinia(), i18n],
+        stubs: {
+          ActivityBar: activityBarStub,
+          FeedList: { template: '<div />' },
+        },
+      },
+    });
+    wrappers.push(compactWrapper);
+    await nextTick();
+
+    await compactWrapper.get('[data-testid="activity-bar-hide"]').trigger('click');
+    await nextTick();
+    const compactEvents = compactWrapper.emitted('update:rail-width') ?? [];
+    expect(compactEvents[compactEvents.length - 1]).toEqual([48]);
+    localStorage.removeItem('ActivityBarCollapsed');
+  });
+
+  it('includes the drawer only while a desktop drawer is pinned and expanded', async () => {
+    localStorage.setItem('ActivityBarCollapsed', 'false');
+    const wrapper = mount(Sidebar, {
+      props: { drawerWidth: 420 },
+      global: {
+        plugins: [createPinia(), i18n],
+        stubs: {
+          ActivityBar: drawerActivityBarStub,
+          FeedList: drawerFeedListStub,
+        },
+      },
+    });
+    wrappers.push(wrapper);
+    await nextTick();
+
+    let events = wrapper.emitted('update:layout-width') ?? [];
+    expect(events[events.length - 1]).toEqual([48]);
+
+    const activityBar = wrapper.findComponent({ name: 'ActivityBar' });
+    activityBar.vm.$emit('ready', { expanded: true, pinned: true });
+    await nextTick();
+    events = wrapper.emitted('update:layout-width') ?? [];
+    expect(events[events.length - 1]).toEqual([468]);
+
+    activityBar.vm.$emit('ready', { expanded: false, pinned: true });
+    await nextTick();
+    events = wrapper.emitted('update:layout-width') ?? [];
+    expect(events[events.length - 1]).toEqual([468]);
+
+    activityBar.vm.$emit('ready', { expanded: true, pinned: false });
+    await nextTick();
+    events = wrapper.emitted('update:layout-width') ?? [];
+    expect(events[events.length - 1]).toEqual([48]);
+
+    activityBar.vm.$emit('ready', { expanded: false, pinned: true });
+    await nextTick();
+    events = wrapper.emitted('update:layout-width') ?? [];
+    expect(events[events.length - 1]).toEqual([48]);
     localStorage.removeItem('ActivityBarCollapsed');
   });
 

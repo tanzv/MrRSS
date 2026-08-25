@@ -99,9 +99,12 @@ watch(
 // Check if we're in image gallery mode
 const isImageGalleryMode = computed(() => store.currentFilter === 'imageGallery');
 
-// Check if we're in card mode
-const isCardMode = ref(false);
-const isCompactArticleList = ref(false);
+const layoutMode = computed(() => settings.value.layout_mode || 'normal');
+const isCardMode = computed(() => layoutMode.value === 'card');
+const isCompactArticleList = computed(() => layoutMode.value === 'compact');
+const isSidebarDrawerResizeEnabled = computed(
+  () => !isCardMode.value && !isImageGalleryMode.value && !store.isReadingMode
+);
 const articleListBounds = computed(() => getArticleListBounds(isCompactArticleList.value));
 const articleListDefaultWidth = computed(() =>
   getArticleListDefaultWidth(isCompactArticleList.value)
@@ -143,8 +146,47 @@ const {
 
 const { contextMenu, openContextMenu, handleContextMenuAction } = useContextMenu();
 
-const { sidebarWidth, articleListWidth, setSidebarWidth, setArticleListWidth, setCompactMode } =
-  useResizablePanels();
+const {
+  sidebarWidth,
+  articleListWidth,
+  setSidebarWidth,
+  commitSidebarWidth,
+  setArticleListWidth,
+  commitArticleListWidth,
+  setCompactMode,
+} = useResizablePanels(isCompactArticleList.value);
+const sidebarRailWidth = ref(48);
+const sidebarLayoutWidth = ref(48);
+const isSidebarDrawerResizing = ref(false);
+const isArticleListResizing = ref(false);
+
+watch(isCompactArticleList, setCompactMode);
+
+function updateSidebarWidth(width: number): void {
+  setSidebarWidth(width, !isSidebarDrawerResizing.value);
+}
+
+function finishSidebarDrawerResize(): void {
+  isSidebarDrawerResizing.value = false;
+  commitSidebarWidth();
+}
+
+function updateSidebarRailWidth(width: number): void {
+  sidebarRailWidth.value = width;
+}
+
+function updateSidebarLayoutWidth(width: number): void {
+  sidebarLayoutWidth.value = width;
+}
+
+function updateArticleListWidth(width: number): void {
+  setArticleListWidth(width, !isArticleListResizing.value);
+}
+
+function finishArticleListResize(): void {
+  isArticleListResizing.value = false;
+  commitArticleListWidth();
+}
 
 // Use app updates composable
 const {
@@ -194,12 +236,6 @@ onMounted(async () => {
   try {
     const res = await fetch('/api/settings');
     const data = await res.json();
-
-    const layoutMode = data.layout_mode || 'normal';
-    const isCompactModeLayout = layoutMode === 'compact';
-    isCardMode.value = layoutMode === 'card';
-    isCompactArticleList.value = isCompactModeLayout;
-    setCompactMode(isCompactModeLayout);
 
     // Notify all components that settings have been loaded
     window.dispatchEvent(new CustomEvent('settings-loaded'));
@@ -322,16 +358,6 @@ window.addEventListener('show-discover-blogs', (e) => {
   showDiscoverBlogs.value = true;
 });
 
-// Keep article-list bounds in sync without overwriting an explicit user preference.
-window.addEventListener('layout-mode-changed', (e) => {
-  const customEvent = e as CustomEvent<{ mode: string }>;
-  const mode = customEvent.detail.mode;
-  const isCompactModeLayout = mode === 'compact';
-  isCardMode.value = mode === 'card';
-  isCompactArticleList.value = isCompactModeLayout;
-  setCompactMode(isCompactModeLayout);
-});
-
 // Global Context Menu Event Listener
 window.addEventListener('open-context-menu', (e) => {
   openContextMenu(e as CustomEvent<any>);
@@ -383,8 +409,10 @@ function onFeedUpdated(): void {
     class="app-container flex h-screen w-full bg-bg-primary text-text-primary overflow-hidden"
     :data-reading-mode="store.isReadingMode ? 'true' : 'false'"
     :style="{
-      '--sidebar-width': sidebarWidth + 'px',
+      '--sidebar-rail-width': sidebarRailWidth + 'px',
+      '--sidebar-layout-width': sidebarLayoutWidth + 'px',
       '--article-list-width': articleListWidth + 'px',
+      '--panel-resize-handle-width': '6px',
     }"
   >
     <header class="sr-only" :aria-label="t('appName')">
@@ -399,8 +427,13 @@ function onFeedUpdated(): void {
         :is-compact="isCompactViewport"
         :is-mobile="isMobileViewport"
         :drawer-width="sidebarWidth"
+        :is-drawer-resize-enabled="isSidebarDrawerResizeEnabled"
         @toggle="toggleSidebar"
-        @update:drawer-width="setSidebarWidth"
+        @update:drawer-width="updateSidebarWidth"
+        @drawer-resize-start="isSidebarDrawerResizing = true"
+        @drawer-resize-end="finishSidebarDrawerResize"
+        @update:rail-width="updateSidebarRailWidth"
+        @update:layout-width="updateSidebarLayoutWidth"
       />
     </div>
 
@@ -447,7 +480,9 @@ function onFeedUpdated(): void {
           :max="articleListBounds.max"
           :default-value="articleListDefaultWidth"
           :label="t('article.list.resize')"
-          @update:model-value="setArticleListWidth"
+          @update:model-value="updateArticleListWidth"
+          @resize-start="isArticleListResizing = true"
+          @resize-end="finishArticleListResize"
         />
 
         <ArticleDetail />

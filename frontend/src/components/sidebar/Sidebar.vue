@@ -17,6 +17,7 @@ interface Props {
   isCompact?: boolean;
   isMobile?: boolean;
   drawerWidth?: number;
+  isDrawerResizeEnabled?: boolean;
 }
 
 const props = withDefaults(defineProps<Props>(), {
@@ -24,11 +25,16 @@ const props = withDefaults(defineProps<Props>(), {
   isCompact: false,
   isMobile: false,
   drawerWidth: SIDEBAR_DRAWER_DEFAULT_WIDTH,
+  isDrawerResizeEnabled: true,
 });
 
 const emit = defineEmits<{
   toggle: [];
   'update:drawer-width': [width: number];
+  'update:rail-width': [width: number];
+  'update:layout-width': [width: number];
+  'drawer-resize-start': [];
+  'drawer-resize-end': [];
 }>();
 
 const { t } = useI18n();
@@ -36,6 +42,7 @@ const { t } = useI18n();
 // Feed drawer state
 const isFeedListExpanded = ref(false);
 const isFeedListPinned = ref(false);
+const isPinnedDrawerLeaving = ref(false);
 const activityBarRef = ref<InstanceType<typeof ActivityBar> | null>(null);
 const sidebarToggleContainerRef = ref<HTMLElement | null>(null);
 const desktopRevealBridgeRef = ref<HTMLButtonElement | null>(null);
@@ -63,6 +70,40 @@ const activityBarVisibilityControl = computed(() => {
   if (props.isMobile) return 'collapse';
   return isActivityBarAutoHideEnabled.value ? 'pin' : 'auto-hide';
 });
+
+const layoutRailWidth = computed(() => {
+  if (props.isMobile) return 0;
+  if (props.isCompact) return 48;
+  return isActivityBarAutoHideEnabled.value ? 16 : 48;
+});
+const layoutWidth = computed(() => {
+  if (props.isMobile) return 0;
+  if (
+    !props.isCompact &&
+    isFeedListPinned.value &&
+    (isFeedListExpanded.value || isPinnedDrawerLeaving.value)
+  ) {
+    return layoutRailWidth.value + props.drawerWidth;
+  }
+  return layoutRailWidth.value;
+});
+
+watch(layoutRailWidth, (width) => emit('update:rail-width', width), { immediate: true });
+watch(layoutWidth, (width) => emit('update:layout-width', width), { immediate: true });
+watch(
+  isFeedListExpanded,
+  (isExpanded, wasExpanded) => {
+    if (isExpanded) {
+      isPinnedDrawerLeaving.value = false;
+      return;
+    }
+
+    if (wasExpanded && !props.isMobile && !props.isCompact && isFeedListPinned.value) {
+      isPinnedDrawerLeaving.value = true;
+    }
+  },
+  { flush: 'sync' }
+);
 
 function saveActivityBarAutoHideState() {
   localStorage.setItem(
@@ -127,8 +168,13 @@ function handlePinFeedList() {
 
 function handleUnpinFeedList() {
   isFeedListPinned.value = false;
+  isPinnedDrawerLeaving.value = false;
   // Keep expanded when unpinning - don't collapse
   updateActivityBarState();
+}
+
+function finishPinnedDrawerLeave(): void {
+  isPinnedDrawerLeaving.value = false;
 }
 
 function handleToggleFeedList() {
@@ -318,7 +364,11 @@ onBeforeUnmount(() => {
     </div>
 
     <!-- Feed Drawer -->
-    <Transition name="drawer-position">
+    <Transition
+      name="drawer-position"
+      @after-leave="finishPinnedDrawerLeave"
+      @leave-cancelled="finishPinnedDrawerLeave"
+    >
       <div
         v-if="isFeedListExpanded"
         class="feed-drawer-wrapper"
@@ -338,7 +388,7 @@ onBeforeUnmount(() => {
           @unpin="handleUnpinFeedList"
         />
         <PanelResizeHandle
-          v-if="isFeedListPinned && !props.isMobile"
+          v-if="props.isDrawerResizeEnabled && isFeedListPinned && !props.isMobile"
           data-testid="feed-drawer-resize-handle"
           class="feed-drawer-resize-handle"
           :model-value="props.drawerWidth"
@@ -347,6 +397,8 @@ onBeforeUnmount(() => {
           :default-value="SIDEBAR_DRAWER_DEFAULT_WIDTH"
           :label="t('sidebar.feedList.resize')"
           @update:model-value="emit('update:drawer-width', $event)"
+          @resize-start="emit('drawer-resize-start')"
+          @resize-end="emit('drawer-resize-end')"
         />
       </div>
     </Transition>

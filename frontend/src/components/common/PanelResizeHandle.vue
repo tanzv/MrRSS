@@ -13,6 +13,8 @@ const props = defineProps<Props>();
 
 const emit = defineEmits<{
   'update:modelValue': [value: number];
+  'resize-start': [];
+  'resize-end': [];
 }>();
 
 const handleRef = ref<HTMLElement | null>(null);
@@ -59,7 +61,7 @@ function resetWidth(): void {
 }
 
 function startResize(event: PointerEvent): void {
-  if (event.button !== 0) return;
+  if (!event.isPrimary || event.button !== 0 || isResizing.value) return;
 
   activePointerId = event.pointerId;
   initialPointerX = event.clientX;
@@ -69,6 +71,7 @@ function startResize(event: PointerEvent): void {
   document.body.style.cursor = 'col-resize';
   document.body.style.userSelect = 'none';
   isResizing.value = true;
+  emit('resize-start');
   if (event.currentTarget instanceof HTMLElement) {
     event.currentTarget.setPointerCapture(event.pointerId);
   }
@@ -98,6 +101,8 @@ function stopResize(event?: PointerEvent): void {
       // The pointer may already have been released by the browser.
     }
   }
+
+  emit('resize-end');
 }
 
 onBeforeUnmount(() => stopResize());

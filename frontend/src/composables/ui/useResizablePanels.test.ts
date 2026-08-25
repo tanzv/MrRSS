@@ -62,6 +62,20 @@ describe('useResizablePanels', () => {
     expect(localStorage.getItem(SIDEBAR_DRAWER_WIDTH_KEY)).toBe('280');
   });
 
+  it('commits final drag widths without writing every intermediate value', () => {
+    const panels = mountResizablePanels();
+
+    panels.setSidebarWidth(320, false);
+    expect(localStorage.getItem(SIDEBAR_DRAWER_WIDTH_KEY)).toBeNull();
+    panels.commitSidebarWidth();
+    expect(localStorage.getItem(SIDEBAR_DRAWER_WIDTH_KEY)).toBe('320');
+
+    panels.setArticleListWidth(440, false);
+    expect(localStorage.getItem(ARTICLE_LIST_WIDTH_KEY)).toBeNull();
+    panels.commitArticleListWidth();
+    expect(localStorage.getItem(ARTICLE_LIST_WIDTH_KEY)).toBe('440');
+  });
+
   it('preserves a compact article-list preference while clamping its normal presentation', () => {
     const panels = mountResizablePanels();
 

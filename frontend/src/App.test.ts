@@ -40,7 +40,7 @@ function mountDesktopApp() {
   });
   const propAwareStub = (name: string) => ({
     name,
-    props: ['isOpen', 'isCompact', 'isMobile', 'isSidebarOpen'],
+    props: ['isOpen', 'isCompact', 'isMobile', 'isSidebarOpen', 'isDrawerResizeEnabled'],
     template: `<div class="article-list stub-component" data-component="${name}"></div>`,
   });
   const wrapper = mount(App, {
@@ -518,6 +518,69 @@ describe('App', () => {
       wrapper.unmount();
       restoreMatchMedia();
       localStorage.removeItem('mrrss.article-list-width');
+    }
+  });
+
+  it('uses loaded layout mode before resize controls render', async () => {
+    localStorage.setItem('mrrss.article-list-width', '720');
+    setSettingsFromRawData({ layout_mode: 'compact' });
+    const { wrapper, restoreMatchMedia } = mountDesktopApp();
+
+    try {
+      await nextTick();
+
+      const handle = wrapper.get('[data-testid="article-list-resize-handle"]');
+      expect(handle.attributes('aria-valuemin')).toBe('300');
+      expect(handle.attributes('aria-valuemax')).toBe('800');
+      expect(handle.attributes('aria-valuenow')).toBe('720');
+      expect(
+        wrapper.get('.app-container').element.style.getPropertyValue('--article-list-width')
+      ).toBe('720px');
+      expect(localStorage.getItem('mrrss.article-list-width')).toBe('720');
+
+      setSettingsFromRawData({ layout_mode: 'card' });
+      await nextTick();
+      expect(wrapper.find('[data-testid="article-list-resize-handle"]').exists()).toBe(false);
+
+      setSettingsFromRawData({ layout_mode: 'compact' });
+      await nextTick();
+      expect(
+        wrapper.get('[data-testid="article-list-resize-handle"]').attributes('aria-valuenow')
+      ).toBe('720');
+    } finally {
+      wrapper.unmount();
+      restoreMatchMedia();
+      localStorage.removeItem('mrrss.article-list-width');
+      setSettingsFromRawData({});
+    }
+  });
+
+  it('disables drawer resizing outside normal and compact list layouts', async () => {
+    setSettingsFromRawData({ layout_mode: 'normal' });
+    const { wrapper, store, restoreMatchMedia } = mountDesktopApp();
+
+    try {
+      await nextTick();
+      const sidebar = wrapper.findComponent({ name: 'Sidebar' });
+      expect(sidebar.props('isDrawerResizeEnabled')).toBe(true);
+
+      setSettingsFromRawData({ layout_mode: 'card' });
+      await nextTick();
+      expect(sidebar.props('isDrawerResizeEnabled')).toBe(false);
+
+      setSettingsFromRawData({ layout_mode: 'normal' });
+      store.currentFilter = 'imageGallery';
+      await nextTick();
+      expect(sidebar.props('isDrawerResizeEnabled')).toBe(false);
+
+      store.currentFilter = 'all';
+      store.setReadingMode(true);
+      await nextTick();
+      expect(sidebar.props('isDrawerResizeEnabled')).toBe(false);
+    } finally {
+      wrapper.unmount();
+      restoreMatchMedia();
+      setSettingsFromRawData({});
     }
   });
 });

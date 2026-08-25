@@ -1,4 +1,4 @@
-import { computed, onBeforeUnmount, ref } from 'vue';
+import { computed, ref } from 'vue';
 
 const SIDEBAR_DRAWER_WIDTH_KEY = 'mrrss.sidebar-drawer-width';
 const ARTICLE_LIST_WIDTH_KEY = 'mrrss.article-list-width';
@@ -57,8 +57,8 @@ function saveWidth(storageKey: string, width: number): void {
   }
 }
 
-export function useResizablePanels() {
-  const compactMode = ref(false);
+export function useResizablePanels(initialCompactMode = false) {
+  const compactMode = ref(initialCompactMode);
   const sidebarPreference = ref(
     readSavedWidth(SIDEBAR_DRAWER_WIDTH_KEY, {
       min: SIDEBAR_DRAWER_MIN_WIDTH,
@@ -84,11 +84,6 @@ export function useResizablePanels() {
     clampWidth(articleListPreference.value, getArticleListBounds(compactMode.value))
   );
 
-  // This compatibility path keeps the existing mouse divider working until App uses PanelResizeHandle.
-  const isResizingArticleList = ref(false);
-  let initialMouseX = 0;
-  let initialArticleListWidth = 0;
-
   function setCompactMode(enabled: boolean): void {
     compactMode.value = enabled;
     if (!hasArticleListPreference.value) {
@@ -96,11 +91,15 @@ export function useResizablePanels() {
     }
   }
 
-  function setSidebarWidth(width: number): void {
+  function setSidebarWidth(width: number, persist = true): void {
     sidebarPreference.value = clampWidth(width, {
       min: SIDEBAR_DRAWER_MIN_WIDTH,
       max: SIDEBAR_DRAWER_MAX_WIDTH,
     });
+    if (persist) commitSidebarWidth();
+  }
+
+  function commitSidebarWidth(): void {
     saveWidth(SIDEBAR_DRAWER_WIDTH_KEY, sidebarPreference.value);
   }
 
@@ -108,9 +107,13 @@ export function useResizablePanels() {
     setSidebarWidth(SIDEBAR_DRAWER_DEFAULT_WIDTH);
   }
 
-  function setArticleListWidth(width: number): void {
+  function setArticleListWidth(width: number, persist = true): void {
     articleListPreference.value = clampWidth(width, getArticleListBounds(compactMode.value));
     hasArticleListPreference.value = true;
+    if (persist) commitArticleListWidth();
+  }
+
+  function commitArticleListWidth(): void {
     saveWidth(ARTICLE_LIST_WIDTH_KEY, articleListPreference.value);
   }
 
@@ -118,39 +121,15 @@ export function useResizablePanels() {
     setArticleListWidth(getArticleListDefaultWidth(compactMode.value));
   }
 
-  function startResizeArticleList(event: MouseEvent): void {
-    isResizingArticleList.value = true;
-    initialMouseX = event.clientX;
-    initialArticleListWidth = articleListWidth.value;
-    document.body.style.cursor = 'col-resize';
-    document.body.style.userSelect = 'none';
-    window.addEventListener('mousemove', handleResizeArticleList);
-    window.addEventListener('mouseup', stopResizeArticleList);
-  }
-
-  function handleResizeArticleList(event: MouseEvent): void {
-    if (!isResizingArticleList.value) return;
-    setArticleListWidth(initialArticleListWidth + event.clientX - initialMouseX);
-  }
-
-  function stopResizeArticleList(): void {
-    isResizingArticleList.value = false;
-    document.body.style.cursor = '';
-    document.body.style.userSelect = '';
-    window.removeEventListener('mousemove', handleResizeArticleList);
-    window.removeEventListener('mouseup', stopResizeArticleList);
-  }
-
-  onBeforeUnmount(stopResizeArticleList);
-
   return {
     sidebarWidth,
     articleListWidth,
-    startResizeArticleList,
     setCompactMode,
     setSidebarWidth,
+    commitSidebarWidth,
     resetSidebarWidth,
     setArticleListWidth,
+    commitArticleListWidth,
     resetArticleListWidth,
   };
 }

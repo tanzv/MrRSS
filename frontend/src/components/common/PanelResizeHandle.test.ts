@@ -56,21 +56,39 @@ describe('PanelResizeHandle', () => {
     document.body.style.userSelect = 'text';
 
     handle.element.dispatchEvent(
-      new PointerEvent('pointerdown', { bubbles: true, button: 0, clientX: 100, pointerId: 7 })
+      new PointerEvent('pointerdown', {
+        bubbles: true,
+        button: 0,
+        clientX: 100,
+        pointerId: 7,
+        isPrimary: true,
+      })
     );
     expect(setPointerCapture).toHaveBeenCalledWith(7);
+    expect(wrapper.emitted('resize-start')).toHaveLength(1);
     expect(document.body.style.cursor).toBe('col-resize');
     expect(document.body.style.userSelect).toBe('none');
 
     handle.element.dispatchEvent(
-      new PointerEvent('pointermove', { bubbles: true, clientX: 150, pointerId: 7 })
+      new PointerEvent('pointermove', {
+        bubbles: true,
+        clientX: 150,
+        pointerId: 7,
+        isPrimary: true,
+      })
     );
     expect(wrapper.emitted('update:modelValue')).toEqual([[330]]);
 
     handle.element.dispatchEvent(
-      new PointerEvent('pointercancel', { bubbles: true, clientX: 150, pointerId: 7 })
+      new PointerEvent('pointercancel', {
+        bubbles: true,
+        clientX: 150,
+        pointerId: 7,
+        isPrimary: true,
+      })
     );
     expect(releasePointerCapture).toHaveBeenCalledWith(7);
+    expect(wrapper.emitted('resize-end')).toHaveLength(1);
     expect(document.body.style.cursor).toBe('wait');
     expect(document.body.style.userSelect).toBe('text');
 
@@ -85,6 +103,55 @@ describe('PanelResizeHandle', () => {
     expect(wrapper.emitted('update:modelValue')).toEqual([[280]]);
   });
 
+  it('keeps the active primary pointer in control when another touch begins', () => {
+    const wrapper = mountHandle();
+    const handle = wrapper.get('[role="separator"]');
+    Object.defineProperty(handle.element, 'setPointerCapture', { value: vi.fn() });
+    Object.defineProperty(handle.element, 'releasePointerCapture', { value: vi.fn() });
+    document.body.style.cursor = 'wait';
+    document.body.style.userSelect = 'text';
+
+    handle.element.dispatchEvent(
+      new PointerEvent('pointerdown', {
+        bubbles: true,
+        button: 0,
+        clientX: 100,
+        pointerId: 7,
+        isPrimary: true,
+      })
+    );
+    handle.element.dispatchEvent(
+      new PointerEvent('pointerdown', {
+        bubbles: true,
+        button: 0,
+        clientX: 120,
+        pointerId: 8,
+        isPrimary: false,
+      })
+    );
+    handle.element.dispatchEvent(
+      new PointerEvent('pointermove', {
+        bubbles: true,
+        clientX: 150,
+        pointerId: 7,
+        isPrimary: true,
+      })
+    );
+    handle.element.dispatchEvent(
+      new PointerEvent('pointercancel', {
+        bubbles: true,
+        clientX: 150,
+        pointerId: 7,
+        isPrimary: true,
+      })
+    );
+
+    expect(wrapper.emitted('update:modelValue')).toEqual([[330]]);
+    expect(document.body.style.cursor).toBe('wait');
+    expect(document.body.style.userSelect).toBe('text');
+    wrapper.unmount();
+  });
+
   it('restores document interaction state when unmounted during an active drag', () => {
     const wrapper = mountHandle();
     const handle = wrapper.get('[role="separator"]');
@@ -97,7 +164,13 @@ describe('PanelResizeHandle', () => {
     document.body.style.userSelect = 'text';
 
     handle.element.dispatchEvent(
-      new PointerEvent('pointerdown', { bubbles: true, button: 0, clientX: 100, pointerId: 9 })
+      new PointerEvent('pointerdown', {
+        bubbles: true,
+        button: 0,
+        clientX: 100,
+        pointerId: 9,
+        isPrimary: true,
+      })
     );
     wrapper.unmount();
 

@@ -1083,13 +1083,21 @@ async function markAllVisibleAsRead(): Promise<void> {
 @reference "../../style.css";
 @media (min-width: 768px) {
   .article-list {
-    width: min(var(--article-list-width, 400px), calc(100vw - 25rem));
+    width: min(
+      var(--article-list-width, 400px),
+      calc(100vw - var(--sidebar-rail-width, 48px) - var(--panel-resize-handle-width, 6px) - 25rem)
+    );
   }
 }
 
 @media (min-width: 1280px) {
   .article-list {
-    width: min(var(--article-list-width, 400px), calc(100vw - var(--sidebar-width, 280px) - 25rem));
+    width: min(
+      var(--article-list-width, 400px),
+      calc(
+        100vw - var(--sidebar-layout-width, 328px) - var(--panel-resize-handle-width, 6px) - 25rem
+      )
+    );
   }
 }
 

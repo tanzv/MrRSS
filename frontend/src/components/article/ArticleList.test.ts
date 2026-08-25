@@ -1,3 +1,5 @@
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { mount, type VueWrapper } from '@vue/test-utils';
 import { defineComponent, h, nextTick } from 'vue';
@@ -11,6 +13,10 @@ import ArticleList from './ArticleList.vue';
 import ArticleDetailModal from './ArticleDetailModal.vue';
 
 let wrapper: VueWrapper | undefined;
+const articleListSource = readFileSync(
+  resolve(process.cwd(), 'src/components/article/ArticleList.vue'),
+  'utf8'
+);
 
 const ArticleCardItemStub = defineComponent({
   props: {
@@ -175,5 +181,22 @@ describe('ArticleList interaction feedback', () => {
 
     expect(store.currentArticleId).toBeNull();
     expect(mountedList.findComponent(ArticleDetailModal).exists()).toBe(true);
+  });
+
+  it('reserves the activity rail and separator before sizing a desktop list', () => {
+    const normalizedSource = articleListSource.replace(/\s+/g, '');
+    const tabletRule = normalizedSource.match(
+      /@media\(min-width:768px\)\{\.article-list\{([^}]*)}/
+    );
+    const desktopRule = normalizedSource.match(
+      /@media\(min-width:1280px\)\{\.article-list\{([^}]*)}/
+    );
+
+    expect(tabletRule?.[1]).toContain(
+      'calc(100vw-var(--sidebar-rail-width,48px)-var(--panel-resize-handle-width,6px)-25rem)'
+    );
+    expect(desktopRule?.[1]).toContain(
+      'calc(100vw-var(--sidebar-layout-width,328px)-var(--panel-resize-handle-width,6px)-25rem)'
+    );
   });
 });
