@@ -19,12 +19,12 @@
 MrRSS 是一款每天多次打开、长时间扫读与深读的桌面应用。主题应为工作流
 提供稳定的环境，而不是用装饰竞争文章内容。四套预设分别回答四种真实场景：
 
-| 预设 | 使用场景 | 视觉任务 |
-| --- | --- | --- |
-| Paper | 日间桌面阅读、管理订阅、快速分拣 | 清晰、冷静、轻量的工作台。 |
-| Ink | 弱光环境、夜间连续阅读 | 低眩光的深石墨层次，避免纯黑压迫感。 |
-| Sepia | 长文、评论与慢速阅读 | 低饱和暖灰与棕褐节奏，不做泛黄“纸张特效”。 |
-| High Contrast | 辅助阅读、极高可见性需求 | 严格黑白结构，黄色仅标识焦点与当前操作。 |
+| 预设          | 使用场景                         | 视觉任务                                   |
+| ------------- | -------------------------------- | ------------------------------------------ |
+| Paper         | 日间桌面阅读、管理订阅、快速分拣 | 清晰、冷静、轻量的工作台。                 |
+| Ink           | 弱光环境、夜间连续阅读           | 低眩光的深石墨层次，避免纯黑压迫感。       |
+| Sepia         | 长文、评论与慢速阅读             | 低饱和暖灰与棕褐节奏，不做泛黄“纸张特效”。 |
+| High Contrast | 辅助阅读、极高可见性需求         | 严格黑白结构，黄色仅标识焦点与当前操作。   |
 
 所有主题采用同一套“背景 → 侧栏 → 面板 → 悬停 → 选中”的空间层级和同一套
 语义状态词汇。强调色只用于主操作、当前选择、键盘焦点和链接，不用作非活动
@@ -38,22 +38,22 @@ MrRSS 是一款每天多次打开、长时间扫读与深读的桌面应用。�
 下表是应用壳层的固定视觉锚点。其余状态、代码、媒体与遮罩 token 仍须在每个
 预设中完整定义，并围绕同一色相体系调整，而不是依赖另一个主题的默认值。
 
-| 令牌 | Paper | Ink | Sepia | High Contrast |
-| --- | --- | --- | --- | --- |
-| `--bg-primary` | `#f8fafc` | `#15181d` | `#f5f1ea` | `#000000` |
-| `--bg-secondary` | `#f1f5f9` | `#1c2229` | `#eee8de` | `#0a0a0a` |
-| `--bg-tertiary` | `#e5ebf2` | `#28313b` | `#e4dbcf` | `#292929` |
-| `--surface-rail` | `#eef2f6` | `#11151a` | `#e9e0d3` | `#0a0a0a` |
-| `--surface-panel` | `#f8fafc` | `#191e25` | `#f7f3ec` | `#000000` |
-| `--surface-hover` | `#e8eef5` | `#27303a` | `#e6ddd1` | `#292929` |
-| `--surface-selected` | `#dbeafe` | `#24384b` | `#ead8c5` | `#3d3500` |
-| `--text-primary` | `#18212f` | `#eef3f8` | `#2f2924` | `#ffffff` |
-| `--text-secondary` | `#475569` | `#bac5d1` | `#61574e` | `#f5f5f5` |
-| `--text-tertiary` | `#59697a` | `#93a1b0` | `#6b6158` | `#f5f5f5` |
-| `--accent-color` | `#2563eb` | `#69b7ff` | `#9a4d24` | `#ffe600` |
-| `--accent-hover` | `#1d4ed8` | `#9bd4ff` | `#7d3d1d` | `#fff36d` |
-| `--accent-text-color` | `#1d4ed8` | `#8dcbff` | `#883f1b` | `#ffe600` |
-| `--accent-foreground` | `#ffffff` | `#0e1720` | `#ffffff` | `#000000` |
+| 令牌                  | Paper     | Ink       | Sepia     | High Contrast |
+| --------------------- | --------- | --------- | --------- | ------------- |
+| `--bg-primary`        | `#f8fafc` | `#15181d` | `#f5f1ea` | `#000000`     |
+| `--bg-secondary`      | `#f1f5f9` | `#1c2229` | `#eee8de` | `#0a0a0a`     |
+| `--bg-tertiary`       | `#e5ebf2` | `#28313b` | `#e4dbcf` | `#292929`     |
+| `--surface-rail`      | `#eef2f6` | `#11151a` | `#e9e0d3` | `#0a0a0a`     |
+| `--surface-panel`     | `#f8fafc` | `#191e25` | `#f7f3ec` | `#000000`     |
+| `--surface-hover`     | `#e8eef5` | `#27303a` | `#e6ddd1` | `#292929`     |
+| `--surface-selected`  | `#dbeafe` | `#24384b` | `#ead8c5` | `#3d3500`     |
+| `--text-primary`      | `#18212f` | `#eef3f8` | `#2f2924` | `#ffffff`     |
+| `--text-secondary`    | `#475569` | `#bac5d1` | `#61574e` | `#f5f5f5`     |
+| `--text-tertiary`     | `#59697a` | `#93a1b0` | `#6b6158` | `#f5f5f5`     |
+| `--accent-color`      | `#2563eb` | `#69b7ff` | `#9a4d24` | `#ffe600`     |
+| `--accent-hover`      | `#1d4ed8` | `#9bd4ff` | `#7d3d1d` | `#fff36d`     |
+| `--accent-text-color` | `#1d4ed8` | `#8dcbff` | `#883f1b` | `#ffe600`     |
+| `--accent-foreground` | `#ffffff` | `#0e1720` | `#ffffff` | `#000000`     |
 
 这些锚点已按关键壳层组合检查：最弱的主/次文字与表面、强调文字与选中面、及
 强调前景与强调背景均不低于 4.5:1。实现时必须使用
@@ -145,3 +145,37 @@ Auto、Paper、Ink、Sepia、高对比度，然后是用户自定义主题。
 完成实现后运行相关 Vitest、完整前端测试、ESLint、Prettier、前端生产构建、
 `git diff --check` 和 `wails3 build`。本次不安装新依赖，也不修改后端、设置 schema
 或数据库。
+
+## 验证记录（2026-08-25）
+
+### 已通过
+
+- `npm run test:unit -- src/utils/theme.test.ts`：31 个用例通过。旧色板下的新增
+  锚点断言先失败，更新令牌后通过。
+- `npm run test:unit -- src/components/settings/ThemePresetPicker.test.ts`：11 个用例
+  通过。旧三色条结构与缺失的减弱动效规则先失败；另以临时错误的 Paper 预览强调色
+  验证色板同步契约会失败，恢复后通过。
+- `npx vitest run --reporter=dot`：52 个测试文件、305 个用例通过。
+- 主题范围内的 ESLint 与 Prettier 检查通过：`style.css`、`theme.ts`、相关测试、
+  `ThemePresetPicker.vue` 和 `theme-sidebar.cy.ts`。
+- `git diff --check` 通过；`wails3 build` 在 macOS 上成功生成应用包。
+- 在 Chromium 静态 CSS 探针中，四套主题的背景、轨道、面板与强调色共 16 个运行时
+  计算值均与设计锚点一致。静态选择器夹具在 1440px 与 390px 均无选项溢出，且人工
+  检查确认 Auto 的双壳、四种小壳层级和窄屏单列均清晰可辨。
+- 代码审查补充了预览令牌与根色板的一致性回归测试；未发现 Critical 问题。
+
+### 已知环境限制
+
+- `npm run test:e2e:spec -- cypress/e2e/theme-sidebar.cy.ts` 未运行：本机缺少
+  Cypress 15.20.1 的 macOS 可执行文件，按约束未下载或安装它。现有浏览器令牌契约
+  由 Chromium 静态探针覆盖。
+- 完整 `npx prettier --check src cypress/e2e/theme-sidebar.cy.ts` 因本次提交范围外的
+  `ArticleContent.css`、`ReaderCanvasColorControls.test.ts`、
+  `ReaderCanvasColorControls.vue` 与 `readerCanvas.ts` 格式问题返回非零；主题范围
+  的格式检查通过。
+- 直接 `npm run build` 被本次提交范围外的 `ArticleFilterModal.vue`、
+  `SavedFilterModal.vue` 与 `RuleEditorModal.vue` 阻断：它们的 scoped style 缺少
+  Tailwind `@reference`，从而无法解析现有 `gap-1` / `p-2` 工具类。`wails3 build`
+  仍成功；其输出仅含 Node engine、Husky `.git` 与 macOS 链接目标版本警告。
+- 全量 Vitest 输出仍包含既有 jsdom canvas、模拟 API URL 和 sidebar composable
+  lifecycle 警告，但测试进程以零退出码完成。
