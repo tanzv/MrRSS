@@ -1,6 +1,7 @@
+/* eslint-disable vue/one-component-per-file */
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { flushPromises, mount, type VueWrapper } from '@vue/test-utils';
-import { defineComponent, h } from 'vue';
+import { defineComponent, h, nextTick } from 'vue';
 import { createI18n } from 'vue-i18n';
 import { createPinia } from 'pinia';
 import type { Article } from '@/types/models';
@@ -23,7 +24,7 @@ const article: Article = {
 let wrapper: VueWrapper | undefined;
 
 const ArticleContentStub = defineComponent({
-  emits: ['readingProgress'],
+  emits: ['readingProgress', 'scrollability', 'shortArticleDwell'],
   setup(_, { emit }) {
     return () => h('button', { onClick: () => emit('readingProgress', 50) }, 'Content');
   },
@@ -116,6 +117,45 @@ describe('ArticleDetailModal original webpage view', () => {
     expect(readRequests()).toHaveLength(1);
   });
 
+  it('uses the existing scroll-read policy when a short reader dwell completes', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue({
+        ok: true,
+        json: vi.fn().mockResolvedValue({
+          default_view_mode: 'rendered',
+          mark_read_on_scroll: 'true',
+        }),
+      })
+    );
+    setSettingsFromRawData({ default_view_mode: 'rendered', mark_read_on_scroll: 'true' });
+    wrapper = mount(ArticleDetailModal, {
+      props: {
+        article: { ...article, is_read: false },
+        articleContent: '<p>Short article</p>',
+        isLoadingContent: false,
+      },
+      global: {
+        plugins: [createPinia(), createI18n({ legacy: false, locale: 'en', messages: { en } })],
+        stubs: {
+          Teleport: true,
+          ArticleToolbar: true,
+          ArticleContent: ArticleContentStub,
+          FindInPage: true,
+          ImageViewer: true,
+        },
+      },
+    });
+
+    await flushPromises();
+    expect(readRequests()).toHaveLength(0);
+
+    wrapper.findComponent(ArticleContentStub).vm.$emit('shortArticleDwell');
+    await flushPromises();
+
+    expect(readRequests()).toHaveLength(1);
+  });
+
   it('marks webpage presentation immediately even when scroll marking is enabled', async () => {
     vi.stubGlobal(
       'fetch',
@@ -149,6 +189,115 @@ describe('ArticleDetailModal original webpage view', () => {
     await flushPromises();
 
     expect(readRequests()).toHaveLength(1);
+  });
+
+  it('keeps find, contents, and translation display state within the card reader session', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue({
+        ok: true,
+        json: vi.fn().mockResolvedValue({ default_view_mode: 'rendered' }),
+      })
+    );
+    setSettingsFromRawData({ default_view_mode: 'rendered' });
+    const ToolbarStub = defineComponent({
+      name: 'ArticleToolbar',
+      props: {
+        isReadingMode: Boolean,
+        hasReaderContent: Boolean,
+        showTranslations: Boolean,
+        translationDisplayMode: { type: String, default: undefined },
+      },
+      emits: ['openFind', 'toggleContents', 'setTranslationDisplayMode', 'toggleContentView'],
+      setup(_, { emit }) {
+        return () =>
+          h('div', [
+            h('button', {
+              'data-testid': 'card-open-find',
+              onClick: () => emit('openFind'),
+            }),
+            h('button', {
+              'data-testid': 'card-toggle-contents',
+              onClick: () => emit('toggleContents'),
+            }),
+            h('button', {
+              'data-testid': 'card-show-original',
+              onClick: () => emit('setTranslationDisplayMode', 'original'),
+            }),
+            h('button', {
+              'data-testid': 'card-toggle-content',
+              onClick: () => emit('toggleContentView'),
+            }),
+          ]);
+      },
+    });
+    const ContentStub = defineComponent({
+      name: 'ArticleContent',
+      props: {
+        showContents: Boolean,
+        showTranslations: Boolean,
+        translationDisplayMode: { type: String, default: undefined },
+        isReadingMode: Boolean,
+      },
+      emits: ['closeContents'],
+      setup(props) {
+        return () =>
+          h('div', {
+            'data-testid': 'card-reader-content',
+            'data-show-contents': String(props.showContents),
+            'data-is-reading-mode': String(props.isReadingMode),
+            'data-translation-display-mode': props.translationDisplayMode,
+          });
+      },
+    });
+    wrapper = mount(ArticleDetailModal, {
+      props: {
+        article: { ...article },
+        articleContent: '<h2>Section</h2><p>Body</p>',
+        isLoadingContent: false,
+      },
+      global: {
+        plugins: [createPinia(), createI18n({ legacy: false, locale: 'en', messages: { en } })],
+        stubs: {
+          Teleport: true,
+          ArticleToolbar: ToolbarStub,
+          ArticleContent: ContentStub,
+          FindInPage: { name: 'FindInPage', template: '<div data-testid="card-find-in-page" />' },
+          ImageViewer: true,
+        },
+      },
+    });
+
+    await flushPromises();
+
+    const toolbar = wrapper.getComponent(ToolbarStub);
+    const content = wrapper.getComponent(ContentStub);
+    expect(toolbar.props('isReadingMode')).toBe(true);
+    expect(toolbar.props('hasReaderContent')).toBe(true);
+    expect(content.props('isReadingMode')).toBe(true);
+    await wrapper.get('[data-testid="card-open-find"]').trigger('click');
+    await wrapper.get('[data-testid="card-toggle-contents"]').trigger('click');
+    await wrapper.get('[data-testid="card-show-original"]').trigger('click');
+    await nextTick();
+
+    expect(wrapper.find('[data-testid="card-find-in-page"]').exists()).toBe(true);
+    expect(
+      wrapper.get('[data-testid="card-reader-content"]').attributes('data-show-contents')
+    ).toBe('true');
+    expect(
+      wrapper.get('[data-testid="card-reader-content"]').attributes('data-translation-display-mode')
+    ).toBe('original');
+    expect(wrapper.getComponent(ContentStub).props('showTranslations')).toBe(true);
+
+    await wrapper.get('[data-testid="card-toggle-content"]').trigger('click');
+    expect(wrapper.find('iframe').exists()).toBe(true);
+    expect(wrapper.findComponent(ContentStub).exists()).toBe(false);
+
+    await wrapper.get('[data-testid="card-toggle-content"]').trigger('click');
+    const reopenedContent = wrapper.getComponent(ContentStub);
+    expect(reopenedContent.props('isReadingMode')).toBe(true);
+    expect(reopenedContent.props('translationDisplayMode')).toBeUndefined();
+    expect(reopenedContent.props('showTranslations')).toBe(true);
   });
 
   it('shows a linked page inside the card modal instead of handing it to the browser', async () => {

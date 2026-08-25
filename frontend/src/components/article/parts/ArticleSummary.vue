@@ -13,6 +13,8 @@ import {
 } from '@phosphor-icons/vue';
 import { useI18n } from 'vue-i18n';
 
+type TranslationDisplayMode = 'original' | 'bilingual' | 'translation';
+
 interface Props {
   summaryResult: {
     summary: string;
@@ -31,12 +33,14 @@ interface Props {
   } | null;
   isTranslatingSummary?: boolean;
   translationEnabled: boolean;
+  translationDisplayMode?: TranslationDisplayMode;
   summaryProvider?: string;
   summaryTriggerMode?: string;
   isLoadingContent?: boolean;
 }
 
 const props = withDefaults(defineProps<Props>(), {
+  translationDisplayMode: 'bilingual',
   summaryProvider: 'local',
   summaryTriggerMode: 'auto',
   isLoadingContent: false,
@@ -115,7 +119,7 @@ const shouldShowSummaryContainer = computed(() => {
   );
 });
 
-const shouldShowTranslatedSummary = computed(() => {
+const hasTranslatedSummary = computed(() => {
   return Boolean(
     props.translationEnabled &&
     props.summaryProvider === 'rss' &&
@@ -123,6 +127,18 @@ const shouldShowTranslatedSummary = computed(() => {
     props.translatedSummary.text !== props.summaryResult?.summary
   );
 });
+
+const shouldShowTranslatedSummary = computed(
+  () => props.translationDisplayMode !== 'original' && hasTranslatedSummary.value
+);
+
+const shouldShowOriginalSummary = computed(
+  () => props.translationDisplayMode !== 'translation' || !hasTranslatedSummary.value
+);
+
+const shouldShowTranslationLoading = computed(
+  () => props.translationDisplayMode !== 'original' && props.isTranslatingSummary
+);
 
 // Generate summary on button click
 function handleGenerateSummary() {
@@ -273,7 +289,7 @@ async function copySummary() {
           </Transition>
 
           <!-- Summary Content -->
-          <div v-if="shouldShowTranslatedSummary || isTranslatingSummary" class="mb-3">
+          <div v-if="shouldShowTranslatedSummary || shouldShowTranslationLoading" class="mb-3">
             <div class="mb-1 text-[11px] text-text-secondary">
               {{ t('article.summary.translatedSummary') }}
             </div>
@@ -288,10 +304,14 @@ async function copySummary() {
             </div>
           </div>
 
-          <div v-if="shouldShowTranslatedSummary" class="mt-1 text-[11px] text-text-secondary">
+          <div
+            v-if="shouldShowTranslatedSummary && shouldShowOriginalSummary"
+            class="mt-1 text-[11px] text-text-secondary"
+          >
             {{ t('article.summary.originalSummary') }}
           </div>
           <div
+            v-if="shouldShowOriginalSummary"
             class="text-xs text-text-primary leading-snug select-text prose prose-xs max-w-none"
             v-html="summaryResult.html || summaryResult.summary"
           ></div>

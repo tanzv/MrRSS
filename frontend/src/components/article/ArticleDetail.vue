@@ -9,6 +9,8 @@ import FindInPage from '../common/FindInPage.vue';
 
 import { computed, ref, onMounted, onBeforeUnmount, watch, nextTick } from 'vue';
 
+type TranslationDisplayMode = 'original' | 'bilingual' | 'translation';
+
 const store = useAppStore();
 
 const {
@@ -45,11 +47,18 @@ const {
 
 const showTranslations = ref(true);
 const showFindInPage = ref(false);
+const showReaderContents = ref(false);
+const translationDisplayMode = ref<TranslationDisplayMode | undefined>(undefined);
 const readingProgress = ref(0);
+const hasScrollableReaderContent = ref(false);
 const readingModeAnnouncement = ref('');
+const restoredReadingProgress = ref<number | null>(null);
+const restoreContentsFocus = ref(true);
 const readerLinkUrl = ref<string | null>(null);
 const readerLinkReturnFocusTarget = ref<HTMLElement | null>(null);
 const returnToReadingButton = ref<HTMLButtonElement | null>(null);
+const articleToolbar = ref<{ focusReadingModeEntry: () => void } | null>(null);
+const readerContent = ref<{ scrollToTop: () => void } | null>(null);
 const hasReaderContent = computed(
   () => !isLoadingContent.value && Boolean(articleContent.value.trim())
 );
@@ -60,6 +69,15 @@ watch(
     readingModeAnnouncement.value = isReadingMode
       ? t('article.readingMode.entered')
       : t('article.readingMode.exited');
+
+    hasScrollableReaderContent.value = false;
+
+    if (!isReadingMode) {
+      readingProgress.value = 0;
+      restoredReadingProgress.value = null;
+      showReaderContents.value = false;
+      translationDisplayMode.value = undefined;
+    }
   }
 );
 
@@ -67,6 +85,9 @@ watch(
   () => article.value?.id,
   () => {
     readingProgress.value = 0;
+    hasScrollableReaderContent.value = false;
+    restoredReadingProgress.value = null;
+    showReaderContents.value = false;
     closeReaderLink({ restoreFocus: false });
   }
 );
@@ -75,12 +96,45 @@ function toggleTranslations() {
   showTranslations.value = !showTranslations.value;
 }
 
+function toggleReaderContents(): void {
+  restoreContentsFocus.value = true;
+  showReaderContents.value = !showReaderContents.value;
+}
+
+function closeReaderContents(shouldRestoreFocus = true): void {
+  restoreContentsFocus.value = shouldRestoreFocus;
+  showReaderContents.value = false;
+}
+
+function setTranslationDisplayMode(mode: TranslationDisplayMode): void {
+  translationDisplayMode.value = mode;
+}
+
 function openFindInPage() {
   showFindInPage.value = true;
 }
 
 function closeFindInPage() {
   showFindInPage.value = false;
+}
+
+async function handleToggleReadingMode(): Promise<void> {
+  const shouldRestoreFocus = store.isReadingMode;
+  await toggleReadingMode();
+
+  if (shouldRestoreFocus) {
+    await nextTick();
+    articleToolbar.value?.focusReadingModeEntry();
+  }
+}
+
+function onScrollPositionRestored(percent: number): void {
+  restoredReadingProgress.value = percent;
+}
+
+function scrollReaderToTop(): void {
+  restoredReadingProgress.value = null;
+  readerContent.value?.scrollToTop();
 }
 
 function openReaderLink(url: string): void {
@@ -134,11 +188,33 @@ function onReadingProgress(percent: number): void {
   );
 }
 
+function onReaderScrollability(isScrollable: boolean): void {
+  hasScrollableReaderContent.value = isScrollable;
+  if (!isScrollable) {
+    readingProgress.value = 0;
+  }
+}
+
+function onShortArticleDwell(): void {
+  onReadingProgress(100);
+}
+
+function isEditableTarget(target: EventTarget | null): boolean {
+  if (!(target instanceof Element)) return false;
+
+  return Boolean(target.closest('input, textarea, select, [contenteditable="true"]'));
+}
+
 function handleKeydown(e: KeyboardEvent) {
   if (closeReaderLinkOnEscape(e)) return;
 
   // Open find in page with Ctrl+F or Cmd+F
-  if ((e.ctrlKey || e.metaKey) && e.key === 'f') {
+  if (
+    (e.ctrlKey || e.metaKey) &&
+    e.key.toLowerCase() === 'f' &&
+    !e.defaultPrevented &&
+    !isEditableTarget(e.target)
+  ) {
     // Only if we're showing an article in content mode (not webpage view)
     if (article.value && showContent.value) {
       e.preventDefault();
@@ -188,20 +264,33 @@ onBeforeUnmount(() => {
         :aria-hidden="readerLinkUrl ? 'true' : undefined"
       >
         <ArticleToolbar
+          ref="articleToolbar"
           :article="article"
           :show-content="showContent"
           :show-translations="showTranslations"
+          :translation-display-mode="translationDisplayMode"
+          :show-contents="showReaderContents"
           :is-reading-mode="store.isReadingMode"
-          :reading-progress="readingProgress"
+          :reading-progress="hasScrollableReaderContent ? readingProgress : null"
           :has-reader-content="hasReaderContent"
+          :has-previous-article="hasPreviousArticle"
+          :has-next-article="hasNextArticle"
+          :restored-reading-progress="restoredReadingProgress"
+          :restore-contents-focus="restoreContentsFocus"
           @close="close"
           @toggle-content-view="toggleContentView"
-          @toggle-reading-mode="toggleReadingMode"
+          @toggle-reading-mode="handleToggleReadingMode"
           @toggle-read="toggleRead"
           @toggle-favorite="toggleFavorite"
           @toggle-read-later="toggleReadLater"
           @open-original="openOriginal"
           @toggle-translations="toggleTranslations"
+          @open-find="openFindInPage"
+          @toggle-contents="toggleReaderContents"
+          @navigate-previous="goToPreviousArticle"
+          @navigate-next="goToNextArticle"
+          @scroll-to-top="scrollReaderToTop"
+          @set-translation-display-mode="setTranslationDisplayMode"
           @reload-content="reloadArticleContent"
           @export-to-obsidian="exportToObsidian"
           @export-to-notion="exportToNotion"
@@ -222,16 +311,23 @@ onBeforeUnmount(() => {
         <!-- RSS content view -->
         <ArticleContent
           v-else
+          ref="readerContent"
           :article="article"
           :article-content="articleContent"
           :is-loading-content="isLoadingContent"
           :attach-image-event-listeners="attachImageEventListeners"
           :show-translations="showTranslations"
+          :translation-display-mode="translationDisplayMode"
+          :show-contents="showReaderContents"
           :show-content="showContent"
           :is-reading-mode="store.isReadingMode"
           :next-article="nextArticle"
           @retry-load-content="handleRetryLoadContent"
           @reading-progress="onReadingProgress"
+          @scrollability="onReaderScrollability"
+          @short-article-dwell="onShortArticleDwell"
+          @close-contents="closeReaderContents"
+          @scroll-position-restored="onScrollPositionRestored"
           @navigate-next="goToNextArticle"
           @open-link="openReaderLink"
         />

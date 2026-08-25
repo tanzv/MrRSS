@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { defineComponent, h, ref } from 'vue';
-import { mount } from '@vue/test-utils';
+import { flushPromises, mount } from '@vue/test-utils';
 import { createI18n } from 'vue-i18n';
 import { generateInitialSettings } from '@/composables/core/useSettings.generated';
 import en from '@/i18n/locales/en';
@@ -89,6 +89,30 @@ describe('useReaderTypographyPreferences', () => {
     expect(settings.value.content_text_color).toBe('#ffffff');
     await vi.advanceTimersByTimeAsync(500);
     expect(request).toHaveBeenCalledWith(expect.objectContaining(canvasValues));
+
+    wrapper.unmount();
+  });
+
+  it('exposes pending, saving, and saved states around a debounced appearance save', async () => {
+    vi.useFakeTimers();
+    let resolveRequest: ((response: Response) => void) | undefined;
+    const request = vi.fn(
+      () =>
+        new Promise<Response>((resolve) => {
+          resolveRequest = resolve;
+        })
+    );
+    const { wrapper, preferences } = mountPreferences({ request, debounceMs: 500 });
+
+    preferences.updateTypography({ content_font_size: 18 });
+    expect(preferences.saveState.value).toBe('pending');
+
+    await vi.advanceTimersByTimeAsync(500);
+    expect(preferences.saveState.value).toBe('saving');
+
+    resolveRequest?.({ ok: true } as Response);
+    await flushPromises();
+    expect(preferences.saveState.value).toBe('saved');
 
     wrapper.unmount();
   });

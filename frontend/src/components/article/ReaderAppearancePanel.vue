@@ -6,6 +6,7 @@ import FontFamilySelect from '@/components/settings/FontFamilySelect.vue';
 import ReaderCanvasColorControls from '@/components/settings/ReaderCanvasColorControls.vue';
 import ReaderTypographyPresetPicker from '@/components/settings/ReaderTypographyPresetPicker.vue';
 import ReaderTypographyPreview from '@/components/settings/ReaderTypographyPreview.vue';
+import type { ReaderAppearanceSaveState } from '@/composables/article/useReaderTypographyPreferences';
 import {
   resolveReaderCanvas,
   type ReaderCanvasInput,
@@ -22,6 +23,7 @@ interface Props {
   anchor: HTMLElement | null;
   settings: ReaderTypographyInput & ReaderCanvasInput;
   saveError?: boolean;
+  saveState?: ReaderAppearanceSaveState;
 }
 
 type Density = 'compact' | 'balanced' | 'relaxed';
@@ -34,6 +36,7 @@ const densityValues: Record<Density, Partial<ReaderTypographyValues>> = {
 
 const props = withDefaults(defineProps<Props>(), {
   saveError: false,
+  saveState: 'idle',
 });
 
 const emit = defineEmits<{
@@ -52,6 +55,20 @@ const position = ref({ left: 8, top: 8 });
 const typography = computed(() => normalizeReaderTypography(props.settings));
 const readerTypography = computed(() => resolveReaderTypography(props.settings));
 const readerCanvas = computed(() => resolveReaderCanvas(props.settings));
+const saveStatusText = computed(() => {
+  switch (props.saveState) {
+    case 'pending':
+      return t('article.readingMode.appearanceSavePending');
+    case 'saving':
+      return t('article.readingMode.appearanceSaving');
+    case 'saved':
+      return t('article.readingMode.appearanceSaved');
+    case 'error':
+      return t('article.readingMode.appearanceSaveFailed');
+    default:
+      return '';
+  }
+});
 const popoverStyle = computed(() => ({
   left: `${position.value.left}px`,
   top: `${position.value.top}px`,
@@ -104,9 +121,9 @@ function getFocusableElements(): HTMLElement[] {
 
   return Array.from(
     panelRef.value.querySelectorAll<HTMLElement>(
-      'button:not([disabled]):not([tabindex="-1"]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'
+      'button:not([disabled]):not([tabindex="-1"]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), summary, [tabindex]:not([tabindex="-1"])'
     )
-  );
+  ).filter((element) => element.tagName === 'SUMMARY' || !element.closest('details:not([open])'));
 }
 
 function focusFirstControl(): void {
@@ -260,9 +277,20 @@ onBeforeUnmount(() => {
         @keydown="handlePanelKeydown"
       >
         <header class="reader-appearance-header app-panel-header">
-          <h2 id="reader-appearance-title" class="ui-page-title">
-            {{ t('article.readingMode.appearanceTitle') }}
-          </h2>
+          <div class="reader-appearance-heading">
+            <h2 id="reader-appearance-title" class="ui-page-title">
+              {{ t('article.readingMode.appearanceTitle') }}
+            </h2>
+            <output
+              v-if="saveStatusText"
+              data-testid="reader-appearance-save-status"
+              class="reader-appearance-save-status"
+              :data-state="saveState"
+              aria-live="polite"
+            >
+              {{ saveStatusText }}
+            </output>
+          </div>
           <button
             type="button"
             class="ui-icon-button ui-button--ghost"
@@ -348,40 +376,49 @@ onBeforeUnmount(() => {
             </div>
           </div>
 
-          <div
-            v-if="!isMobile"
-            class="reader-appearance-control"
-            data-testid="reader-width-control"
-          >
-            <span class="reader-appearance-label">{{
-              t('article.readingMode.appearanceWidth')
-            }}</span>
-            <div class="reader-appearance-option-row" role="group">
-              <button
-                v-for="width in ['narrow', 'comfortable', 'wide']"
-                :key="width"
-                type="button"
-                class="reader-appearance-option"
-                :class="{ 'is-active': typography.content_width === width }"
-                :data-testid="`reader-width-${width}`"
-                :aria-pressed="typography.content_width === width"
-                @click="
-                  emit('update-typography', {
-                    content_width: width as ReaderTypographyValues['content_width'],
-                  })
-                "
+          <details class="reader-appearance-advanced" data-testid="reader-appearance-advanced">
+            <summary class="reader-appearance-advanced-summary">
+              {{ t('article.readingMode.appearanceAdvanced') }}
+            </summary>
+            <div class="reader-appearance-advanced-content">
+              <div
+                v-if="!isMobile"
+                class="reader-appearance-control"
+                data-testid="reader-width-control"
               >
-                {{ t(`setting.typography.contentWidth${width[0].toUpperCase()}${width.slice(1)}`) }}
-              </button>
+                <span class="reader-appearance-label">{{
+                  t('article.readingMode.appearanceWidth')
+                }}</span>
+                <div class="reader-appearance-option-row" role="group">
+                  <button
+                    v-for="width in ['narrow', 'comfortable', 'wide']"
+                    :key="width"
+                    type="button"
+                    class="reader-appearance-option"
+                    :class="{ 'is-active': typography.content_width === width }"
+                    :data-testid="`reader-width-${width}`"
+                    :aria-pressed="typography.content_width === width"
+                    @click="
+                      emit('update-typography', {
+                        content_width: width as ReaderTypographyValues['content_width'],
+                      })
+                    "
+                  >
+                    {{
+                      t(`setting.typography.contentWidth${width[0].toUpperCase()}${width.slice(1)}`)
+                    }}
+                  </button>
+                </div>
+              </div>
+
+              <ReaderCanvasColorControls
+                :canvas="settings"
+                @update:canvas="emit('update-canvas', $event)"
+              />
+
+              <ReaderTypographyPreview :typography="readerTypography" :canvas="readerCanvas" />
             </div>
-          </div>
-
-          <ReaderCanvasColorControls
-            :canvas="settings"
-            @update:canvas="emit('update-canvas', $event)"
-          />
-
-          <ReaderTypographyPreview :typography="readerTypography" :canvas="readerCanvas" />
+          </details>
         </div>
 
         <footer class="reader-appearance-footer">
@@ -438,6 +475,22 @@ onBeforeUnmount(() => {
   @apply sticky top-0 z-10;
 }
 
+.reader-appearance-heading {
+  @apply flex min-w-0 items-center gap-2;
+}
+
+.reader-appearance-save-status {
+  @apply shrink-0 text-xs font-medium text-text-secondary;
+}
+
+.reader-appearance-save-status[data-state='saved'] {
+  color: var(--state-success-color);
+}
+
+.reader-appearance-save-status[data-state='error'] {
+  color: var(--state-danger-color);
+}
+
 .reader-appearance-option:hover {
   @apply bg-bg-tertiary;
 }
@@ -480,6 +533,23 @@ onBeforeUnmount(() => {
   border-color: var(--accent-color);
   box-shadow: inset 0 0 0 1px var(--accent-color);
   color: var(--accent-color);
+}
+
+.reader-appearance-advanced {
+  @apply rounded-md border border-border bg-bg-secondary;
+}
+
+.reader-appearance-advanced-summary {
+  @apply flex min-h-[var(--ui-control-height)] cursor-pointer items-center px-3 text-sm font-medium text-text-primary;
+}
+
+.reader-appearance-advanced-summary:focus-visible {
+  outline: 2px solid var(--accent-color);
+  outline-offset: -2px;
+}
+
+.reader-appearance-advanced-content {
+  @apply flex flex-col gap-4 border-t border-border px-3 py-3;
 }
 
 .reader-appearance-footer {

@@ -53,4 +53,46 @@ describe('ArticleTitle reader style', () => {
       'article-title-meta--magazine'
     );
   });
+
+  it('uses the selected translation display for the primary title hierarchy', async () => {
+    const wrapper = mount(ArticleTitle, {
+      props: {
+        article,
+        translatedTitle: 'Translated article',
+        isTranslatingTitle: false,
+        translationEnabled: true,
+        translationDisplayMode: 'translation',
+      },
+      global: {
+        plugins: [createPinia(), createI18n({ legacy: false, locale: 'en', messages: { en } })],
+      },
+    });
+
+    expect(wrapper.get('h1').text()).toBe('Translated article');
+    expect(wrapper.find('h2').exists()).toBe(false);
+
+    await wrapper.setProps({ translationDisplayMode: 'original' });
+    expect(wrapper.get('h1').text()).toBe(article.title);
+    expect(wrapper.find('h2').exists()).toBe(false);
+
+    await wrapper.setProps({ translationDisplayMode: 'bilingual' });
+    expect(wrapper.get('h1').text()).toBe(article.title);
+    expect(wrapper.get('h2').text()).toBe('Translated article');
+  });
+
+  it('localizes the title translation status', () => {
+    const wrapper = mount(ArticleTitle, {
+      props: {
+        article,
+        translatedTitle: '',
+        isTranslatingTitle: true,
+        translationEnabled: true,
+      },
+      global: {
+        plugins: [createPinia(), createI18n({ legacy: false, locale: 'en', messages: { en } })],
+      },
+    });
+
+    expect(wrapper.get('[role="status"]').text()).toContain('Translating…');
+  });
 });

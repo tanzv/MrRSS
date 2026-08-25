@@ -9,6 +9,7 @@ import en from '@/i18n/locales/en';
 import ArticleContent from './ArticleContent.vue';
 import ArticleContinuation from './parts/ArticleContinuation.vue';
 import ArticleTitle from './parts/ArticleTitle.vue';
+import FloatingToc from './parts/FloatingToc.vue';
 import { useAppStore } from '@/stores/app';
 import { setSettingsFromRawData } from '@/composables/core/useSettings';
 
@@ -49,7 +50,13 @@ function response(data: unknown): Response {
 
 function mountReader(
   articleContent = '<p>Body</p>',
-  options: { isReadingMode?: boolean; nextArticle?: Article; themePreset?: ThemePreset } = {}
+  options: {
+    isReadingMode?: boolean;
+    nextArticle?: Article;
+    themePreset?: ThemePreset;
+    showContents?: boolean;
+    translationDisplayMode?: 'original' | 'bilingual' | 'translation';
+  } = {}
 ) {
   const pinia = createPinia();
   wrapper = shallowMount(ArticleContent, {
@@ -60,6 +67,8 @@ function mountReader(
       isLoadingContent: false,
       isReadingMode: options.isReadingMode ?? false,
       nextArticle: options.nextArticle,
+      showContents: options.showContents ?? false,
+      translationDisplayMode: options.translationDisplayMode,
     },
     global: {
       plugins: [pinia, createI18n({ legacy: false, locale: 'en', messages: { en } })],
@@ -175,6 +184,7 @@ describe('ArticleContent reading mode', () => {
   afterEach(() => {
     wrapper?.unmount();
     wrapper = undefined;
+    vi.useRealTimers();
     if (defaultFetch) {
       vi.mocked(global.fetch).mockImplementation(defaultFetch);
     }
@@ -211,6 +221,69 @@ describe('ArticleContent reading mode', () => {
     expect(wrapper!.emitted('readingProgress')?.at(-1)).toEqual([50]);
   });
 
+  it('reports a restored reading position and lets the parent return to the top', async () => {
+    const rafCallbacks: FrameRequestCallback[] = [];
+    vi.stubGlobal('requestAnimationFrame', (callback: FrameRequestCallback) => {
+      rafCallbacks.push(callback);
+      return rafCallbacks.length;
+    });
+    localStorage.setItem('mrrssArticleScrollPositions', JSON.stringify({ [article.id]: 200 }));
+
+    const mountedReader = mountReader('<p>Body</p>', { isReadingMode: true });
+    const reader = mountedReader.get('[data-testid="article-reader"]');
+    Object.defineProperties(reader.element, {
+      clientHeight: { configurable: true, value: 100 },
+      scrollHeight: { configurable: true, value: 500 },
+      scrollTop: { configurable: true, value: 0, writable: true },
+    });
+    (reader.element as HTMLElement).scrollTo = vi.fn();
+
+    await flushPromises();
+    rafCallbacks.splice(0).forEach((callback) => callback(0));
+    await nextTick();
+
+    expect((reader.element as HTMLElement).scrollTop).toBe(200);
+    expect(mountedReader.emitted('scrollPositionRestored')).toEqual([[50]]);
+
+    (mountedReader.vm as unknown as { scrollToTop: () => void }).scrollToTop();
+    expect((reader.element as HTMLElement).scrollTo).toHaveBeenCalledWith(
+      expect.objectContaining({ top: 0 })
+    );
+    expect(
+      JSON.parse(localStorage.getItem('mrrssArticleScrollPositions') || '{}')
+    ).not.toHaveProperty(String(article.id));
+  });
+
+  it('waits for a saved position to settle before reporting the resumed percentage', async () => {
+    const rafCallbacks: FrameRequestCallback[] = [];
+    vi.stubGlobal('requestAnimationFrame', (callback: FrameRequestCallback) => {
+      rafCallbacks.push(callback);
+      return rafCallbacks.length;
+    });
+    localStorage.setItem('mrrssArticleScrollPositions', JSON.stringify({ [article.id]: 200 }));
+
+    const mountedReader = mountReader('<p>Body</p>', { isReadingMode: true });
+    const reader = mountedReader.get('[data-testid="article-reader"]');
+    Object.defineProperties(reader.element, {
+      clientHeight: { configurable: true, value: 100 },
+      scrollHeight: { configurable: true, value: 200 },
+      scrollTop: { configurable: true, value: 0, writable: true },
+    });
+
+    await flushPromises();
+    rafCallbacks.splice(0).forEach((callback) => callback(0));
+    await nextTick();
+    expect(mountedReader.emitted('scrollPositionRestored')).toBeUndefined();
+
+    Object.defineProperty(reader.element, 'scrollHeight', { configurable: true, value: 500 });
+    await mountedReader.setProps({ articleContent: '<p>Expanded body</p>' });
+    await flushPromises();
+    rafCallbacks.splice(0).forEach((callback) => callback(0));
+    await nextTick();
+
+    expect(mountedReader.emitted('scrollPositionRestored')).toEqual([[50]]);
+  });
+
   it('reports initial progress for visible RSS content outside reading mode', async () => {
     const mountedReader = mountReader('');
     const reader = mountedReader.get('[data-testid="article-reader"]');
@@ -228,6 +301,93 @@ describe('ArticleContent reading mode', () => {
     expect(mountedReader.emitted('readingProgress')?.at(-1)).toEqual([100]);
   });
 
+  it('waits before completing a fully visible short article in reading mode', async () => {
+    vi.useFakeTimers();
+    const mountedReader = mountReader('<p>Short article</p>', { isReadingMode: true });
+    const reader = mountedReader.get('[data-testid="article-reader"]');
+    Object.defineProperties(reader.element, {
+      clientHeight: { configurable: true, value: 200 },
+      scrollHeight: { configurable: true, value: 200 },
+      scrollTop: { configurable: true, value: 0, writable: true },
+    });
+
+    await mountedReader.setProps({ isReadingMode: false });
+    await mountedReader.setProps({ isReadingMode: true });
+    await nextTick();
+    await nextTick();
+
+    expect(mountedReader.emitted('scrollability')?.at(-1)).toEqual([false]);
+    expect(
+      mountedReader.emitted('readingProgress')?.some(([percent]) => percent === 100) ?? false
+    ).toBe(false);
+
+    await vi.advanceTimersByTimeAsync(3999);
+    expect(mountedReader.emitted('shortArticleDwell')).toBeUndefined();
+    await vi.advanceTimersByTimeAsync(1);
+    expect(mountedReader.emitted('shortArticleDwell')).toEqual([[]]);
+
+    await mountedReader.setProps({ isReadingMode: false });
+    await vi.advanceTimersByTimeAsync(4000);
+    expect(mountedReader.emitted('shortArticleDwell')).toEqual([[]]);
+  });
+
+  it('cancels a short-article dwell while the document is hidden', async () => {
+    vi.useFakeTimers();
+    const visibilityState = vi.spyOn(document, 'visibilityState', 'get').mockReturnValue('visible');
+
+    try {
+      const mountedReader = mountReader('<p>Short article</p>', { isReadingMode: true });
+      const reader = mountedReader.get('[data-testid="article-reader"]');
+      Object.defineProperties(reader.element, {
+        clientHeight: { configurable: true, value: 200 },
+        scrollHeight: { configurable: true, value: 200 },
+        scrollTop: { configurable: true, value: 0, writable: true },
+      });
+
+      await mountedReader.setProps({ isReadingMode: false });
+      await mountedReader.setProps({ isReadingMode: true });
+      await nextTick();
+      await nextTick();
+
+      visibilityState.mockReturnValue('hidden');
+      document.dispatchEvent(new Event('visibilitychange'));
+      await vi.advanceTimersByTimeAsync(4000);
+      expect(mountedReader.emitted('shortArticleDwell')).toBeUndefined();
+
+      visibilityState.mockReturnValue('visible');
+      document.dispatchEvent(new Event('visibilitychange'));
+      await vi.advanceTimersByTimeAsync(4000);
+      expect(mountedReader.emitted('shortArticleDwell')).toEqual([[]]);
+    } finally {
+      visibilityState.mockRestore();
+    }
+  });
+
+  it('recalculates reader progress and dwell eligibility after the translation display changes', async () => {
+    vi.useFakeTimers();
+    const mountedReader = mountReader('<p>Short article</p>', { isReadingMode: true });
+    const reader = mountedReader.get('[data-testid="article-reader"]');
+    Object.defineProperties(reader.element, {
+      clientHeight: { configurable: true, value: 200 },
+      scrollHeight: { configurable: true, value: 200 },
+      scrollTop: { configurable: true, value: 0, writable: true },
+    });
+
+    await mountedReader.setProps({ isReadingMode: false });
+    await mountedReader.setProps({ isReadingMode: true });
+    await nextTick();
+    await nextTick();
+
+    Object.defineProperty(reader.element, 'scrollHeight', { configurable: true, value: 600 });
+    await mountedReader.setProps({ translationDisplayMode: 'translation' });
+    await nextTick();
+    await nextTick();
+
+    expect(mountedReader.emitted('scrollability')?.at(-1)).toEqual([true]);
+    await vi.advanceTimersByTimeAsync(4000);
+    expect(mountedReader.emitted('shortArticleDwell')).toBeUndefined();
+  });
+
   it('renders and forwards the next-article intent only in reading mode with RSS content', async () => {
     const mountedReader = mountReader('<p>Body</p>', {
       isReadingMode: true,
@@ -243,6 +403,19 @@ describe('ArticleContent reading mode', () => {
 
     await mountedReader.setProps({ isReadingMode: false });
     expect(mountedReader.findComponent(ArticleContinuation).exists()).toBe(false);
+  });
+
+  it('forwards reader contents state to the table of contents and re-emits its close intent', async () => {
+    const mountedReader = mountReader('<h2>Section</h2><p>Body</p>', { showContents: true });
+    const toc = mountedReader.findComponent(FloatingToc);
+
+    expect(toc.props('enabled')).toBe(true);
+    expect(toc.props('expanded')).toBe(true);
+
+    toc.vm.$emit('close', false);
+    await nextTick();
+
+    expect(mountedReader.emitted('closeContents')).toEqual([[false]]);
   });
 
   it('labels the reading column with the resolved application theme', async () => {

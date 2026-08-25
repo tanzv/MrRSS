@@ -1,7 +1,7 @@
 <script setup lang="ts">
-import { nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue';
+import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
-import { PhArrowLineUp } from '@phosphor-icons/vue';
+import { PhArrowLineUp, PhX } from '@phosphor-icons/vue';
 import {
   buildTocItems,
   calcTocProgress,
@@ -14,17 +14,27 @@ interface Props {
   articleId: number;
   enabled: boolean;
   scrollContainer: HTMLElement | null;
+  expanded?: boolean;
 }
 
-const props = defineProps<Props>();
+const props = withDefaults(defineProps<Props>(), {
+  expanded: false,
+});
+const emit = defineEmits<{
+  close: [restoreFocus?: boolean];
+  select: [item: TocItem];
+}>();
 const { t } = useI18n();
 
 const tocItems = ref<TocItem[]>([]);
 const tocListEl = ref<HTMLElement | null>(null);
+const mobileSheetRef = ref<HTMLElement | null>(null);
 const activeIndex = ref(-1);
 const sectionProgress = ref(0);
 const articleProgress = ref(0);
 const isDesktop = ref(false);
+const hasVisibleItems = computed(() => tocItems.value.some((item) => !item.isFallback));
+const isMobileSheetOpen = computed(() => props.enabled && props.expanded && !isDesktop.value);
 
 let mediaQuery: ReturnType<typeof window.matchMedia> | null = null;
 let containerObserver: InstanceType<typeof window.MutationObserver> | null = null;
@@ -35,7 +45,14 @@ let scrollRaf: number | null = null;
 let lastAutoScrolledIndex = -1;
 
 function shouldShowText(itemIndex: number): boolean {
-  return shouldShowTocText(itemIndex, activeIndex.value, tocItems.value);
+  return props.expanded || shouldShowTocText(itemIndex, activeIndex.value, tocItems.value);
+}
+
+function isTocItemFocusable(itemIndex: number): boolean {
+  if (props.expanded) return true;
+
+  const currentIndex = activeIndex.value >= 0 ? activeIndex.value : 0;
+  return itemIndex === currentIndex;
 }
 
 function queueRebuild(): void {
@@ -61,9 +78,13 @@ function getMarkerFillPercent(index: number): number {
   return sectionProgress.value;
 }
 
+function shouldReduceMotion(): boolean {
+  return Boolean(window.matchMedia?.('(prefers-reduced-motion: reduce)').matches);
+}
+
 function autoScrollTocToActive(index: number): void {
   const list = tocListEl.value;
-  if (!list || index < 0) return;
+  if (!list || index < 0 || shouldReduceMotion()) return;
   if (list.scrollHeight <= list.clientHeight + 1) return;
 
   const item = list.querySelector<HTMLElement>(`[data-toc-index="${index}"]`);
@@ -76,19 +97,20 @@ function autoScrollTocToActive(index: number): void {
   const delta = Math.abs(nextTop - list.scrollTop);
   if (delta < 6) return;
 
-  list.scrollTo({
-    top: nextTop,
-    behavior: 'smooth',
-  });
+  list.scrollTo({ top: nextTop, behavior: 'smooth' });
+}
+
+function clearToc(): void {
+  tocItems.value = [];
+  activeIndex.value = -1;
+  sectionProgress.value = 0;
+  articleProgress.value = 0;
 }
 
 function buildToc(): void {
   const container = props.scrollContainer;
-  if (!props.enabled || !isDesktop.value || !container) {
-    tocItems.value = [];
-    activeIndex.value = -1;
-    sectionProgress.value = 0;
-    articleProgress.value = 0;
+  if (!props.enabled || !container) {
+    clearToc();
     return;
   }
 
@@ -109,7 +131,6 @@ function buildToc(): void {
   const headings = Array.from(proseContainer.querySelectorAll<HTMLElement>('h1, h2, h3'));
   const containerRect = container.getBoundingClientRect();
   const articleId = props.articleId || 0;
-
   const snapshots: HeadingSnapshot[] = headings
     .map((heading, index) => {
       const level = Number(heading.tagName.slice(1));
@@ -177,23 +198,79 @@ function updateActiveSection(): void {
 
 function scrollToHeading(item: TocItem): void {
   const container = props.scrollContainer;
-  if (!container) return;
+  if (!container || item.isFallback) return;
 
   const targetTop = Math.max(0, item.offsetTop - 12);
   container.scrollTo({
     top: targetTop,
-    behavior: 'smooth',
+    behavior: shouldReduceMotion() ? 'auto' : 'smooth',
   });
+  const target = Array.from(container.querySelectorAll<HTMLElement>('h1, h2, h3')).find(
+    (heading) => heading.id === item.id
+  );
+  if (target) {
+    target.setAttribute('tabindex', '-1');
+    window.requestAnimationFrame(() => target.focus({ preventScroll: true }));
+  }
+  emit('select', item);
+  emit('close', false);
 }
 
 function scrollToTop(): void {
   const container = props.scrollContainer;
   if (!container) return;
 
-  container.scrollTo({
-    top: 0,
-    behavior: 'smooth',
-  });
+  container.scrollTo({ top: 0, behavior: shouldReduceMotion() ? 'auto' : 'smooth' });
+}
+
+function getMobileSheetFocusableElements(): HTMLElement[] {
+  if (!mobileSheetRef.value) return [];
+
+  return Array.from(
+    mobileSheetRef.value.querySelectorAll<HTMLElement>(
+      'button:not([disabled]):not([tabindex="-1"]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'
+    )
+  );
+}
+
+function focusFirstMobileSheetControl(): void {
+  getMobileSheetFocusableElements()[0]?.focus({ preventScroll: true });
+}
+
+function handleMobileSheetKeydown(event: KeyboardEvent): void {
+  if (event.key !== 'Tab') return;
+
+  const focusable = getMobileSheetFocusableElements();
+  if (focusable.length === 0) {
+    event.preventDefault();
+    return;
+  }
+
+  const first = focusable[0];
+  const last = focusable.at(-1);
+  const currentIndex = focusable.indexOf(document.activeElement as HTMLElement);
+
+  if (event.shiftKey && (currentIndex <= 0 || document.activeElement === first)) {
+    event.preventDefault();
+    last?.focus();
+  } else if (!event.shiftKey && (currentIndex === -1 || document.activeElement === last)) {
+    event.preventDefault();
+    first.focus();
+  }
+}
+
+function handleMobileSheetOverlayClick(event: MouseEvent): void {
+  if (event.target === event.currentTarget) {
+    emit('close');
+  }
+}
+
+function handleWindowKeydown(event: KeyboardEvent): void {
+  if (!isMobileSheetOpen.value || event.key !== 'Escape') return;
+
+  event.preventDefault();
+  event.stopImmediatePropagation();
+  emit('close');
 }
 
 function handleMediaChange(event: Event): void {
@@ -225,7 +302,6 @@ function connectContainerObserver(): void {
 
   const proseContainer = container.querySelector('.prose-content');
   if (!proseContainer) {
-    // The article body may render asynchronously. Watch container until prose appears.
     pendingProseObserver = new window.MutationObserver(() => {
       const readyProse = container.querySelector('.prose-content');
       if (!readyProse) return;
@@ -236,10 +312,7 @@ function connectContainerObserver(): void {
       queueRebuild();
     });
 
-    pendingProseObserver.observe(container, {
-      childList: true,
-      subtree: true,
-    });
+    pendingProseObserver.observe(container, { childList: true, subtree: true });
     return;
   }
 
@@ -257,6 +330,7 @@ onMounted(async () => {
 
   mediaQuery.addEventListener('change', handleMediaChange);
   window.addEventListener('resize', queueRebuild);
+  window.addEventListener('keydown', handleWindowKeydown, true);
 
   await nextTick();
   bindScrollContainer(props.scrollContainer);
@@ -284,12 +358,19 @@ watch(
   }
 );
 
+watch(isMobileSheetOpen, (isOpen) => {
+  if (isOpen) {
+    void nextTick(focusFirstMobileSheetControl);
+  }
+});
+
 onBeforeUnmount(() => {
   if (mediaQuery) {
     mediaQuery.removeEventListener('change', handleMediaChange);
   }
 
   window.removeEventListener('resize', queueRebuild);
+  window.removeEventListener('keydown', handleWindowKeydown, true);
   scrollContainerEl?.removeEventListener('scroll', queueScrollSync);
   containerObserver?.disconnect();
   pendingProseObserver?.disconnect();
@@ -305,16 +386,29 @@ onBeforeUnmount(() => {
 
 <template>
   <div
-    v-if="enabled && isDesktop && tocItems.length > 0"
-    class="pointer-events-none absolute right-[8px] top-[76px] bottom-6 z-40 flex w-[max(15%,125px)] flex-col items-end justify-center [container-type:inline-size]"
+    v-if="enabled && isDesktop && hasVisibleItems"
+    id="reader-contents"
+    data-testid="reader-contents-desktop"
+    :class="[
+      'pointer-events-none absolute right-[8px] top-[76px] bottom-6 z-40 flex w-[max(15%,125px)] flex-col items-end justify-center [container-type:inline-size]',
+      { 'reader-contents-desktop--expanded': expanded },
+    ]"
   >
-    <div class="mb-2 w-full text-right text-[10px] font-medium text-text-tertiary">
-      {{ articleProgress }}%
+    <div
+      class="mb-2 flex w-full items-center justify-between gap-2 text-[10px] font-medium text-text-tertiary"
+    >
+      <span v-if="expanded">{{ t('article.readingMode.contents') }}</span>
+      <span class="ml-auto tabular-nums">{{ articleProgress }}%</span>
     </div>
 
     <div class="group/toclist pointer-events-auto relative w-full max-h-[80%]">
       <div
-        class="pointer-events-none absolute -inset-y-1.5 -left-2 -right-1 rounded-lg border border-border bg-bg-secondary shadow-lg shadow-black/15 opacity-0 scale-[0.98] transition-all duration-200 group-hover/toclist:opacity-100 group-hover/toclist:scale-100 dark:shadow-black/40"
+        :class="[
+          'pointer-events-none absolute -inset-y-1.5 -left-2 -right-1 rounded-lg border border-border bg-bg-secondary shadow-lg shadow-black/15 transition-all duration-200 dark:shadow-black/40',
+          expanded
+            ? 'opacity-100 scale-100'
+            : 'opacity-0 scale-[0.98] group-hover/toclist:opacity-100 group-hover/toclist:scale-100',
+        ]"
       ></div>
 
       <ul
@@ -329,8 +423,12 @@ onBeforeUnmount(() => {
           :data-toc-index="index"
         >
           <button
+            type="button"
+            :data-testid="`toc-item-${index}`"
             class="group/item flex w-full cursor-pointer items-center justify-start gap-1 rounded py-0.5 transition-colors"
             :style="{ '--toc-level': String(item.level) }"
+            :aria-current="index === activeIndex ? 'location' : undefined"
+            :tabindex="isTocItemFocusable(index) ? 0 : -1"
             @click="scrollToHeading(item)"
           >
             <span
@@ -338,7 +436,8 @@ onBeforeUnmount(() => {
                 'toc-text flex-1 min-w-0 truncate text-left text-xs opacity-0 transition-all duration-200 [margin-left:calc((var(--toc-level,1)-1)*12px)]',
                 index === activeIndex ? 'text-text-primary' : 'text-text-secondary',
                 shouldShowText(index) ? 'toc-text-visible opacity-[0.85] max-w-full' : 'max-w-0',
-                'group-hover/toclist:opacity-[0.85] group-hover/toclist:max-w-full group-hover/item:text-text-primary group-hover/item:opacity-100',
+                !expanded &&
+                  'group-hover/toclist:opacity-[0.85] group-hover/toclist:max-w-full group-hover/item:text-text-primary group-hover/item:opacity-100',
               ]"
               :data-level="item.level"
               :title="item.text"
@@ -365,17 +464,70 @@ onBeforeUnmount(() => {
     </div>
 
     <button
+      type="button"
       class="pointer-events-auto mt-3 flex h-7 w-7 items-center justify-center self-end rounded bg-transparent text-text-secondary transition-colors hover:bg-[color-mix(in_srgb,var(--bg-tertiary)_70%,transparent)] hover:text-text-primary"
-      :title="t('common.back')"
+      :title="t('article.readingMode.contentsTop')"
+      :aria-label="t('article.readingMode.contentsTop')"
       @click="scrollToTop"
     >
       <PhArrowLineUp :size="14" />
     </button>
   </div>
 
-  <template v-else-if="enabled && !isDesktop">
-    <!-- TODO: Add floating TOC UI for mobile devices. -->
-  </template>
+  <Teleport to="body">
+    <div
+      v-if="isMobileSheetOpen"
+      data-testid="reader-contents-sheet"
+      class="reader-contents-sheet-host"
+      @click="handleMobileSheetOverlayClick"
+    >
+      <section
+        id="reader-contents"
+        ref="mobileSheetRef"
+        class="reader-contents-sheet"
+        role="dialog"
+        aria-modal="true"
+        :aria-labelledby="'reader-contents-title'"
+        @keydown="handleMobileSheetKeydown"
+      >
+        <header class="reader-contents-sheet-header app-panel-header">
+          <h2 id="reader-contents-title" class="ui-page-title">
+            {{ t('article.readingMode.contents') }}
+          </h2>
+          <button
+            type="button"
+            class="ui-icon-button ui-button--ghost"
+            :aria-label="t('article.readingMode.contentsClose')"
+            :title="t('article.readingMode.contentsClose')"
+            @click="emit('close')"
+          >
+            <PhX :size="18" aria-hidden="true" />
+          </button>
+        </header>
+
+        <div v-if="hasVisibleItems" class="reader-contents-sheet-list">
+          <button
+            v-for="(item, index) in tocItems.filter((item) => !item.isFallback)"
+            :key="item.id"
+            type="button"
+            :data-testid="`toc-item-${index}`"
+            class="reader-contents-sheet-item"
+            :style="{ '--toc-level': String(item.level) }"
+            :aria-current="index === activeIndex ? 'location' : undefined"
+            @click="scrollToHeading(item)"
+          >
+            <span class="reader-contents-sheet-item-label">{{ item.text }}</span>
+            <span v-if="index === activeIndex" class="reader-contents-sheet-current">
+              {{ t('article.readingMode.contentsCurrent') }}
+            </span>
+          </button>
+        </div>
+        <p v-else class="reader-contents-sheet-empty">
+          {{ t('article.readingMode.contentsEmpty') }}
+        </p>
+      </section>
+    </div>
+  </Teleport>
 </template>
 
 <style scoped>
@@ -384,7 +536,8 @@ onBeforeUnmount(() => {
   scrollbar-color: transparent transparent;
 }
 
-.group\/toclist:hover .toc-list-scroll {
+.group\/toclist:hover .toc-list-scroll,
+.reader-contents-desktop--expanded .toc-list-scroll {
   scrollbar-color: var(--border-color) transparent;
 }
 
@@ -401,7 +554,8 @@ onBeforeUnmount(() => {
   border-radius: 3px;
 }
 
-.group\/toclist:hover .toc-list-scroll::-webkit-scrollbar-thumb {
+.group\/toclist:hover .toc-list-scroll::-webkit-scrollbar-thumb,
+.reader-contents-desktop--expanded .toc-list-scroll::-webkit-scrollbar-thumb {
   background: var(--border-color);
 }
 
@@ -409,14 +563,107 @@ onBeforeUnmount(() => {
   background: transparent;
 }
 
-.group\/toclist:hover .toc-list-scroll::-webkit-scrollbar-thumb:hover {
+.group\/toclist:hover .toc-list-scroll::-webkit-scrollbar-thumb:hover,
+.reader-contents-desktop--expanded .toc-list-scroll::-webkit-scrollbar-thumb:hover {
   background: var(--text-secondary);
+}
+
+.reader-contents-sheet-host {
+  position: fixed;
+  inset: 0;
+  z-index: 80;
+  display: flex;
+  align-items: flex-end;
+  background: var(--overlay-backdrop, rgb(0 0 0 / 0.42));
+}
+
+.reader-contents-sheet {
+  width: 100%;
+  max-height: min(38rem, calc(100dvh - 1rem));
+  overflow-y: auto;
+  border: 1px solid var(--border-color);
+  border-bottom: 0;
+  border-radius: 0.75rem 0.75rem 0 0;
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  padding-bottom: max(0.75rem, env(safe-area-inset-bottom));
+}
+
+.reader-contents-sheet-header {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+}
+
+.reader-contents-sheet-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  padding: 0.75rem;
+}
+
+.reader-contents-sheet-item {
+  display: flex;
+  min-height: 44px;
+  width: 100%;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  border-radius: 0.5rem;
+  padding: 0.625rem 0.75rem;
+  padding-left: calc(0.75rem + (var(--toc-level, 1) - 1) * 0.75rem);
+  color: var(--text-primary);
+  font-size: calc(0.9375rem * var(--ui-font-scale, 1));
+  font-weight: 500;
+  line-height: 1.35;
+  text-align: left;
+  transition:
+    background-color 160ms ease,
+    color 160ms ease;
+}
+
+.reader-contents-sheet-item:hover,
+.reader-contents-sheet-item:focus-visible {
+  background: var(--bg-tertiary);
+}
+
+.reader-contents-sheet-item:focus-visible {
+  outline: 2px solid var(--accent-color);
+  outline-offset: -2px;
+}
+
+.reader-contents-sheet-item-label {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.reader-contents-sheet-current {
+  flex: 0 0 auto;
+  color: var(--accent-text-color);
+  font-size: calc(0.75rem * var(--ui-font-scale, 1));
+}
+
+.reader-contents-sheet-empty {
+  margin: 0;
+  padding: 1.5rem;
+  color: var(--text-secondary);
+  font-size: calc(0.875rem * var(--ui-font-scale, 1));
+  text-align: center;
 }
 
 @container (max-width: 150px) {
   .toc-text-visible {
     opacity: 0;
     max-width: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .reader-contents-sheet-item,
+  .toc-text {
+    transition: none;
   }
 }
 </style>

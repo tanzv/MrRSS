@@ -12,6 +12,8 @@ import { openInBrowser } from '@/utils/browser';
 import { useSettings } from '@/composables/core/useSettings';
 import { useArticleReadTracking } from '@/composables/article/useArticleReadTracking';
 
+type TranslationDisplayMode = 'original' | 'bilingual' | 'translation';
+
 interface Props {
   article: Article;
   articleContent: string;
@@ -39,9 +41,16 @@ const readTracking = useArticleReadTracking();
 const showContent = ref(true);
 const showTranslations = ref(true);
 const showFindInPage = ref(false);
+const showReaderContents = ref(false);
+const translationDisplayMode = ref<TranslationDisplayMode | undefined>(undefined);
+const readingProgress = ref(0);
+const hasScrollableReaderContent = ref(false);
+const restoredReadingProgress = ref<number | null>(null);
+const restoreContentsFocus = ref(true);
 const readerLinkUrl = ref<string | null>(null);
 const readerLinkReturnFocusTarget = ref<HTMLElement | null>(null);
 const returnToReadingButton = ref<HTMLButtonElement | null>(null);
+const readerContent = ref<{ scrollToTop: () => void } | null>(null);
 
 // Image viewer state
 const imageViewerSrc = ref<string | null>(null);
@@ -164,6 +173,10 @@ const hasPreviousArticle = computed(() => currentArticleIndex.value > 0);
 const hasNextArticle = computed(
   () => currentArticleIndex.value >= 0 && currentArticleIndex.value < store.articles.length - 1
 );
+const hasReaderContent = computed(
+  () => !props.isLoadingContent && Boolean(props.articleContent.trim())
+);
+const isCardReaderMode = computed(() => showContent.value && hasReaderContent.value);
 
 function resolvePresentation(): void {
   showContent.value = readTracking.getEffectiveViewMode(props.article) === 'rendered';
@@ -180,6 +193,41 @@ function handleReadingProgress(percent: number): void {
   void readTracking
     .handleReadingProgress(props.article, percent)
     .catch((error) => console.error('Error updating article read state:', error));
+}
+
+function onReadingProgress(percent: number): void {
+  readingProgress.value = percent;
+  handleReadingProgress(percent);
+}
+
+function onReaderScrollability(isScrollable: boolean): void {
+  hasScrollableReaderContent.value = isScrollable;
+  if (!isScrollable) {
+    readingProgress.value = 0;
+  }
+}
+
+function onScrollPositionRestored(percent: number): void {
+  restoredReadingProgress.value = percent;
+}
+
+function scrollReaderToTop(): void {
+  restoredReadingProgress.value = null;
+  readerContent.value?.scrollToTop();
+}
+
+function handleShortArticleDwell(): void {
+  onReadingProgress(100);
+}
+
+function resetCardReaderSession(): void {
+  showFindInPage.value = false;
+  showReaderContents.value = false;
+  translationDisplayMode.value = undefined;
+  readingProgress.value = 0;
+  hasScrollableReaderContent.value = false;
+  restoredReadingProgress.value = null;
+  restoreContentsFocus.value = true;
 }
 
 function toggleRead(): void {
@@ -216,12 +264,19 @@ watch(
     imageViewerAlt.value = '';
     imageViewerImages.value = [];
     imageViewerInitialIndex.value = 0;
+    resetCardReaderSession();
     closeReaderLink({ restoreFocus: false });
 
     resolvePresentation();
     trackArticleOpened();
   }
 );
+
+watch(showContent, (isShowingContent, wasShowingContent) => {
+  if (!isShowingContent && wasShowingContent) {
+    resetCardReaderSession();
+  }
+});
 
 function openReaderLink(url: string): void {
   const activeElement = document.activeElement;
@@ -267,6 +322,12 @@ function handleReaderLinkPreviewLoad(event: Event): void {
   }
 }
 
+function isEditableTarget(target: EventTarget | null): boolean {
+  if (!(target instanceof Element)) return false;
+
+  return Boolean(target.closest('input, textarea, select, [contenteditable="true"]'));
+}
+
 function handleKeydown(e: KeyboardEvent) {
   // ESC to close
   if (e.key === 'Escape') {
@@ -283,7 +344,13 @@ function handleKeydown(e: KeyboardEvent) {
   }
 
   // Ctrl+F to find
-  if ((e.ctrlKey || e.metaKey) && e.key === 'f' && showContent.value) {
+  if (
+    (e.ctrlKey || e.metaKey) &&
+    e.key.toLowerCase() === 'f' &&
+    showContent.value &&
+    !e.defaultPrevented &&
+    !isEditableTarget(e.target)
+  ) {
     e.preventDefault();
     showFindInPage.value = true;
     return;
@@ -304,6 +371,20 @@ function toggleContentView() {
 
 function toggleTranslations() {
   showTranslations.value = !showTranslations.value;
+}
+
+function toggleReaderContents(): void {
+  restoreContentsFocus.value = true;
+  showReaderContents.value = !showReaderContents.value;
+}
+
+function closeReaderContents(shouldRestoreFocus = true): void {
+  restoreContentsFocus.value = shouldRestoreFocus;
+  showReaderContents.value = false;
+}
+
+function setTranslationDisplayMode(mode: TranslationDisplayMode): void {
+  translationDisplayMode.value = mode;
 }
 
 function openOriginal() {
@@ -381,7 +462,16 @@ function handleOverlayClick(e: MouseEvent) {
             :article="article"
             :show-content="showContent"
             :show-translations="showTranslations"
+            :translation-display-mode="translationDisplayMode"
+            :show-contents="showReaderContents"
             :is-modal="true"
+            :is-reading-mode="isCardReaderMode"
+            :reading-progress="hasScrollableReaderContent ? readingProgress : null"
+            :has-reader-content="hasReaderContent"
+            :has-previous-article="hasPreviousArticle"
+            :has-next-article="hasNextArticle"
+            :restored-reading-progress="restoredReadingProgress"
+            :restore-contents-focus="restoreContentsFocus"
             @close="emit('close')"
             @toggle-content-view="toggleContentView"
             @toggle-read="toggleRead"
@@ -389,6 +479,12 @@ function handleOverlayClick(e: MouseEvent) {
             @toggle-read-later="emit('toggleReadLater')"
             @open-original="openOriginal"
             @toggle-translations="toggleTranslations"
+            @open-find="showFindInPage = true"
+            @toggle-contents="toggleReaderContents"
+            @navigate-previous="emit('previous')"
+            @navigate-next="emit('next')"
+            @scroll-to-top="scrollReaderToTop"
+            @set-translation-display-mode="setTranslationDisplayMode"
             @reload-content="handleReloadContent"
             @export-to-obsidian="exportToObsidian"
             @export-to-notion="exportToNotion"
@@ -411,15 +507,23 @@ function handleOverlayClick(e: MouseEvent) {
             <!-- RSS content view -->
             <ArticleContent
               v-else
+              ref="readerContent"
               :article="article"
               :article-content="articleContent"
               :is-loading-content="isLoadingContent"
               :attach-image-event-listeners="attachImageEventListeners"
               :show-translations="showTranslations"
+              :translation-display-mode="translationDisplayMode"
+              :show-contents="showReaderContents"
               :show-content="showContent"
+              :is-reading-mode="isCardReaderMode"
               class="modal-prose-content"
               @retry-load-content="handleRetryLoadContent"
-              @reading-progress="handleReadingProgress"
+              @reading-progress="onReadingProgress"
+              @scrollability="onReaderScrollability"
+              @short-article-dwell="handleShortArticleDwell"
+              @close-contents="closeReaderContents"
+              @scroll-position-restored="onScrollPositionRestored"
               @open-link="openReaderLink"
             />
           </div>

@@ -11,6 +11,15 @@ import type { ReaderTypographyInput } from '@/utils/readerTypography';
 import en from '@/i18n/locales/en';
 import ReaderAppearancePanel from './ReaderAppearancePanel.vue';
 
+vi.mock('@/utils/fontDetector', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@/utils/fontDetector')>();
+
+  return {
+    ...actual,
+    getRecommendedFonts: () => ({ serif: [], sansSerif: [], monospace: [] }),
+  };
+});
+
 const focusSettings: ReaderTypographyInput = {
   content_font_family: 'system',
   content_font_size: 16,
@@ -76,6 +85,7 @@ function mountPanel(options: {
   mobile: boolean;
   settings?: ReaderTypographyInput;
   saveError?: boolean;
+  saveState?: 'idle' | 'pending' | 'saving' | 'saved' | 'error';
 }) {
   mockAppearanceMedia(options.mobile);
   const anchor = document.createElement('button');
@@ -90,9 +100,16 @@ function mountPanel(options: {
       anchor,
       settings: options.settings ?? focusSettings,
       saveError: options.saveError ?? false,
+      saveState: options.saveState ?? 'idle',
     },
     global: {
       plugins: [createI18n({ legacy: false, locale: 'en', messages: { en } })],
+      stubs: {
+        ReaderTypographyPreview: {
+          name: 'ReaderTypographyPreview',
+          template: '<div data-testid="reader-typography-preview" />',
+        },
+      },
     },
   });
   mountedPanels.push(wrapper);
@@ -148,11 +165,14 @@ describe('ReaderAppearancePanel', () => {
     ]);
   });
 
-  it('keeps four quick styles while placing local-font selection before size and preview', () => {
-    mountPanel({ mobile: false });
+  it('keeps quick typography controls visible while advanced appearance controls stay collapsed', () => {
+    mountPanel({ mobile: false, saveState: 'saved' });
     const panel = getPanelElement();
     const fontControl = panel.querySelector('[data-testid="reader-font-family-control"]');
     const sizeControl = panel.querySelector('[data-testid="reader-font-size-control"]');
+    const advanced = panel.querySelector<HTMLDetailsElement>(
+      '[data-testid="reader-appearance-advanced"]'
+    );
 
     expect(panel.querySelectorAll('[role="radio"]')).toHaveLength(4);
     expect(fontControl).not.toBeNull();
@@ -161,6 +181,10 @@ describe('ReaderAppearancePanel', () => {
       Node.DOCUMENT_POSITION_FOLLOWING
     );
     expect(panel.querySelector('[data-testid="reader-typography-preview"]')).not.toBeNull();
+    expect(advanced?.open).toBe(false);
+    expect(
+      panel.querySelector('[data-testid="reader-appearance-save-status"]')?.textContent
+    ).toContain('Saved');
   });
 
   it('disables font-size endpoints and exposes explicit restore and retry commands', async () => {

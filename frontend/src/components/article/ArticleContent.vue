@@ -31,6 +31,8 @@ import {
 import { resolveReaderCanvas } from '@/utils/readerCanvas';
 import './ArticleContent.css';
 
+type TranslationDisplayMode = 'original' | 'bilingual' | 'translation';
+
 interface SummaryResult {
   summary: string;
   html?: string;
@@ -49,6 +51,8 @@ interface Props {
   isLoadingContent: boolean;
   attachImageEventListeners?: () => void;
   showTranslations?: boolean;
+  translationDisplayMode?: TranslationDisplayMode;
+  showContents?: boolean;
   showContent?: boolean;
   isReadingMode?: boolean;
   nextArticle?: Article;
@@ -56,6 +60,8 @@ interface Props {
 
 const props = withDefaults(defineProps<Props>(), {
   showTranslations: true,
+  translationDisplayMode: undefined,
+  showContents: false,
   attachImageEventListeners: undefined,
   showContent: true,
   isReadingMode: false,
@@ -64,8 +70,12 @@ const props = withDefaults(defineProps<Props>(), {
 const emit = defineEmits<{
   retryLoadContent: [];
   readingProgress: [percent: number];
+  scrollability: [isScrollable: boolean];
+  shortArticleDwell: [];
   navigateNext: [];
   openLink: [url: string];
+  closeContents: [restoreFocus?: boolean];
+  scrollPositionRestored: [percent: number];
 }>();
 
 const { t } = useI18n();
@@ -91,6 +101,10 @@ const ARTICLE_SCROLL_POSITIONS_KEY = 'mrrssArticleScrollPositions';
 let scrollSaveTimer: ReturnType<typeof setTimeout> | null = null;
 let pendingScrollRestoreArticleId: number | null = null;
 let pendingScrollRestoreAttempts = 0;
+let restoredScrollPositionArticleId: number | null = null;
+let shortArticleDwellTimer: ReturnType<typeof setTimeout> | null = null;
+let shortArticleDwellCompletedArticleId: number | null = null;
+const SHORT_ARTICLE_DWELL_MS = 4_000;
 
 // Full-text fetching state
 const isFetchingFullArticle = ref(false);
@@ -158,6 +172,7 @@ const showChatButton = computed(() => {
 });
 
 const showFloatingToc = computed(() => appSettings.value.show_floating_toc);
+const shouldRenderFloatingToc = computed(() => showFloatingToc.value || props.showContents);
 
 // Computed to check if full-text fetching should be shown
 const showFullTextButton = computed(() => {
@@ -204,6 +219,11 @@ const {
 } = useArticleSummary();
 
 const { translationSettings, loadTranslationSettings } = useArticleTranslation();
+const effectiveTranslationDisplayMode = computed<TranslationDisplayMode>(() => {
+  if (props.translationDisplayMode) return props.translationDisplayMode;
+  if (!props.showTranslations) return 'original';
+  return translationSettings.value.translationOnlyMode ? 'translation' : 'bilingual';
+});
 
 // Use composable for enhanced rendering (math formulas, etc.)
 const { enhanceRendering, renderMathFormulas, highlightCodeBlocks } = useArticleRendering();
@@ -260,6 +280,14 @@ function saveArticleScrollPosition(articleId: number | null | undefined = props.
   localStorage.setItem(ARTICLE_SCROLL_POSITIONS_KEY, JSON.stringify(positions));
 }
 
+function clearArticleScrollPosition(articleId: number | null | undefined = props.article?.id) {
+  if (!articleId) return;
+
+  const positions = loadArticleScrollPositions();
+  delete positions[String(articleId)];
+  localStorage.setItem(ARTICLE_SCROLL_POSITIONS_KEY, JSON.stringify(positions));
+}
+
 function scheduleSaveArticleScrollPosition() {
   if (pendingScrollRestoreArticleId === props.article?.id) {
     return;
@@ -274,22 +302,92 @@ function scheduleSaveArticleScrollPosition() {
   }, 200);
 }
 
+function getScrollRange(): number | null {
+  const container = articleScrollContainer.value;
+  if (!container) return null;
+
+  return Math.max(0, container.scrollHeight - container.clientHeight);
+}
+
 function getReadingProgress(): number {
   const container = articleScrollContainer.value;
-  if (!container) return 0;
-
-  const scrollRange = container.scrollHeight - container.clientHeight;
-  if (scrollRange <= 0) return 100;
+  const scrollRange = getScrollRange();
+  if (!container || scrollRange === null || scrollRange <= 0) return 0;
 
   return Math.min(100, Math.max(0, Math.round((container.scrollTop / scrollRange) * 100)));
 }
 
+function clearShortArticleDwell(): void {
+  if (!shortArticleDwellTimer) return;
+
+  clearTimeout(shortArticleDwellTimer);
+  shortArticleDwellTimer = null;
+}
+
+function scheduleShortArticleDwell(): void {
+  const scrollRange = getScrollRange();
+  const canTrackDwell =
+    props.isReadingMode &&
+    !props.isLoadingContent &&
+    Boolean(props.articleContent.trim()) &&
+    scrollRange !== null &&
+    scrollRange <= 0 &&
+    document.visibilityState !== 'hidden';
+
+  if (!canTrackDwell) {
+    clearShortArticleDwell();
+    return;
+  }
+
+  if (shortArticleDwellTimer || shortArticleDwellCompletedArticleId === props.article.id) {
+    return;
+  }
+
+  const articleId = props.article.id;
+  shortArticleDwellTimer = setTimeout(() => {
+    shortArticleDwellTimer = null;
+
+    const latestScrollRange = getScrollRange();
+    const isStillEligible =
+      props.isReadingMode &&
+      !props.isLoadingContent &&
+      props.article.id === articleId &&
+      Boolean(props.articleContent.trim()) &&
+      latestScrollRange !== null &&
+      latestScrollRange <= 0 &&
+      document.visibilityState !== 'hidden';
+
+    if (!isStillEligible || shortArticleDwellCompletedArticleId === articleId) return;
+
+    shortArticleDwellCompletedArticleId = articleId;
+    emit('shortArticleDwell');
+  }, SHORT_ARTICLE_DWELL_MS);
+}
+
 function emitReadingProgress(): void {
+  const scrollRange = getScrollRange();
+  if (scrollRange === null) return;
+
+  const isScrollable = scrollRange > 0;
+  emit('scrollability', isScrollable);
+
+  if (!isScrollable) {
+    // Preserve the established non-reader behavior while avoiding immediate completion
+    // when a short article first opens in focused reading mode.
+    if (!props.isReadingMode) {
+      emit('readingProgress', 100);
+    }
+    return;
+  }
+
   emit('readingProgress', getReadingProgress());
 }
 
 function scheduleReadingProgress(): void {
-  void nextTick().then(() => emitReadingProgress());
+  void nextTick().then(() => {
+    emitReadingProgress();
+    scheduleShortArticleDwell();
+  });
 }
 
 async function focusReaderWhenReady(): Promise<void> {
@@ -301,11 +399,40 @@ async function focusReaderWhenReady(): Promise<void> {
 
   articleScrollContainer.value?.focus({ preventScroll: true });
   emitReadingProgress();
+  scheduleShortArticleDwell();
 }
 
 function handleReaderScroll(): void {
   scheduleSaveArticleScrollPosition();
   emitReadingProgress();
+  scheduleShortArticleDwell();
+}
+
+function scrollToTop(): void {
+  const container = articleScrollContainer.value;
+  if (!container) return;
+
+  pendingScrollRestoreArticleId = null;
+  pendingScrollRestoreAttempts = 0;
+  restoredScrollPositionArticleId = null;
+  clearArticleScrollPosition();
+  container.scrollTo({
+    top: 0,
+    behavior: window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth',
+  });
+  emitReadingProgress();
+  scheduleShortArticleDwell();
+}
+
+defineExpose({ scrollToTop });
+
+function handleVisibilityChange(): void {
+  if (document.visibilityState === 'hidden') {
+    clearShortArticleDwell();
+    return;
+  }
+
+  scheduleReadingProgress();
 }
 
 function restoreArticleScrollPosition(articleId: number | null | undefined = props.article?.id) {
@@ -321,12 +448,20 @@ function restoreArticleScrollPosition(articleId: number | null | undefined = pro
 
   window.requestAnimationFrame(() => {
     const maxScrollTop = Math.max(0, container.scrollHeight - container.clientHeight);
-    container.scrollTop = Math.min(savedTop, maxScrollTop);
+    const restoredTop = Math.min(savedTop, maxScrollTop);
+    container.scrollTop = restoredTop;
 
     pendingScrollRestoreAttempts += 1;
-    if (maxScrollTop >= savedTop || savedTop === 0 || pendingScrollRestoreAttempts >= 5) {
+    const isRestoreSettled =
+      maxScrollTop >= savedTop || savedTop === 0 || pendingScrollRestoreAttempts >= 5;
+    if (isRestoreSettled) {
       pendingScrollRestoreArticleId = null;
       pendingScrollRestoreAttempts = 0;
+
+      if (restoredTop > 0 && restoredScrollPositionArticleId !== articleId && maxScrollTop > 0) {
+        restoredScrollPositionArticleId = articleId;
+        emit('scrollPositionRestored', Math.round((restoredTop / maxScrollTop) * 100));
+      }
     }
 
     emitReadingProgress();
@@ -937,6 +1072,10 @@ watch(
   () => props.article?.id,
   async (newId, oldId) => {
     if (newId !== oldId) {
+      clearShortArticleDwell();
+      shortArticleDwellCompletedArticleId = null;
+      restoredScrollPositionArticleId = null;
+
       if (oldId !== undefined) {
         saveArticleScrollPosition(oldId);
       }
@@ -1068,6 +1207,7 @@ watch(
 );
 
 onMounted(async () => {
+  document.addEventListener('visibilitychange', handleVisibilityChange);
   await loadSettings();
   if (props.article) {
     pendingScrollRestoreArticleId = props.article.id;
@@ -1135,8 +1275,24 @@ watch(
 
 watch(
   () => [props.isReadingMode, props.article.id, props.isLoadingContent, props.articleContent],
-  () => void focusReaderWhenReady(),
+  () => {
+    if (!props.isReadingMode || props.isLoadingContent || !props.articleContent.trim()) {
+      clearShortArticleDwell();
+      return;
+    }
+
+    void focusReaderWhenReady();
+  },
   { immediate: true, flush: 'post' }
+);
+
+watch(
+  effectiveTranslationDisplayMode,
+  () => {
+    // Translation visibility can change the rendered height and therefore both progress and dwell state.
+    scheduleReadingProgress();
+  },
+  { flush: 'post' }
 );
 
 // Watch for full article content changes and reattach event listeners
@@ -1147,6 +1303,7 @@ watch(fullArticleContent, async (content) => {
     // Wait for v-html to update the DOM before attaching image interactions.
     await reattachImageInteractions();
     await restorePendingArticleScrollPosition();
+    scheduleReadingProgress();
   }
 });
 
@@ -1162,7 +1319,10 @@ onBeforeUnmount(() => {
     clearTimeout(scrollSaveTimer);
     scrollSaveTimer = null;
   }
+  clearShortArticleDwell();
   saveArticleScrollPosition();
+
+  document.removeEventListener('visibilitychange', handleVisibilityChange);
 
   // Cancel any ongoing summary generation
   if (props.article?.id) {
@@ -1209,8 +1369,8 @@ onBeforeUnmount(() => {
         :data-reader-style="readerStyle"
         :style="readerTypography.cssVariables"
         :class="{
-          'hide-translations': !showTranslations,
-          'translation-only-mode': translationSettings.translationOnlyMode,
+          'hide-translations': effectiveTranslationDisplayMode === 'original',
+          'translation-only-mode': effectiveTranslationDisplayMode === 'translation',
         }"
       >
         <ArticleTitle
@@ -1218,6 +1378,7 @@ onBeforeUnmount(() => {
           :translated-title="translatedTitle"
           :is-translating-title="isTranslatingTitle"
           :translation-enabled="translationEnabled"
+          :translation-display-mode="effectiveTranslationDisplayMode"
           :translation-skipped="translationSkipped"
           :is-translating-content="isTranslatingContent"
           :reader-style="readerStyle"
@@ -1245,6 +1406,7 @@ onBeforeUnmount(() => {
           :translated-summary="translatedSummary"
           :is-translating-summary="isTranslatingSummary"
           :translation-enabled="translationEnabled"
+          :translation-display-mode="effectiveTranslationDisplayMode"
           :summary-provider="summaryProvider"
           :summary-trigger-mode="summaryTriggerMode"
           :is-loading-content="props.isLoadingContent"
@@ -1286,9 +1448,11 @@ onBeforeUnmount(() => {
     </div>
 
     <FloatingToc
-      :enabled="showFloatingToc"
+      :enabled="shouldRenderFloatingToc"
       :article-id="article.id"
       :scroll-container="articleScrollContainer"
+      :expanded="showContents"
+      @close="emit('closeContents', $event)"
     />
 
     <!-- Chat Button (shown when content is loaded and chat is enabled) -->

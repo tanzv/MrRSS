@@ -9,10 +9,13 @@ import {
 import { buildAutoSavePayload } from '@/composables/core/useSettings.generated';
 import { useSettings } from '@/composables/core/useSettings';
 
+export type ReaderAppearanceSaveState = 'idle' | 'pending' | 'saving' | 'saved' | 'error';
+
 export interface ReaderTypographyPreferences {
   settings: Ref<SettingsData>;
   isSaving: Readonly<Ref<boolean>>;
   saveError: Readonly<Ref<boolean>>;
+  saveState: Readonly<Ref<ReaderAppearanceSaveState>>;
   updateTypography: (patch: Partial<ReaderTypographyValues>) => void;
   updateCanvas: (values: ReaderCanvasValues) => void;
   applyPreset: (values: ReaderTypographyValues) => void;
@@ -44,6 +47,7 @@ export function useReaderTypographyPreferences(
   const request = options.request ?? defaultRequest;
   const isSaving = ref(false);
   const saveError = ref(false);
+  const saveState = ref<ReaderAppearanceSaveState>('idle');
   let saveTimer: ReturnType<typeof setTimeout> | null = null;
   let saveInFlight: Promise<void> | null = null;
   let isDirty = false;
@@ -57,6 +61,7 @@ export function useReaderTypographyPreferences(
 
   function scheduleSave(): void {
     clearSaveTimer();
+    saveState.value = 'pending';
     saveTimer = setTimeout(() => {
       saveTimer = null;
       void flushSave();
@@ -70,6 +75,7 @@ export function useReaderTypographyPreferences(
 
     saveInFlight = (async () => {
       isSaving.value = true;
+      saveState.value = 'saving';
 
       while (isDirty) {
         isDirty = false;
@@ -86,10 +92,15 @@ export function useReaderTypographyPreferences(
         } catch (error) {
           isDirty = true;
           saveError.value = true;
+          saveState.value = 'error';
           console.error('Failed to save reading appearance:', error);
           window.showToast(t('article.readingMode.appearanceSaveFailed'), 'error');
           break;
         }
+      }
+
+      if (!saveError.value && !isDirty) {
+        saveState.value = 'saved';
       }
     })().finally(() => {
       isSaving.value = false;
@@ -132,6 +143,7 @@ export function useReaderTypographyPreferences(
   async function retrySave(): Promise<void> {
     clearSaveTimer();
     isDirty = true;
+    saveState.value = 'pending';
     await savePendingChanges();
   }
 
@@ -141,6 +153,7 @@ export function useReaderTypographyPreferences(
     settings,
     isSaving: readonly(isSaving),
     saveError: readonly(saveError),
+    saveState: readonly(saveState),
     updateTypography,
     updateCanvas,
     applyPreset,

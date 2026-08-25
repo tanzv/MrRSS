@@ -47,4 +47,39 @@ describe('ArticleSummary links', () => {
       false
     );
   });
+
+  it('uses the selected translation display for RSS summaries', async () => {
+    wrapper = mount(ArticleSummary, {
+      props: {
+        summaryResult: {
+          summary: 'Original digest',
+          html: '<p>Original digest</p>',
+          sentence_count: 1,
+          is_too_short: false,
+        },
+        translatedSummary: {
+          text: 'Translated digest',
+          html: '<p>Translated digest</p>',
+        },
+        isLoadingSummary: false,
+        translationEnabled: true,
+        translationDisplayMode: 'translation',
+        summaryProvider: 'rss',
+      },
+      global: {
+        plugins: [createI18n({ legacy: false, locale: 'en', messages: { en } })],
+      },
+    });
+
+    expect(wrapper.get('.summary-display').text()).toContain('Translated digest');
+    expect(wrapper.get('.summary-display').text()).not.toContain('Original digest');
+
+    await wrapper.setProps({ translationDisplayMode: 'original' });
+    expect(wrapper.get('.summary-display').text()).toContain('Original digest');
+    expect(wrapper.get('.summary-display').text()).not.toContain('Translated digest');
+
+    await wrapper.setProps({ translationDisplayMode: 'bilingual' });
+    expect(wrapper.get('.summary-display').text()).toContain('Original digest');
+    expect(wrapper.get('.summary-display').text()).toContain('Translated digest');
+  });
 });

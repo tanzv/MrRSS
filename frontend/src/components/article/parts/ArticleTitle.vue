@@ -7,17 +7,21 @@ import { useI18n } from 'vue-i18n';
 import { useAppStore } from '@/stores/app';
 import type { ReaderTypographyPresetId } from '@/utils/readerTypography';
 
+type TranslationDisplayMode = 'original' | 'bilingual' | 'translation';
+
 interface Props {
   article: Article;
   translatedTitle: string;
   isTranslatingTitle: boolean;
   translationEnabled: boolean;
+  translationDisplayMode?: TranslationDisplayMode;
   translationSkipped?: boolean;
   isTranslatingContent?: boolean;
   readerStyle?: ReaderTypographyPresetId | 'custom';
 }
 
 const props = withDefaults(defineProps<Props>(), {
+  translationDisplayMode: 'bilingual',
   translationSkipped: false,
   isTranslatingContent: false,
   readerStyle: 'custom',
@@ -36,14 +40,25 @@ const formatDateWithI18n = (dateStr: string): string => {
   return formatDate(dateStr, locale.value, t);
 };
 
-// Computed: check if we should show bilingual title
-const showBilingualTitle = computed(() => {
+const hasTranslatedTitle = computed(() => {
   return (
     props.translationEnabled &&
     props.translatedTitle &&
     props.translatedTitle !== props.article?.title
   );
 });
+
+const displayTitle = computed(() => {
+  if (props.translationDisplayMode === 'translation' && hasTranslatedTitle.value) {
+    return props.translatedTitle;
+  }
+
+  return props.article.title;
+});
+
+const showBilingualTitle = computed(
+  () => props.translationDisplayMode === 'bilingual' && hasTranslatedTitle.value
+);
 
 // Computed: translation status text
 const translationStatusText = computed(() => {
@@ -66,7 +81,7 @@ function selectArticleFeed() {
       class="text-xl sm:text-3xl font-bold leading-tight text-text-primary select-text"
       :class="{ 'article-title--magazine': readerStyle === 'magazine' }"
     >
-      {{ article.title }}
+      {{ displayTitle }}
     </h1>
     <!-- Translated Title (shown below if different from original) -->
     <h2
@@ -76,9 +91,14 @@ function selectArticleFeed() {
       {{ translatedTitle }}
     </h2>
     <!-- Translation loading indicator for title -->
-    <div v-if="isTranslatingTitle" class="flex items-center gap-1 mt-1 text-text-secondary">
+    <div
+      v-if="isTranslatingTitle"
+      class="flex items-center gap-1 mt-1 text-text-secondary"
+      role="status"
+      aria-live="polite"
+    >
       <PhSpinnerGap :size="12" class="animate-spin" />
-      <span class="text-xs">Translating...</span>
+      <span class="text-xs">{{ t('article.readingMode.translationLoading') }}</span>
     </div>
   </div>
 
