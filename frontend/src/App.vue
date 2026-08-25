@@ -146,6 +146,7 @@ const { contextMenu, openContextMenu, handleContextMenuAction } = useContextMenu
 const {
   sidebarWidth,
   articleListWidth,
+  setSidebarWidth,
   setArticleListWidth,
   setCompactMode,
 } = useResizablePanels();
@@ -402,7 +403,9 @@ function onFeedUpdated(): void {
         :is-open="isSidebarOpen"
         :is-compact="isCompactViewport"
         :is-mobile="isMobileViewport"
+        :drawer-width="sidebarWidth"
         @toggle="toggleSidebar"
+        @update:drawer-width="setSidebarWidth"
       />
     </div>
 

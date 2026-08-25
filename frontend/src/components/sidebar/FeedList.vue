@@ -604,7 +604,7 @@ function handleFilterDragEnd() {
     <div
       v-if="isExpanded || isPinned"
       id="reader-feed-drawer"
-      class="reader-feed-drawer w-[280px] min-w-[280px] max-w-[80vw] md:w-[280px] md:min-w-[280px] flex flex-col h-full flex-shrink-0 relative border-r border-border feed-drawer-width z-20"
+      class="reader-feed-drawer flex flex-col h-full flex-shrink-0 relative border-r border-border z-20"
       role="navigation"
       :aria-label="drawerTitle"
       :class="{ 'is-pinned': isPinned }"
@@ -891,6 +891,9 @@ function handleFilterDragEnd() {
 }
 
 .reader-feed-drawer {
+  width: var(--sidebar-drawer-width, 280px);
+  min-width: var(--sidebar-drawer-width, 280px);
+  max-width: calc(100vw - 48px);
   background-color: var(--surface-panel);
   box-shadow: var(--overlay-shadow);
 }
@@ -914,14 +917,6 @@ function handleFilterDragEnd() {
   outline-offset: -2px;
 }
 
-/* Responsive width for feed drawer on medium screens */
-@media (max-width: 1400px) {
-  .feed-drawer-width {
-    width: 240px !important;
-    min-width: 240px !important;
-  }
-}
-
 @media (min-width: 768px) {
   .feed-search-input {
     min-height: 36px;
@@ -929,8 +924,7 @@ function handleFilterDragEnd() {
 }
 
 @media (max-width: 767px) {
-  .reader-feed-drawer,
-  .feed-drawer-width {
+  .reader-feed-drawer {
     width: min(300px, calc(100vw - 44px)) !important;
     min-width: min(300px, calc(100vw - 44px)) !important;
   }

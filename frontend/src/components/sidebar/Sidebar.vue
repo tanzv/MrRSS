@@ -3,23 +3,32 @@ import { computed, ref, onMounted, onBeforeUnmount, nextTick, toRef, watch } fro
 import { PhCaretRight } from '@phosphor-icons/vue';
 import { useI18n } from 'vue-i18n';
 import { useSidebarEdgeReveal } from '@/composables/ui/useSidebarEdgeReveal';
+import {
+  SIDEBAR_DRAWER_DEFAULT_WIDTH,
+  SIDEBAR_DRAWER_MAX_WIDTH,
+  SIDEBAR_DRAWER_MIN_WIDTH,
+} from '@/composables/ui/useResizablePanels';
 import ActivityBar from './ActivityBar.vue';
 import FeedList from './FeedList.vue';
+import PanelResizeHandle from '@/components/common/PanelResizeHandle.vue';
 
 interface Props {
   isOpen?: boolean;
   isCompact?: boolean;
   isMobile?: boolean;
+  drawerWidth?: number;
 }
 
 const props = withDefaults(defineProps<Props>(), {
   isOpen: true,
   isCompact: false,
   isMobile: false,
+  drawerWidth: SIDEBAR_DRAWER_DEFAULT_WIDTH,
 });
 
 const emit = defineEmits<{
   toggle: [];
+  'update:drawer-width': [width: number];
 }>();
 
 const { t } = useI18n();
@@ -317,6 +326,7 @@ onBeforeUnmount(() => {
           { pinned: isFeedListPinned },
           { 'activity-bar-auto-hidden': isActivityBarAutoHideEnabled },
         ]"
+        :style="{ '--sidebar-drawer-width': `${props.drawerWidth}px` }"
       >
         <FeedList
           :is-expanded="isFeedListExpanded"
@@ -326,6 +336,17 @@ onBeforeUnmount(() => {
           @collapse="handleFeedListCollapse"
           @pin="handlePinFeedList"
           @unpin="handleUnpinFeedList"
+        />
+        <PanelResizeHandle
+          v-if="isFeedListPinned && !props.isMobile"
+          data-testid="feed-drawer-resize-handle"
+          class="feed-drawer-resize-handle"
+          :model-value="props.drawerWidth"
+          :min="SIDEBAR_DRAWER_MIN_WIDTH"
+          :max="SIDEBAR_DRAWER_MAX_WIDTH"
+          :default-value="SIDEBAR_DRAWER_DEFAULT_WIDTH"
+          :label="t('sidebar.feedList.resize')"
+          @update:model-value="emit('update:drawer-width', $event)"
         />
       </div>
     </Transition>
@@ -474,7 +495,22 @@ onBeforeUnmount(() => {
 .feed-drawer-wrapper {
   position: relative;
   height: 100%;
+  width: var(--sidebar-drawer-width, 280px);
+  min-width: var(--sidebar-drawer-width, 280px);
+  max-width: calc(100vw - 48px);
   flex-shrink: 0;
+}
+
+.feed-drawer-wrapper.pinned {
+  box-shadow: none;
+}
+
+.feed-drawer-resize-handle {
+  position: absolute;
+  top: 0;
+  right: -3px;
+  bottom: 0;
+  z-index: 35;
 }
 
 .feed-drawer-wrapper:not(.pinned) {

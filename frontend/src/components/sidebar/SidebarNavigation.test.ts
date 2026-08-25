@@ -57,6 +57,18 @@ const activityBarStub = {
   `,
 };
 
+const drawerActivityBarStub = {
+  name: 'ActivityBar',
+  emits: ['ready'],
+  template: '<div data-testid="drawer-activity-bar" />',
+};
+
+const drawerFeedListStub = {
+  name: 'FeedList',
+  props: ['isExpanded', 'isPinned', 'isMobile'],
+  template: '<div class="reader-feed-drawer" />',
+};
+
 const activityBarSource = readFileSync(
   resolve(process.cwd(), 'src/components/sidebar/ActivityBar.vue'),
   'utf8'
@@ -184,6 +196,58 @@ describe('reader navigation semantics', () => {
     await nextTick();
 
     expect(document.activeElement).toBe(wrapper.get('[data-testid="sidebar-edge-toggle"]').element);
+  });
+
+  it('shows a width separator only for a pinned desktop subscription drawer', async () => {
+    localStorage.setItem('ActivityBarCollapsed', 'false');
+    const wrapper = mount(Sidebar, {
+      props: { drawerWidth: 320 },
+      global: {
+        plugins: [createPinia(), i18n],
+        stubs: {
+          ActivityBar: drawerActivityBarStub,
+          FeedList: drawerFeedListStub,
+        },
+      },
+    });
+    wrappers.push(wrapper);
+
+    const activityBar = wrapper.findComponent({ name: 'ActivityBar' });
+    activityBar.vm.$emit('ready', { expanded: true, pinned: true });
+    await nextTick();
+
+    const handle = wrapper.get('[data-testid="feed-drawer-resize-handle"]');
+    expect(handle.attributes('aria-label')).toBe('Resize subscription sources');
+    expect(handle.attributes('aria-valuenow')).toBe('320');
+    expect(
+      wrapper.get('.feed-drawer-wrapper').element.style.getPropertyValue('--sidebar-drawer-width')
+    ).toBe('320px');
+
+    await handle.trigger('keydown', { key: 'ArrowRight' });
+    expect(wrapper.emitted('update:drawer-width')).toEqual([[336]]);
+
+    activityBar.vm.$emit('ready', { expanded: true, pinned: false });
+    await nextTick();
+    expect(wrapper.find('[data-testid="feed-drawer-resize-handle"]').exists()).toBe(false);
+
+    const mobileWrapper = mount(Sidebar, {
+      props: { drawerWidth: 320, isMobile: true, isOpen: true },
+      global: {
+        plugins: [createPinia(), i18n],
+        stubs: {
+          ActivityBar: drawerActivityBarStub,
+          FeedList: drawerFeedListStub,
+        },
+      },
+    });
+    wrappers.push(mobileWrapper);
+    mobileWrapper
+      .findComponent({ name: 'ActivityBar' })
+      .vm.$emit('ready', { expanded: true, pinned: true });
+    await nextTick();
+
+    expect(mobileWrapper.find('[data-testid="feed-drawer-resize-handle"]').exists()).toBe(false);
+    localStorage.removeItem('ActivityBarCollapsed');
   });
 
   it('uses the active theme token for selected activity-bar controls', () => {

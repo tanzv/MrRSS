@@ -1375,6 +1375,7 @@ const en: TranslationMessages = {
       feeds: 'Feeds',
       pin: 'Pin',
       recentArticles: 'Recent Articles',
+      resize: 'Resize subscription sources',
       uncategorized: 'Uncategorized',
       unpin: 'Unpin',
       unread: 'Unread',

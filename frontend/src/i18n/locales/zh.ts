@@ -1351,6 +1351,7 @@ const zh: TranslationMessages = {
       feeds: '订阅源',
       pin: '置顶',
       recentArticles: '最近文章',
+      resize: '调整订阅源宽度',
       uncategorized: '未分类',
       unpin: '取消置顶',
       unread: '未读',
