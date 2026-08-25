@@ -91,6 +91,7 @@ const zh: TranslationMessages = {
     list: {
       markAllVisibleAsRead: '全部标记为已读',
       allArticlesLoaded: '已加载全部文章',
+      resize: '调整文章列表宽度',
     },
     navigation: {
       goToAllArticles: '转到所有文章',

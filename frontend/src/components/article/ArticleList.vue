@@ -1083,7 +1083,16 @@ async function markAllVisibleAsRead(): Promise<void> {
 @reference "../../style.css";
 @media (min-width: 768px) {
   .article-list {
-    width: var(--article-list-width, 400px);
+    width: min(var(--article-list-width, 400px), calc(100vw - 25rem));
+  }
+}
+
+@media (min-width: 1280px) {
+  .article-list {
+    width: min(
+      var(--article-list-width, 400px),
+      calc(100vw - var(--sidebar-width, 280px) - 25rem)
+    );
   }
 }
 
@@ -1132,13 +1141,6 @@ async function markAllVisibleAsRead(): Promise<void> {
 
   to {
     opacity: 1;
-  }
-}
-
-/* Responsive width for article list on medium screens */
-@media (max-width: 1400px) and (min-width: 768px) {
-  .article-list {
-    width: min(var(--article-list-width, 400px), 320px) !important;
   }
 }
 

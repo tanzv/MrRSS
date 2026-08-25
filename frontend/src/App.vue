@@ -15,11 +15,16 @@ import ConfirmDialog from './components/modals/common/ConfirmDialog.vue';
 import InputDialog from './components/modals/common/InputDialog.vue';
 import MultiSelectDialog from './components/modals/common/MultiSelectDialog.vue';
 import Toast from './components/common/Toast.vue';
+import PanelResizeHandle from './components/common/PanelResizeHandle.vue';
 import { onMounted, onUnmounted, ref, computed, watch, watchEffect } from 'vue';
 import { useNotifications } from './composables/ui/useNotifications';
 import { useKeyboardShortcuts } from './composables/ui/useKeyboardShortcuts';
 import { useContextMenu } from './composables/ui/useContextMenu';
-import { useResizablePanels } from './composables/ui/useResizablePanels';
+import {
+  getArticleListBounds,
+  getArticleListDefaultWidth,
+  useResizablePanels,
+} from './composables/ui/useResizablePanels';
 import { useWindowState } from './composables/core/useWindowState';
 import { useAppUpdates } from './composables/core/useAppUpdates';
 import { useSettings } from './composables/core/useSettings';
@@ -96,6 +101,11 @@ const isImageGalleryMode = computed(() => store.currentFilter === 'imageGallery'
 
 // Check if we're in card mode
 const isCardMode = ref(false);
+const isCompactArticleList = ref(false);
+const articleListBounds = computed(() => getArticleListBounds(isCompactArticleList.value));
+const articleListDefaultWidth = computed(() =>
+  getArticleListDefaultWidth(isCompactArticleList.value)
+);
 
 const isReaderArticleListRevealEnabled = computed(
   () => store.isReadingMode && !isMobileViewport.value && !isCardMode.value
@@ -136,7 +146,6 @@ const { contextMenu, openContextMenu, handleContextMenuAction } = useContextMenu
 const {
   sidebarWidth,
   articleListWidth,
-  startResizeArticleList,
   setArticleListWidth,
   setCompactMode,
 } = useResizablePanels();
@@ -190,13 +199,11 @@ onMounted(async () => {
     const res = await fetch('/api/settings');
     const data = await res.json();
 
-    // Set initial article list width based on layout mode setting
     const layoutMode = data.layout_mode || 'normal';
     const isCompactModeLayout = layoutMode === 'compact';
     isCardMode.value = layoutMode === 'card';
-    // First set the compact mode, then set the width (order matters)
+    isCompactArticleList.value = isCompactModeLayout;
     setCompactMode(isCompactModeLayout);
-    setArticleListWidth(isCompactModeLayout ? 500 : 350);
 
     // Notify all components that settings have been loaded
     window.dispatchEvent(new CustomEvent('settings-loaded'));
@@ -319,16 +326,14 @@ window.addEventListener('show-discover-blogs', (e) => {
   showDiscoverBlogs.value = true;
 });
 
-// Listen for compact mode changes to update article list width
+// Keep article-list bounds in sync without overwriting an explicit user preference.
 window.addEventListener('layout-mode-changed', (e) => {
   const customEvent = e as CustomEvent<{ mode: string }>;
   const mode = customEvent.detail.mode;
   const isCompactModeLayout = mode === 'compact';
   isCardMode.value = mode === 'card';
+  isCompactArticleList.value = isCompactModeLayout;
   setCompactMode(isCompactModeLayout);
-  if (!isCardMode.value) {
-    setArticleListWidth(isCompactModeLayout ? 600 : 400);
-  }
 });
 
 // Global Context Menu Event Listener
@@ -435,11 +440,17 @@ function onFeedUpdated(): void {
 
       <!-- Hide resizer and ArticleDetail when in card mode -->
       <template v-if="!isCardMode">
-        <div
+        <PanelResizeHandle
           v-show="!store.isReadingMode"
-          class="resizer hidden md:block"
-          @mousedown="startResizeArticleList"
-        ></div>
+          data-testid="article-list-resize-handle"
+          class="article-list-resize-handle hidden md:block"
+          :model-value="articleListWidth"
+          :min="articleListBounds.min"
+          :max="articleListBounds.max"
+          :default-value="articleListDefaultWidth"
+          :label="t('article.list.resize')"
+          @update:model-value="setArticleListWidth"
+        />
 
         <ArticleDetail />
       </template>
@@ -561,15 +572,11 @@ function onFeedUpdated(): void {
     top: 52px; /* Account for MacOS top padding on larger screens */
   }
 }
-.resizer {
-  width: 4px;
-  cursor: col-resize;
-  background-color: transparent;
+.article-list-resize-handle {
   flex-shrink: 0;
-  transition: background-color 0.2s;
   z-index: 10;
-  margin-left: -2px;
-  margin-right: -2px;
+  margin-left: -3px;
+  margin-right: -3px;
 }
 
 .reader-article-list-edge-shell {
@@ -629,10 +636,6 @@ function onFeedUpdated(): void {
   .reader-article-list-edge-shell {
     transition: none;
   }
-}
-.resizer:hover,
-.resizer:active {
-  background-color: var(--accent-color);
 }
 /* Global styles if needed */
 </style>

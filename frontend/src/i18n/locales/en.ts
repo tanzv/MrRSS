@@ -94,6 +94,7 @@ const en: TranslationMessages = {
     list: {
       markAllVisibleAsRead: 'Mark All Visible as Read',
       allArticlesLoaded: 'All articles loaded',
+      resize: 'Resize article list',
     },
     navigation: {
       goToAllArticles: 'Go to All Articles',

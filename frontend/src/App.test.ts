@@ -491,4 +491,32 @@ describe('App', () => {
       restoreMatchMedia();
     }
   });
+
+  it('resizes the desktop article list through its accessible separator', async () => {
+    localStorage.removeItem('mrrss.article-list-width');
+    setSettingsFromRawData({ layout_mode: 'normal' });
+    const { wrapper, restoreMatchMedia } = mountDesktopApp();
+
+    try {
+      await nextTick();
+      await flushPromises();
+
+      const handle = wrapper.get('[data-testid="article-list-resize-handle"]');
+      expect(handle.attributes('aria-label')).toBe('Resize article list');
+      expect(handle.attributes('aria-valuemin')).toBe('280');
+      expect(handle.attributes('aria-valuemax')).toBe('600');
+
+      await handle.trigger('keydown', { key: 'ArrowRight' });
+      await nextTick();
+
+      expect(
+        wrapper.get('.app-container').element.style.getPropertyValue('--article-list-width')
+      ).toBe('366px');
+      expect(localStorage.getItem('mrrss.article-list-width')).toBe('366');
+    } finally {
+      wrapper.unmount();
+      restoreMatchMedia();
+      localStorage.removeItem('mrrss.article-list-width');
+    }
+  });
 });
