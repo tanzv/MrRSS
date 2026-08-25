@@ -1262,8 +1262,9 @@ onBeforeUnmount(() => {
         <!-- Full-text fetch button -->
         <div v-if="showFullTextButton" class="flex justify-center mt-4 mb-4">
           <button
+            type="button"
             :disabled="isFetchingFullArticle"
-            class="btn-secondary-compact flex items-center gap-2"
+            class="ui-button ui-button--secondary ui-button--compact flex items-center gap-2 text-text-secondary opacity-60 hover:opacity-100 hover:text-text-primary"
             @click="() => fetchFullArticle()"
           >
             <PhSpinnerGap v-if="isFetchingFullArticle" :size="14" class="animate-spin" />
@@ -1305,23 +1306,6 @@ onBeforeUnmount(() => {
 </template>
 
 <style scoped>
-@reference "../../style.css";
-.btn-secondary {
-  @apply bg-bg-tertiary border border-border text-text-primary px-3 sm:px-4 py-1.5 sm:py-2 rounded-md cursor-pointer flex items-center gap-1.5 sm:gap-2 font-medium hover:bg-bg-secondary transition-colors;
-}
-
-.btn-secondary-compact {
-  @apply border border-border px-3 py-1.5 rounded-md cursor-pointer flex items-center gap-2 text-sm font-normal transition-all duration-200;
-  background-color: var(--bg-tertiary);
-  color: var(--text-secondary);
-  opacity: 0.6;
-}
-
-.btn-secondary-compact:hover {
-  opacity: 1;
-  color: var(--text-primary);
-}
-
 .article-reading-column {
   width: min(100%, 72ch);
   max-width: 72ch;

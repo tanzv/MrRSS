@@ -282,7 +282,8 @@ onBeforeUnmount(() => {
     <div v-if="searchQuery" class="find-navigation">
       <span class="find-count"> {{ currentIndex }} / {{ totalMatches }} </span>
       <button
-        class="nav-button"
+        type="button"
+        class="ui-icon-button ui-button--ghost ui-button--compact"
         :disabled="totalMatches === 0"
         :title="t('common.findInPage.previousMatch')"
         @click="goToPrevious"
@@ -290,20 +291,32 @@ onBeforeUnmount(() => {
         <PhCaretUp :size="16" />
       </button>
       <button
-        class="nav-button"
+        type="button"
+        class="ui-icon-button ui-button--ghost ui-button--compact"
         :disabled="totalMatches === 0"
         :title="t('common.findInPage.nextMatch')"
         @click="goToNext"
       >
         <PhCaretDown :size="16" />
       </button>
-      <button class="nav-button" :title="t('common.close')" @click="close">
+      <button
+        type="button"
+        class="ui-icon-button ui-button--ghost ui-button--compact"
+        :title="t('common.close')"
+        @click="close"
+      >
         <PhX :size="16" />
       </button>
     </div>
 
     <!-- Close button when no search content -->
-    <button v-if="!searchQuery" class="nav-button" :title="t('common.close')" @click="close">
+    <button
+      v-if="!searchQuery"
+      type="button"
+      class="ui-icon-button ui-button--ghost ui-button--compact"
+      :title="t('common.close')"
+      @click="close"
+    >
       <PhX :size="16" />
     </button>
   </div>
@@ -353,10 +366,6 @@ onBeforeUnmount(() => {
 
 .find-count {
   @apply text-xs text-text-secondary px-2 min-w-[3.5rem] text-center;
-}
-
-.nav-button {
-  @apply flex items-center justify-center w-7 h-7 rounded hover:bg-bg-tertiary text-text-primary disabled:opacity-30 disabled:cursor-not-allowed transition-colors;
 }
 
 @media (max-width: 640px) {

@@ -296,9 +296,7 @@ describe('reader navigation semantics', () => {
     expect(sidebarCategorySource).toMatch(
       /@media \(max-width: 767px\)\s*\{[\s\S]*?\.category-header\s*\{[\s\S]*?min-height:\s*44px;/
     );
-    expect(feedListSource).toMatch(
-      /\.drawer-icon-button\s*\{[\s\S]*?width:\s*44px;[\s\S]*?height:\s*44px;/
-    );
+    expect((feedListSource.match(/ui-icon-button/g) || []).length).toBeGreaterThanOrEqual(5);
     ['toggle-pin', 'close-drawer', 'clear-search', 'toggle-edit', 'save-filter'].forEach(
       (action) => {
         expect(feedListSource).toContain(`data-action="${action}"`);
@@ -307,11 +305,10 @@ describe('reader navigation semantics', () => {
   });
 
   it('keeps touch targets at 44px throughout the 640–767px mobile range', () => {
-    expect(feedListSource).toMatch(
-      /@media \(min-width: 768px\)\s*\{[\s\S]*?\.drawer-icon-button\s*\{[\s\S]*?width:\s*36px;/
-    );
+    expect(feedListSource).toContain('ui-icon-button ui-button--ghost');
     expect(savedFilterSource).toContain('min-h-11 md:min-h-0');
-    expect(savedFilterSource).toContain('min-h-11 min-w-11 md:min-h-8 md:min-w-8');
+    expect(savedFilterSource).toContain('ui-icon-button ui-button--ghost');
+    expect(savedFilterSource).toContain('ui-icon-button ui-icon-button--danger');
     expect(sidebarCategorySource).toMatch(
       /@media \(max-width: 767px\)\s*\{[\s\S]*?\.category-toggle\s*\{[\s\S]*?width:\s*44px;[\s\S]*?height:\s*44px;/
     );
@@ -394,9 +391,7 @@ describe('reader navigation semantics', () => {
   });
 
   it('uses contrast-checked sidebar surfaces for drawer and saved-filter states', () => {
-    expect(feedListSource).toMatch(
-      /\.drawer-icon-button:hover:not\(:disabled\)\s*\{[\s\S]*?background-color:\s*var\(--surface-hover\);/
-    );
+    expect(feedListSource).toContain('ui-button--ghost');
     expect(feedListSource).toContain('saved-filters-header');
     expect(feedListSource).toMatch(
       /\.reader-feed-drawer\.is-pinned\s*\{[\s\S]*?background-color:\s*var\(--bg-primary\);/

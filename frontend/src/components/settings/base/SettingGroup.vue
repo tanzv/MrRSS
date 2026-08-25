@@ -30,7 +30,7 @@ function toggleCollapse() {
 <template>
   <div class="setting-group">
     <label
-      class="setting-group-label"
+      class="setting-group-label ui-section-title"
       :class="{ 'cursor-pointer hover:text-text-primary': collapsible }"
       @click="toggleCollapse"
     >
@@ -58,7 +58,7 @@ function toggleCollapse() {
 }
 
 .setting-group-label {
-  @apply font-semibold mb-2 sm:mb-3 text-text-secondary uppercase text-xs tracking-wider flex items-center gap-2;
+  @apply mb-2 flex items-center gap-2 text-text-secondary uppercase tracking-wider sm:mb-3;
 }
 
 .setting-group-children > :not(:first-child) {

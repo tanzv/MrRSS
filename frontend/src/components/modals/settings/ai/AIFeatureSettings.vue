@@ -125,7 +125,7 @@ async function clearAllChatSessions() {
         <button
           type="button"
           :disabled="isDeleting"
-          class="btn-secondary"
+          class="ui-button ui-button--secondary"
           @click="clearAllChatSessions"
         >
           <PhBroom :size="16" class="sm:w-5 sm:h-5" />

@@ -259,11 +259,13 @@ onBeforeUnmount(() => {
         :aria-labelledby="'reader-appearance-title'"
         @keydown="handlePanelKeydown"
       >
-        <header class="reader-appearance-header">
-          <h2 id="reader-appearance-title">{{ t('article.readingMode.appearanceTitle') }}</h2>
+        <header class="reader-appearance-header app-panel-header">
+          <h2 id="reader-appearance-title" class="ui-page-title">
+            {{ t('article.readingMode.appearanceTitle') }}
+          </h2>
           <button
             type="button"
-            class="reader-appearance-close"
+            class="ui-icon-button ui-button--ghost"
             :aria-label="t('article.readingMode.appearanceClose')"
             :title="t('article.readingMode.appearanceClose')"
             @click="emit('close')"
@@ -296,7 +298,7 @@ onBeforeUnmount(() => {
             <div class="reader-appearance-font-size">
               <button
                 type="button"
-                class="reader-appearance-icon-button"
+                class="ui-button ui-button--secondary w-full gap-1 px-2 text-sm"
                 data-testid="reader-font-decrease"
                 :disabled="typography.content_font_size <= 10"
                 :aria-label="t('article.readingMode.appearanceDecreaseFontSize')"
@@ -310,7 +312,7 @@ onBeforeUnmount(() => {
               </output>
               <button
                 type="button"
-                class="reader-appearance-icon-button"
+                class="ui-button ui-button--secondary w-full gap-1 px-2 text-sm"
                 data-testid="reader-font-increase"
                 :disabled="typography.content_font_size >= 24"
                 :aria-label="t('article.readingMode.appearanceIncreaseFontSize')"
@@ -385,7 +387,7 @@ onBeforeUnmount(() => {
         <footer class="reader-appearance-footer">
           <button
             type="button"
-            class="reader-appearance-text-button"
+            class="ui-button ui-button--ghost ui-button--compact"
             data-testid="reader-appearance-restore"
             @click="emit('restore-default-typography')"
           >
@@ -394,7 +396,7 @@ onBeforeUnmount(() => {
           <button
             v-if="saveError"
             type="button"
-            class="reader-appearance-retry"
+            class="ui-button ui-button--secondary ui-button--compact"
             data-testid="reader-appearance-retry"
             @click="emit('retry-save')"
           >
@@ -433,33 +435,14 @@ onBeforeUnmount(() => {
 }
 
 .reader-appearance-header {
-  @apply sticky top-0 z-10 flex items-center justify-between gap-3 border-b border-border bg-bg-primary px-4 py-3;
+  @apply sticky top-0 z-10;
 }
 
-.reader-appearance-header h2 {
-  @apply text-sm font-semibold tracking-tight;
-}
-
-.reader-appearance-close,
-.reader-appearance-icon-button {
-  @apply inline-flex items-center justify-center rounded-md border border-border bg-bg-primary text-text-primary transition-colors;
-}
-
-.reader-appearance-close {
-  @apply h-8 w-8;
-}
-
-.reader-appearance-close:hover,
-.reader-appearance-icon-button:hover:not(:disabled),
 .reader-appearance-option:hover {
   @apply bg-bg-tertiary;
 }
 
-.reader-appearance-close:focus-visible,
-.reader-appearance-icon-button:focus-visible,
-.reader-appearance-option:focus-visible,
-.reader-appearance-text-button:focus-visible,
-.reader-appearance-retry:focus-visible {
+.reader-appearance-option:focus-visible {
   outline: 2px solid var(--accent-color);
   outline-offset: 2px;
 }
@@ -480,14 +463,6 @@ onBeforeUnmount(() => {
   @apply grid grid-cols-[1fr_auto_1fr] items-center gap-2;
 }
 
-.reader-appearance-icon-button {
-  @apply h-9 gap-1 px-2 text-sm font-medium;
-}
-
-.reader-appearance-icon-button:disabled {
-  @apply cursor-not-allowed opacity-45;
-}
-
 .reader-appearance-font-value {
   @apply min-w-14 text-center text-sm font-medium tabular-nums;
 }
@@ -498,6 +473,7 @@ onBeforeUnmount(() => {
 
 .reader-appearance-option {
   @apply min-w-0 rounded-md border border-border bg-bg-primary px-2 py-2 text-xs font-medium text-text-secondary transition-colors;
+  min-height: var(--ui-control-height);
 }
 
 .reader-appearance-option.is-active {
@@ -508,24 +484,6 @@ onBeforeUnmount(() => {
 
 .reader-appearance-footer {
   @apply flex flex-wrap items-center justify-between gap-2 border-t border-border px-4 py-3;
-}
-
-.reader-appearance-text-button,
-.reader-appearance-retry {
-  @apply rounded-md px-2 py-1.5 text-xs font-medium transition-colors;
-}
-
-.reader-appearance-text-button {
-  @apply text-text-secondary;
-}
-
-.reader-appearance-text-button:hover {
-  @apply bg-bg-tertiary text-text-primary;
-}
-
-.reader-appearance-retry {
-  @apply bg-bg-tertiary text-text-primary;
-  color: var(--accent-color);
 }
 
 @media (max-width: 639px) {

@@ -125,16 +125,11 @@ onBeforeUnmount(() => {
 
 <template>
   <div class="article-toolbar-shell">
-    <div
-      :class="[
-        'article-toolbar border-b border-border flex justify-between items-center bg-bg-primary shrink-0',
-        isReadingMode ? 'p-2' : 'p-2 sm:p-4',
-      ]"
-    >
+    <div class="article-toolbar app-panel-header">
       <!-- Modal mode: X button always visible -->
       <button
         v-if="isModal"
-        class="flex items-center gap-1.5 sm:gap-2 text-text-secondary hover:text-text-primary text-sm sm:text-base"
+        class="ui-button ui-button--ghost"
         :title="t('common.close')"
         @click="$emit('close')"
       >
@@ -144,7 +139,7 @@ onBeforeUnmount(() => {
       <button
         v-else-if="!isReadingMode"
         data-testid="mobile-back"
-        class="md:hidden flex items-center gap-1.5 sm:gap-2 text-text-secondary hover:text-text-primary text-sm sm:text-base"
+        class="ui-button ui-button--ghost md:hidden"
         :title="t('common.back')"
         :aria-label="t('common.back')"
         @click="$emit('close')"
@@ -156,7 +151,7 @@ onBeforeUnmount(() => {
       <button
         v-if="!isModal && !isReadingMode"
         data-testid="close-article"
-        class="hidden md:flex items-center gap-1.5 sm:gap-2 text-text-secondary hover:text-text-primary text-sm sm:text-base"
+        class="ui-button ui-button--ghost hidden md:inline-flex"
         :title="t('common.close')"
         :aria-label="t('common.close')"
         @click="$emit('close')"
@@ -166,7 +161,7 @@ onBeforeUnmount(() => {
       </button>
       <div class="article-toolbar-actions flex gap-1 sm:gap-2 ml-auto">
         <button
-          class="action-btn"
+          class="ui-icon-button ui-button--ghost"
           :title="showContent ? t('article.action.viewOriginal') : t('article.action.viewContent')"
           @click="$emit('toggleContentView')"
         >
@@ -176,7 +171,7 @@ onBeforeUnmount(() => {
         <button
           v-if="(showContent || isReadingMode) && !isModal"
           data-testid="toggle-reading-mode"
-          class="action-btn"
+          class="ui-icon-button ui-button--ghost"
           :title="isReadingMode ? t('article.readingMode.exit') : t('article.readingMode.enter')"
           :aria-label="
             isReadingMode ? t('article.readingMode.exit') : t('article.readingMode.enter')
@@ -201,7 +196,7 @@ onBeforeUnmount(() => {
           ref="appearanceTrigger"
           type="button"
           data-testid="reader-appearance-trigger"
-          class="action-btn"
+          class="ui-icon-button ui-button--ghost"
           :title="t('article.readingMode.appearance')"
           :aria-label="t('article.readingMode.appearance')"
           aria-controls="reader-appearance-panel"
@@ -217,7 +212,7 @@ onBeforeUnmount(() => {
             settings.translation_enabled &&
             !settings.translation_only_mode
           "
-          class="action-btn"
+          class="ui-icon-button ui-button--ghost"
           :title="
             showTranslations
               ? t('setting.reading.hideTranslations')
@@ -232,7 +227,7 @@ onBeforeUnmount(() => {
           />
         </button>
         <button
-          class="action-btn"
+          class="ui-icon-button ui-button--ghost"
           :title="
             article.is_read ? t('article.action.markAsUnread') : t('article.action.markAsRead')
           "
@@ -243,7 +238,7 @@ onBeforeUnmount(() => {
         </button>
         <button
           :class="[
-            'action-btn',
+            'ui-icon-button ui-button--ghost',
             article.is_favorite ? 'state-favorite-action' : 'state-favorite-hover',
           ]"
           :title="
@@ -261,7 +256,7 @@ onBeforeUnmount(() => {
         </button>
         <button
           :class="[
-            'action-btn',
+            'ui-icon-button ui-button--ghost',
             article.is_read_later ? 'state-read-later-action' : 'state-read-later-hover',
           ]"
           :title="
@@ -278,7 +273,7 @@ onBeforeUnmount(() => {
           />
         </button>
         <button
-          class="action-btn"
+          class="ui-icon-button ui-button--ghost"
           :title="t('article.action.openInBrowser')"
           @click="$emit('openOriginal')"
         >
@@ -286,7 +281,7 @@ onBeforeUnmount(() => {
         </button>
         <button
           v-if="!isReadingMode"
-          class="action-btn"
+          class="ui-icon-button ui-button--ghost"
           :title="t('common.contextMenu.copyLink')"
           @click="copyLink(article)"
         >
@@ -294,7 +289,7 @@ onBeforeUnmount(() => {
         </button>
         <button
           v-if="!isReadingMode"
-          class="action-btn"
+          class="ui-icon-button ui-button--ghost"
           :title="t('article.action.reloadContent')"
           @click="$emit('reloadContent')"
         >
@@ -302,7 +297,7 @@ onBeforeUnmount(() => {
         </button>
         <button
           v-if="!isReadingMode && settings.obsidian_enabled"
-          class="action-btn"
+          class="ui-icon-button ui-button--ghost"
           :title="t('setting.plugins.obsidian.exportTo')"
           @click="$emit('exportToObsidian')"
         >
@@ -314,7 +309,7 @@ onBeforeUnmount(() => {
         </button>
         <button
           v-if="!isReadingMode && settings.notion_enabled"
-          class="action-btn"
+          class="ui-icon-button ui-button--ghost"
           :title="t('setting.plugins.notion.exportTo')"
           @click="$emit('exportToNotion')"
         >
@@ -326,7 +321,7 @@ onBeforeUnmount(() => {
         </button>
         <button
           v-if="!isReadingMode && settings.zotero_enabled"
-          class="action-btn"
+          class="ui-icon-button ui-button--ghost"
           :title="t('setting.plugins.zotero.exportTo')"
           @click="$emit('exportToZotero')"
         >
@@ -379,17 +374,6 @@ onBeforeUnmount(() => {
 
 <style scoped>
 @reference "../../style.css";
-.action-btn {
-  @apply text-lg sm:text-xl cursor-pointer text-text-secondary rounded-md transition-colors hover:bg-bg-tertiary hover:text-text-primary;
-  min-width: 44px;
-  min-height: 44px;
-  padding: 0.375rem;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  flex: 0 0 44px;
-}
-
 .article-toolbar-shell {
   @apply shrink-0 bg-bg-primary;
 }

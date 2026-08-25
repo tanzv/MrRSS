@@ -87,7 +87,9 @@ function useCustomMode(): void {
     content_background_color: getComputedStyle(document.documentElement).getPropertyValue(
       '--bg-primary'
     ),
-    content_text_color: getComputedStyle(document.documentElement).getPropertyValue('--text-primary'),
+    content_text_color: getComputedStyle(document.documentElement).getPropertyValue(
+      '--text-primary'
+    ),
   });
 
   backgroundDraft.value = appCanvas.content_background_color;
@@ -236,6 +238,7 @@ function updateText(value: string): void {
 
 .reader-canvas-mode-button {
   @apply min-w-0 rounded-md border border-border bg-bg-primary px-2 py-2 text-xs font-medium text-text-secondary transition-colors;
+  min-height: var(--ui-control-height);
 }
 
 .reader-canvas-mode-button:hover {
@@ -272,7 +275,9 @@ function updateText(value: string): void {
 }
 
 .reader-canvas-swatch {
-  @apply h-8 w-8 shrink-0 cursor-pointer rounded border border-border bg-transparent p-0;
+  @apply shrink-0 cursor-pointer rounded border border-border bg-transparent p-0;
+  width: var(--ui-control-compact-height);
+  height: var(--ui-control-compact-height);
 }
 
 .reader-canvas-text-input {

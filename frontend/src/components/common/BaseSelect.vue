@@ -418,7 +418,7 @@ onUnmounted(() => {
             />
             <button
               type="button"
-              class="select-add-button"
+              class="ui-icon-button ui-button--primary ui-button--compact"
               :disabled="!addInputValue.trim()"
               :title="t('common.select.addNew')"
               @click.stop="handleAddOption"

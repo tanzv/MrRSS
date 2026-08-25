@@ -156,7 +156,8 @@ onUnmounted(() => {
     <p class="text-sm sm:text-base mb-4">{{ t('article.content.noContentAvailable') }}</p>
     <button
       v-if="!props.isLoadingContent"
-      class="btn-secondary-compact flex items-center gap-1.5 mx-auto"
+      type="button"
+      class="ui-button ui-button--secondary ui-button--compact mx-auto flex items-center gap-1.5"
       @click="emit('retryLoad')"
     >
       <PhArrowClockwise :size="12" />

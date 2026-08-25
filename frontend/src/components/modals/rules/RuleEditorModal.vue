@@ -205,7 +205,7 @@ async function handleClose(checkUnsaved = false): Promise<void> {
   <BaseModal v-if="show" size="2xl" :z-index="70" @close="handleClose(true)">
     <!-- Custom Header -->
     <template #header>
-      <h3 class="text-lg font-semibold m-0 flex items-center gap-2 text-text-primary">
+      <h3 class="ui-modal-title flex items-center gap-2">
         <PhLightning :size="20" />
         {{ modalTitle }}
       </h3>
@@ -277,7 +277,7 @@ async function handleClose(checkUnsaved = false): Promise<void> {
 
         <!-- Add condition button -->
         <button
-          class="btn-secondary w-full flex items-center justify-center gap-2"
+          class="ui-button ui-button--secondary flex w-full items-center justify-center gap-2"
           @click="addCondition"
         >
           <PhPlus :size="16" />
@@ -318,7 +318,7 @@ async function handleClose(checkUnsaved = false): Promise<void> {
 
         <!-- Add action button -->
         <button
-          class="btn-secondary w-full flex items-center justify-center gap-2"
+          class="ui-button ui-button--secondary flex w-full items-center justify-center gap-2"
           :disabled="actions.length >= actionOptions.length"
           @click="addAction"
         >
@@ -348,11 +348,9 @@ async function handleClose(checkUnsaved = false): Promise<void> {
 
 <style scoped>
 @reference "../../../style.css";
+
 .input-field {
   @apply p-2 border border-border rounded-md bg-bg-primary text-text-primary text-sm focus:border-accent focus:outline-none transition-colors;
   height: 38px;
-}
-.btn-secondary {
-  @apply bg-bg-tertiary text-text-primary border border-border px-4 py-2.5 rounded-lg cursor-pointer font-medium hover:bg-bg-secondary transition-colors disabled:opacity-50 disabled:cursor-not-allowed;
 }
 </style>

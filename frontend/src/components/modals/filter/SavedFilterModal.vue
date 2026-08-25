@@ -132,7 +132,7 @@ function save() {
   <BaseModal v-if="show" size="2xl" :z-index="100" max-height="85vh" @close="close">
     <!-- Custom Header -->
     <template #header>
-      <h3 class="text-lg font-semibold m-0 flex items-center gap-2 text-text-primary">
+      <h3 class="ui-modal-title flex items-center gap-2">
         <PhFunnel :size="20" />
         {{ modalTitle }}
       </h3>
@@ -208,7 +208,7 @@ function save() {
 
         <!-- Add condition button -->
         <button
-          class="btn-secondary w-full mt-4 flex items-center justify-center gap-2"
+          class="ui-button ui-button--secondary mt-4 flex w-full items-center justify-center gap-2"
           @click="addCondition"
         >
           <PhPlus :size="18" />
@@ -236,9 +236,6 @@ function save() {
 
 <style scoped>
 @reference "../../../style.css";
-.btn-secondary {
-  @apply bg-bg-tertiary text-text-primary border border-border px-4 py-2.5 rounded-lg cursor-pointer font-medium hover:bg-bg-secondary transition-colors disabled:opacity-50 disabled:cursor-not-allowed;
-}
 
 .logic-connector {
   @apply flex items-center gap-1 bg-bg-tertiary rounded-full p-1;
@@ -247,6 +244,7 @@ function save() {
 .logic-btn {
   @apply px-3 py-1 text-xs font-bold rounded-full transition-all cursor-pointer;
   @apply text-text-secondary bg-transparent;
+  min-height: var(--ui-control-compact-height);
 }
 
 .logic-btn:hover {

@@ -56,7 +56,12 @@ function handleUpdate(value: string | number): void {
       :searchable="true"
       @update:model-value="handleUpdate"
     />
-    <button class="btn-danger-icon" :title="t('setting.rule.removeAction')" @click="emit('remove')">
+    <button
+      type="button"
+      class="ui-icon-button ui-icon-button--danger"
+      :title="t('setting.rule.removeAction')"
+      @click="emit('remove')"
+    >
       <PhTrash :size="16" />
     </button>
   </div>
@@ -66,14 +71,5 @@ function handleUpdate(value: string | number): void {
 @reference "../../../style.css";
 .action-row {
   @apply flex items-center gap-2 p-2 bg-bg-secondary border border-border rounded-lg;
-}
-
-.btn-danger-icon {
-  @apply p-2 rounded-lg transition-colors cursor-pointer;
-  color: var(--state-danger-color);
-}
-
-.btn-danger-icon:hover {
-  background-color: var(--state-danger-background);
 }
 </style>

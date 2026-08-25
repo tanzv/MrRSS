@@ -182,21 +182,14 @@ onUnmounted(() => {
       @click.stop
     >
       <!-- Header -->
-      <div
-        v-if="title || $slots.header || closable"
-        :class="[
-          'p-3 sm:p-5 border-b border-border flex justify-between items-center shrink-0',
-          headerClass,
-        ]"
-      >
-        <div v-if="title || $slots.header">
-          <slot name="header">
-            <h3 class="text-base sm:text-lg font-semibold m-0 text-text-primary">{{ title }}</h3>
-          </slot>
-        </div>
+      <div v-if="title || $slots.header || closable" :class="['app-modal-header', headerClass]">
+        <slot name="header">
+          <h3 class="ui-modal-title">{{ title }}</h3>
+        </slot>
         <button
           v-if="closable && !loading"
-          class="text-text-secondary hover:text-text-primary transition-colors text-2xl cursor-pointer"
+          type="button"
+          class="ui-icon-button ui-button--ghost text-xl"
           :disabled="loading"
           @click="handleClose"
         >

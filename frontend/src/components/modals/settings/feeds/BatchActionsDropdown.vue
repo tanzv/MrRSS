@@ -72,7 +72,12 @@ onUnmounted(() => {
 
 <template>
   <div ref="menuRef" class="relative">
-    <button class="batch-more-btn" :disabled="disabled" @click="toggleMenu">
+    <button
+      type="button"
+      class="ui-icon-button ui-button--secondary"
+      :disabled="disabled"
+      @click="toggleMenu"
+    >
       <PhDotsThree :size="16" class="sm:w-5 sm:h-5" />
     </button>
 
@@ -126,14 +131,6 @@ onUnmounted(() => {
 
 <style scoped>
 @reference "../../../../style.css";
-.batch-more-btn {
-  @apply py-2.5 px-3 sm:py-3 sm:px-4 rounded-md flex items-center justify-center gap-1.5 sm:gap-2 font-medium transition-colors shrink-0 bg-bg-tertiary border border-border text-text-primary hover:bg-bg-secondary cursor-pointer;
-}
-
-.batch-more-btn:disabled {
-  @apply opacity-50 cursor-not-allowed;
-}
-
 .animate-fade-in {
   animation: fadeIn 0.1s ease-out;
 }

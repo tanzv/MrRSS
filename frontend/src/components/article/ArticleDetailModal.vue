@@ -428,7 +428,8 @@ function handleOverlayClick(e: MouseEvent) {
           <div v-if="hasPreviousArticle || hasNextArticle" class="modal-navigation">
             <button
               v-if="hasPreviousArticle"
-              class="nav-btn"
+              type="button"
+              class="ui-button ui-button--ghost"
               :title="t('article.navigation.previousArticle')"
               @click="emit('previous')"
             >
@@ -439,7 +440,8 @@ function handleOverlayClick(e: MouseEvent) {
 
             <button
               v-if="hasNextArticle"
-              class="nav-btn"
+              type="button"
+              class="ui-button ui-button--ghost"
               :title="t('article.navigation.nextArticle')"
               @click="emit('next')"
             >
@@ -458,12 +460,12 @@ function handleOverlayClick(e: MouseEvent) {
           aria-modal="true"
           :aria-label="t('article.readingMode.linkPreview')"
         >
-          <header class="flex shrink-0 items-center border-b border-border bg-bg-primary px-3 py-2">
+          <header class="app-panel-header">
             <button
               ref="returnToReadingButton"
               type="button"
               data-testid="card-return-to-reading"
-              class="inline-flex items-center gap-2 rounded px-2 py-1.5 text-sm text-text-secondary transition-colors hover:bg-bg-tertiary hover:text-text-primary focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent"
+              class="ui-button ui-button--ghost"
               @click="closeReaderLink"
             >
               <PhArrowLeft :size="18" />
@@ -518,10 +520,6 @@ function handleOverlayClick(e: MouseEvent) {
 
 .modal-navigation {
   @apply flex items-center justify-between px-3 py-2 border-t border-border bg-bg-primary;
-}
-
-.nav-btn {
-  @apply flex items-center gap-1.5 px-3 py-1.5 rounded text-sm text-text-secondary hover:text-text-primary hover:bg-bg-secondary transition-colors;
 }
 
 /* Override ArticleContent styling inside modal */

@@ -419,3 +419,43 @@ git commit -m "style(ui): complete shell hierarchy alignment"
 - **Spec coverage:** Task 1 implements global geometry, variants, roles, responsive sizing, focus, and disabled behavior. Task 2 covers all primary-pane and reader-preview borders. Task 3 covers common/settings/business dialogs. Task 4 removes duplicate action geometry throughout feature and settings components. Task 5 covers secondary chrome and visual/build validation. Article-body typography and behavior stay excluded.
 - **Placeholder scan:** Every task contains file paths, exact class names, commands, expected test result, and an implementation snippet or direct migration instruction; there are no deferred implementation markers.
 - **Type consistency:** All tasks consume the Task 1 class names. ButtonControl retains its current prop/event interface; BaseModal and ModalFooter retain their public props and slot contracts.
+
+## Test Plan
+
+### Summary
+
+- **Feature/Change:** Application shell visual consistency.
+- **Module/Area:** Global CSS primitives plus Headers and action controls in app panes, modals, settings, and secondary application chrome.
+- **Scope:** Structural visual contracts, existing component interaction contracts, frontend unit/build checks, and manual multi-viewport/theme review.
+
+### Test Mapping (1:1)
+
+| Code Change | File/Function | Test Change | Test File |
+| --- | --- | --- | --- |
+| Shared dimensions and variants | `style.css` semantic primitives | Verify Header/control responsive contract | `AppShellStyleContracts.test.ts` |
+| Main-pane Header migration | Article/list/gallery/drawer templates | Verify shared Header/action classes and existing accessible controls | `AppShellStyleContracts.test.ts`, `ArticleList.test.ts`, `ArticleToolbar.test.ts`, `SidebarNavigation.test.ts` |
+| Modal/header slot migration | `BaseModal`, `SettingsModal`, `ModalFooter`, business dialogs | Verify shared modal classes and existing close/keyboard behavior | `AppShellStyleContracts.test.ts`, `UpdateAvailableDialog.test.ts`, `ArticleDetailModal.test.ts` |
+| Settings action migration | `ButtonControl` and local settings/button owners | Verify type-to-variant mapping plus disabled/loading semantics | existing settings control and customization tests |
+| Secondary hierarchy migration | reader appearance/chat/search/management surfaces | Verify shared action/title roles and mobile focus behavior | `AppShellStyleContracts.test.ts`, `ReaderAppearancePanel.test.ts` |
+
+### Test Cases
+
+- A desktop panel Header owns a 56px border-box edge; a desktop modal Header owns a 64px border-box edge.
+- Narrow layouts expose 52px/56px Header regions and 44px icon/button targets.
+- Each primary pane, reader preview, common modal, settings modal, and discovery dialog consumes the intended Header primitive.
+- Primary, secondary, danger, compact, and icon controls consume shared geometry without losing disabled, loading, click, or ARIA behavior.
+- Reader-appearance keyboard focus trapping, sidebar auto-hide controls, and update-dialog Enter/Escape flows remain unchanged.
+- Existing theme tokens render the shared classes without hard-coded colors.
+
+### Test Execution
+
+- **Commands:** Focused Vitest commands per task; then `npm run test:unit`, `npx eslint .`, `npx prettier --check src`, `npm run build`, `git diff --check`, and `wails3 build`.
+- **Environment:** Existing `frontend/node_modules`, jsdom Vitest environment, local Wails build toolchain.
+- **Data fixtures:** Existing Vue component fixtures and test i18n/pinia setup; no network service or production data.
+- **Expected duration:** Focused suites under one minute each; full frontend/build validation may take several minutes.
+
+### Risks
+
+- **Known flakiness:** Source-level tests should assert semantic class use and behavioral contracts, not fragile visual snapshots or generated CSS ordering.
+- **External dependencies:** Wails platform dependencies may make the desktop build environment-sensitive; report exact output if unavailable.
+- **Follow-up work:** None required for this scope; future UI components must use the shared primitives rather than reintroducing local geometric `.btn-*` rules.

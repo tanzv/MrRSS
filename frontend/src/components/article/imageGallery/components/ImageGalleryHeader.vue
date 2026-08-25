@@ -19,12 +19,10 @@ const { t } = useI18n();
 </script>
 
 <template>
-  <div
-    class="flex-shrink-0 bg-bg-primary border-b border-border p-2 sm:p-4 flex items-center gap-3"
-  >
+  <div class="app-panel-header">
     <!-- Sidebar toggle button (mobile only) -->
     <button
-      class="p-2 rounded-lg hover:bg-bg-tertiary text-text-primary transition-colors md:hidden"
+      class="ui-icon-button ui-button--ghost md:hidden"
       :title="t('shortcut.toggle.sidebar')"
       @click="emit('toggleSidebar')"
     >
@@ -32,8 +30,8 @@ const { t } = useI18n();
     </button>
 
     <!-- Title -->
-    <div class="flex items-center gap-2 sm:gap-2 flex-1">
-      <h1 class="text-base sm:text-lg font-bold text-text-primary line-height-fixed-32">
+    <div class="flex min-w-0 flex-1 items-center gap-2">
+      <h1 class="ui-page-title truncate">
         {{ t('sidebar.activity.imageGallery') }}
       </h1>
     </div>
@@ -41,8 +39,8 @@ const { t } = useI18n();
     <div class="flex items-center gap-2">
       <!-- Show only unread toggle button -->
       <button
-        class="p-1 sm:p-1.5 rounded hover:bg-bg-tertiary text-text-primary transition-colors"
-        :class="showOnlyUnread ? 'text-accent' : ''"
+        class="ui-icon-button ui-button--ghost"
+        :class="showOnlyUnread ? 'ui-button--active' : ''"
         :title="
           showOnlyUnread
             ? t('setting.reading.showAllArticles')
@@ -56,7 +54,7 @@ const { t } = useI18n();
 
       <!-- Toggle text overlay button -->
       <button
-        class="p-1 sm:p-1.5 rounded hover:bg-bg-tertiary text-text-primary transition-colors"
+        class="ui-icon-button ui-button--ghost"
         :title="showTextOverlay ? t('setting.reading.hideText') : t('setting.reading.showText')"
         @click="emit('toggleTextOverlay')"
       >

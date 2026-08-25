@@ -610,16 +610,14 @@ function handleFilterDragEnd() {
       :class="{ 'is-pinned': isPinned }"
     >
       <!-- Drawer Header -->
-      <div
-        class="p-2 sm:p-4 border-b border-border flex items-center justify-between flex-shrink-0 bg-bg-primary"
-      >
-        <h2 class="m-0 text-base sm:text-lg font-semibold">{{ drawerTitle }}</h2>
+      <div class="app-panel-header">
+        <h2 class="ui-page-title truncate">{{ drawerTitle }}</h2>
         <div class="flex items-center gap-1 sm:gap-2">
           <!-- Pin/Unpin Button -->
           <button
             type="button"
-            class="drawer-icon-button text-text-secondary hover:text-text-primary rounded transition-colors"
-            :class="isPinned ? 'text-accent-text' : ''"
+            class="ui-icon-button ui-button--ghost"
+            :class="isPinned ? 'ui-button--active' : ''"
             data-action="toggle-pin"
             :title="isPinned ? t('sidebar.feedList.unpin') : t('sidebar.feedList.pin')"
             :aria-label="isPinned ? t('sidebar.feedList.unpin') : t('sidebar.feedList.pin')"
@@ -631,7 +629,7 @@ function handleFilterDragEnd() {
           <!-- Close Button -->
           <button
             type="button"
-            class="drawer-icon-button text-text-secondary hover:text-text-primary rounded transition-colors"
+            class="ui-icon-button ui-button--ghost"
             data-action="close-drawer"
             :title="t('common.close')"
             :aria-label="t('common.close')"
@@ -665,7 +663,7 @@ function handleFilterDragEnd() {
                 <button
                   v-if="searchQuery"
                   type="button"
-                  class="drawer-icon-button absolute right-0 top-1/2 -translate-y-1/2 text-text-secondary hover:text-text-primary"
+                  class="ui-icon-button ui-button--ghost absolute right-0 top-1/2 -translate-y-1/2"
                   data-action="clear-search"
                   :title="t('common.clear')"
                   :aria-label="t('common.clear')"
@@ -677,8 +675,8 @@ function handleFilterDragEnd() {
               <!-- Edit Toggle Button -->
               <button
                 type="button"
-                class="drawer-icon-button text-text-secondary hover:text-accent-text transition-colors flex-shrink-0"
-                :class="isEditMode ? 'text-accent-text' : ''"
+                class="ui-icon-button ui-button--ghost flex-shrink-0"
+                :class="isEditMode ? 'ui-button--active' : ''"
                 data-action="toggle-edit"
                 :title="isEditMode ? t('common.done') : t('common.edit')"
                 :aria-label="isEditMode ? t('common.done') : t('common.edit')"
@@ -789,9 +787,7 @@ function handleFilterDragEnd() {
               <!-- Save Current Filter Button -->
               <button
                 type="button"
-                :class="[
-                  'drawer-icon-button bg-transparent border-0 cursor-pointer text-text-secondary rounded transition-all duration-200 hover:not(:disabled):text-accent-text disabled:opacity-40 disabled:cursor-not-allowed',
-                ]"
+                :class="['ui-icon-button ui-button--ghost']"
                 data-action="save-filter"
                 :disabled="!hasActiveFilters"
                 :title="
@@ -904,20 +900,6 @@ function handleFilterDragEnd() {
   box-shadow: none;
 }
 
-.drawer-icon-button {
-  display: inline-flex;
-  width: 44px;
-  min-width: 44px;
-  height: 44px;
-  min-height: 44px;
-  align-items: center;
-  justify-content: center;
-}
-
-.drawer-icon-button:hover:not(:disabled) {
-  background-color: var(--surface-hover);
-}
-
 .saved-filters-header {
   background-color: var(--surface-panel);
 }
@@ -941,13 +923,6 @@ function handleFilterDragEnd() {
 }
 
 @media (min-width: 768px) {
-  .drawer-icon-button {
-    width: 36px;
-    min-width: 36px;
-    height: 36px;
-    min-height: 36px;
-  }
-
   .feed-search-input {
     min-height: 36px;
   }

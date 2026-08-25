@@ -230,7 +230,8 @@ function handleMultiSelectUpdate(values: (string | number)[]): void {
       <div class="flex-shrink-0">
         <label class="block text-[10px] sm:text-xs text-text-secondary mb-1">&nbsp;</label>
         <button
-          class="btn-danger-icon"
+          type="button"
+          class="ui-icon-button ui-icon-button--danger"
           :title="t('setting.rule.removeCondition')"
           @click="emit('remove')"
         >
@@ -245,31 +246,20 @@ function handleMultiSelectUpdate(values: (string | number)[]): void {
 @reference "../../../style.css";
 .input-field {
   @apply p-1.5 sm:p-2 border border-border rounded-md bg-bg-primary text-text-primary focus:border-accent focus:outline-none transition-colors;
-  height: 38px;
+  height: var(--ui-control-height);
 }
 
 .date-field {
   @apply p-1.5 sm:p-2 border border-border rounded-md bg-bg-primary text-text-primary focus:border-accent focus:outline-none transition-colors cursor-pointer;
   color-scheme: light dark;
-  height: 38px;
-}
-
-.btn-danger-icon {
-  @apply p-1.5 sm:p-2 rounded-lg transition-colors cursor-pointer;
-  color: var(--state-danger-color);
-  height: 38px;
-  width: 38px;
-}
-
-.btn-danger-icon:hover {
-  background-color: var(--state-danger-background);
+  height: var(--ui-control-height);
 }
 
 /* NOT button styling */
 .not-btn {
   @apply flex items-center gap-1 px-1.5 sm:px-2 rounded-md border transition-all cursor-pointer;
   @apply text-text-secondary bg-bg-primary border-border;
-  height: 38px;
+  height: var(--ui-control-height);
 }
 .not-btn:hover {
   border-color: var(--state-danger-border);

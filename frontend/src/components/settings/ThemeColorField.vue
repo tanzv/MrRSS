@@ -143,7 +143,9 @@ function reset(): void {
 }
 
 .theme-color-swatch {
-  @apply h-7 w-8 cursor-pointer rounded border border-border bg-transparent p-0;
+  @apply cursor-pointer rounded border border-border bg-transparent p-0;
+  width: var(--ui-control-compact-height);
+  height: var(--ui-control-compact-height);
 }
 
 .theme-color-text {
@@ -151,7 +153,9 @@ function reset(): void {
 }
 
 .theme-color-reset {
-  @apply flex h-7 w-7 items-center justify-center rounded border border-border text-text-secondary transition-colors hover:bg-bg-tertiary hover:text-text-primary focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent;
+  @apply flex items-center justify-center rounded border border-border text-text-secondary transition-colors hover:bg-bg-tertiary hover:text-text-primary focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent;
+  width: var(--ui-control-compact-height);
+  height: var(--ui-control-compact-height);
 }
 
 .theme-color-field.is-invalid .theme-color-text {

@@ -97,14 +97,14 @@ function handleKeyDown(event: KeyboardEvent) {
 
 <template>
   <div class="ai-search-bar border-b border-border bg-bg-primary">
-    <div class="flex items-center">
+    <div class="flex items-center gap-2 px-3 py-2">
       <!-- Search Input Container -->
       <div class="relative flex-1">
         <input
           v-model="searchQuery"
           type="text"
           :placeholder="t('aiSearch.placeholder')"
-          class="w-full bg-bg-tertiary px-3 py-2 pl-8 text-sm focus:outline-none transition-colors"
+          class="h-[var(--ui-control-height)] w-full rounded-md border border-border bg-bg-tertiary px-3 pl-8 pr-10 text-sm transition-colors focus:outline-none focus:border-accent"
           :disabled="isSearching"
           @keydown="handleKeyDown"
         />
@@ -115,7 +115,8 @@ function handleKeyDown(event: KeyboardEvent) {
         <!-- Clear button -->
         <button
           v-if="searchQuery || hasResults"
-          class="absolute right-2 top-1/2 -translate-y-1/2 p-1 text-text-secondary hover:text-text-primary transition-colors"
+          type="button"
+          class="ui-icon-button ui-button--ghost ui-button--compact absolute right-1 top-1/2 -translate-y-1/2"
           :title="t('common.clear')"
           @click="clearSearch"
         >
@@ -125,10 +126,9 @@ function handleKeyDown(event: KeyboardEvent) {
 
       <!-- AI Search Button -->
       <button
-        class="ai-search-button flex items-center gap-1 px-2.5 py-2 text-sm transition-colors flex-shrink-0"
-        :class="[
-          canSearch ? 'text-accent hover:bg-accent/10' : 'text-text-tertiary cursor-not-allowed',
-        ]"
+        type="button"
+        class="ui-button ui-button--ghost flex-shrink-0 gap-1"
+        :class="canSearch ? 'ui-button--active' : ''"
         :disabled="!canSearch"
         :title="t('aiSearch.buttonTitle')"
         @click="performAISearch"
@@ -146,7 +146,7 @@ function handleKeyDown(event: KeyboardEvent) {
     >
       <PhSparkle :size="12" />
       <span>{{ t('aiSearch.showingResults') }}</span>
-      <button class="ml-1 underline hover:text-accent/80" @click="clearSearch">
+      <button type="button" class="ml-1 underline hover:text-accent/80" @click="clearSearch">
         {{ t('aiSearch.clearResults') }}
       </button>
     </div>

@@ -155,7 +155,7 @@ const handleDeleteCSS = async () => {
         <div class="flex items-center gap-2">
           <button
             v-if="!hasCustomCSS"
-            class="btn-secondary"
+            class="ui-button ui-button--secondary"
             :disabled="uploading"
             :aria-label="
               uploading ? t('common.pagination.uploading') : t('setting.customization.cssUpload')
@@ -172,7 +172,7 @@ const handleDeleteCSS = async () => {
           </button>
           <button
             v-if="hasCustomCSS"
-            class="btn-danger"
+            class="ui-button ui-button--danger"
             :disabled="deleteLoading"
             :aria-label="
               deleteLoading ? t('common.pagination.deleting') : t('setting.customization.deleteCSS')
@@ -193,10 +193,4 @@ const handleDeleteCSS = async () => {
   </SettingGroup>
 </template>
 
-<style scoped>
-@reference "../../../../style.css";
-.btn-danger {
-  @apply bg-bg-tertiary border border-border px-3 sm:px-4 py-1.5 sm:py-2 rounded-md cursor-pointer flex items-center gap-1.5 sm:gap-2 font-medium hover:bg-bg-secondary transition-colors disabled:opacity-50 disabled:cursor-not-allowed;
-  color: var(--state-danger-color);
-}
-</style>
+<style scoped></style>

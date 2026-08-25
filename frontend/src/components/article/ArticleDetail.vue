@@ -276,12 +276,12 @@ onBeforeUnmount(() => {
         aria-modal="true"
         :aria-label="t('article.readingMode.linkPreview')"
       >
-        <header class="flex shrink-0 items-center border-b border-border bg-bg-primary px-3 py-2">
+        <header class="app-panel-header">
           <button
             ref="returnToReadingButton"
             type="button"
             data-testid="return-to-reading"
-            class="inline-flex items-center gap-2 rounded px-2 py-1.5 text-sm text-text-secondary transition-colors hover:bg-bg-tertiary hover:text-text-primary focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent"
+            class="ui-button ui-button--ghost"
             @click="closeReaderLink"
           >
             <PhArrowLeft :size="18" />

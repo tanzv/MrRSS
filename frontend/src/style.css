@@ -303,6 +303,194 @@
   }
 }
 
+:root {
+  --app-panel-header-height: 56px;
+  --app-modal-header-height: 64px;
+  --ui-control-height: 36px;
+  --ui-control-compact-height: 32px;
+}
+
+/* Shared application chrome: Header geometry, action targets, and UI type roles. */
+.app-panel-header {
+  box-sizing: border-box;
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  height: var(--app-panel-header-height);
+  min-width: 0;
+  padding-inline: 1rem;
+  border-bottom: 1px solid var(--border-color);
+  background-color: var(--bg-primary);
+}
+
+.app-modal-header {
+  box-sizing: border-box;
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  height: var(--app-modal-header-height);
+  min-width: 0;
+  padding-inline: 1.25rem;
+  border-bottom: 1px solid var(--border-color);
+  background-color: var(--bg-primary);
+}
+
+.ui-page-title,
+.ui-modal-title,
+.ui-section-title {
+  min-width: 0;
+  margin: 0;
+  color: var(--text-primary);
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+.ui-page-title {
+  font-size: calc(1.125rem * var(--ui-font-scale, 1));
+  line-height: calc(1.5rem * var(--ui-font-scale, 1));
+}
+
+.ui-modal-title {
+  font-size: calc(1.25rem * var(--ui-font-scale, 1));
+  line-height: calc(1.75rem * var(--ui-font-scale, 1));
+}
+
+.ui-section-title {
+  font-size: calc(0.875rem * var(--ui-font-scale, 1));
+  line-height: calc(1.25rem * var(--ui-font-scale, 1));
+}
+
+.ui-button,
+.ui-icon-button {
+  box-sizing: border-box;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  border: 1px solid transparent;
+  border-radius: 0.375rem;
+  color: var(--text-primary);
+  font-size: calc(0.875rem * var(--ui-font-scale, 1));
+  font-weight: 500;
+  line-height: 1;
+  cursor: pointer;
+  transition:
+    color 160ms ease,
+    background-color 160ms ease,
+    border-color 160ms ease;
+}
+
+.ui-button {
+  height: var(--ui-control-height);
+  min-width: 0;
+  padding-inline: 0.875rem;
+  white-space: nowrap;
+}
+
+.ui-icon-button {
+  width: var(--ui-control-height);
+  height: var(--ui-control-height);
+  flex: 0 0 var(--ui-control-height);
+  padding: 0;
+}
+
+.ui-button--primary {
+  border-color: var(--accent-color);
+  background-color: var(--accent-color);
+  color: var(--accent-foreground);
+}
+
+.ui-button--primary:hover:not(:disabled) {
+  border-color: var(--accent-hover);
+  background-color: var(--accent-hover);
+}
+
+.ui-button--secondary {
+  border-color: var(--border-color);
+  background-color: var(--bg-tertiary);
+  color: var(--text-primary);
+}
+
+.ui-button--secondary:hover:not(:disabled) {
+  background-color: var(--bg-secondary);
+}
+
+.ui-button--danger {
+  border-color: var(--state-danger-border);
+  background-color: transparent;
+  color: var(--state-danger-color);
+}
+
+.ui-button--danger:hover:not(:disabled),
+.ui-icon-button--danger:hover:not(:disabled) {
+  background-color: var(--state-danger-background);
+}
+
+.ui-button--ghost {
+  border-color: transparent;
+  background-color: transparent;
+  color: var(--text-secondary);
+}
+
+.ui-button--ghost:hover:not(:disabled) {
+  background-color: var(--bg-tertiary);
+  color: var(--text-primary);
+}
+
+.ui-button--active {
+  color: var(--accent-text-color);
+}
+
+.ui-icon-button--danger {
+  border-color: transparent;
+  background-color: transparent;
+  color: var(--state-danger-color);
+}
+
+.ui-button--compact {
+  height: var(--ui-control-compact-height);
+  padding-inline: 0.625rem;
+  font-size: calc(0.75rem * var(--ui-font-scale, 1));
+}
+
+.ui-icon-button.ui-button--compact {
+  width: var(--ui-control-compact-height);
+  flex-basis: var(--ui-control-compact-height);
+  padding: 0;
+}
+
+.ui-button:disabled,
+.ui-icon-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.ui-button:focus-visible,
+.ui-icon-button:focus-visible {
+  outline-offset: 2px;
+}
+
+@media (max-width: 767px) {
+  :root {
+    --app-panel-header-height: 52px;
+    --app-modal-header-height: 56px;
+    --ui-control-height: 44px;
+    --ui-control-compact-height: 36px;
+  }
+
+  .app-panel-header {
+    padding-inline: 0.75rem;
+  }
+
+  .app-modal-header {
+    padding-inline: 1rem;
+  }
+}
+
 body {
   @apply bg-bg-primary text-text-primary overflow-hidden h-screen;
   font-family: var(--ui-font-family);

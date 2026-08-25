@@ -207,8 +207,9 @@ watch(
           </div>
         </template>
         <button
+          type="button"
           :disabled="isCleaningArticleCache"
-          class="btn-secondary"
+          class="ui-button ui-button--secondary"
           @click="cleanArticleContentCache"
         >
           <PhBroom :size="16" class="sm:w-5 sm:h-5" />
@@ -272,7 +273,12 @@ watch(
             <span class="theme-number">{{ mediaCacheSize.toFixed(2) }} MB</span>
           </div>
         </template>
-        <button :disabled="isCleaningCache" class="btn-secondary" @click="cleanMediaCache">
+        <button
+          type="button"
+          :disabled="isCleaningCache"
+          class="ui-button ui-button--secondary"
+          @click="cleanMediaCache"
+        >
           <PhBroom :size="16" class="sm:w-5 sm:h-5" />
           {{
             isCleaningCache

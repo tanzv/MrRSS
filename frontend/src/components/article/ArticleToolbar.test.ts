@@ -68,6 +68,15 @@ describe('ArticleToolbar', () => {
     expect(wrapper.emitted('close')).toHaveLength(1);
   });
 
+  it('uses a shared panel header and icon action controls', () => {
+    const wrapper = mountToolbar({ showContent: true });
+
+    expect(wrapper.get('.app-panel-header').exists()).toBe(true);
+    expect(wrapper.get('[data-testid="toggle-reading-mode"]').classes()).toContain(
+      'ui-icon-button'
+    );
+  });
+
   it('shows an accessible exit control and progress while reading', async () => {
     const wrapper = mountToolbar({
       showContent: true,

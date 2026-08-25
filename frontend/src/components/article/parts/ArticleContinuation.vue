@@ -24,7 +24,7 @@ const feedTitle = computed(() => props.nextArticle.feed_title || props.nextArtic
     <button
       type="button"
       data-testid="article-continuation-next"
-      class="article-continuation-action"
+      class="ui-button ui-button--secondary mt-4 gap-2"
       @click="emit('navigateNext')"
     >
       <span>{{ t('article.continuation.readNext') }}</span>
@@ -53,18 +53,5 @@ const feedTitle = computed(() => props.nextArticle.feed_title || props.nextArtic
 .article-continuation-feed {
   @apply m-0 text-sm text-text-secondary;
   overflow-wrap: anywhere;
-}
-
-.article-continuation-action {
-  @apply mt-4 inline-flex items-center gap-2 rounded-md border border-border px-3 py-2 text-sm font-medium text-text-primary transition-colors;
-}
-
-.article-continuation-action:hover {
-  background-color: var(--bg-tertiary);
-}
-
-.article-continuation-action:focus-visible {
-  outline: 2px solid var(--accent-color);
-  outline-offset: 2px;
 }
 </style>

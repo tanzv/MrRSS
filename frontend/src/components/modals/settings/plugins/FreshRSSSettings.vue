@@ -261,7 +261,12 @@ function formatSyncTime(timeStr: string | null): string {
           </div>
         </div>
       </template>
-      <button class="btn-secondary" :disabled="isSyncing" @click="syncNow">
+      <button
+        type="button"
+        class="ui-button ui-button--secondary"
+        :disabled="isSyncing"
+        @click="syncNow"
+      >
         <PhArrowClockwise :size="16" class="sm:w-5 sm:h-5" :class="{ 'animate-spin': isSyncing }" />
         {{ isSyncing ? t('setting.freshrss.syncing') : t('setting.freshrss.sync') }}
       </button>
@@ -284,13 +289,6 @@ function formatSyncTime(timeStr: string | null): string {
 
 .setting-item {
   @apply flex items-center sm:items-start justify-between gap-2 sm:gap-4 p-2 sm:p-3 rounded-lg bg-bg-secondary border border-border;
-}
-
-.btn-secondary {
-  @apply bg-bg-tertiary border border-border text-text-primary px-3 sm:px-4 py-1.5 sm:py-2 rounded-md cursor-pointer flex items-center gap-1.5 sm:gap-2 font-medium hover:bg-bg-secondary transition-colors;
-}
-.btn-secondary:disabled {
-  @apply cursor-not-allowed opacity-50;
 }
 
 @keyframes spin {

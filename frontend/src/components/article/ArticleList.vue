@@ -751,218 +751,209 @@ async function markAllVisibleAsRead(): Promise<void> {
     :aria-label="articleListTitle"
     :aria-busy="store.isLoading || isFilterLoading ? 'true' : 'false'"
   >
-    <div class="p-2 sm:p-4 border-b border-border bg-bg-primary">
-      <div class="flex items-center justify-between">
-        <h2
-          class="m-0 text-base sm:text-lg font-semibold truncate flex-1"
-          :title="articleListTitle"
+    <div class="app-panel-header">
+      <h2 class="ui-page-title truncate flex-1" :title="articleListTitle">
+        {{ articleListTitle }}
+      </h2>
+      <div class="flex items-center gap-1 sm:gap-2">
+        <!-- Clear Read Later button - only shown when viewing Read Later list -->
+        <button
+          v-if="store.currentFilter === 'readLater'"
+          data-testid="clear-read-later"
+          class="ui-icon-button ui-icon-button--danger"
+          :title="t('common.clearReadLater')"
+          :aria-label="t('common.clearReadLater')"
+          @click="clearReadLater"
         >
-          {{ articleListTitle }}
-        </h2>
-        <div class="flex items-center gap-1 sm:gap-2">
-          <!-- Clear Read Later button - only shown when viewing Read Later list -->
+          <PhTrash :size="18" class="sm:w-5 sm:h-5" />
+        </button>
+        <button
+          data-testid="mark-all-read"
+          class="ui-icon-button ui-button--ghost"
+          :title="t('article.action.markAllRead')"
+          :aria-label="t('article.action.markAllRead')"
+          @click="markAllAsRead"
+        >
+          <PhCheckCircle :size="18" class="sm:w-5 sm:h-5" />
+        </button>
+        <button
+          data-testid="toggle-unread"
+          class="ui-icon-button ui-button--ghost"
+          :class="store.showOnlyUnread ? 'ui-button--active' : ''"
+          :title="
+            store.showOnlyUnread
+              ? t('setting.reading.showAllArticles')
+              : t('setting.reading.showOnlyUnread')
+          "
+          :aria-label="t('setting.reading.showOnlyUnread')"
+          :aria-pressed="store.showOnlyUnread"
+          @click="store.toggleShowOnlyUnread()"
+        >
+          <component
+            :is="store.showOnlyUnread ? PhEyeSlash : PhEye"
+            :size="18"
+            class="sm:w-5 sm:h-5"
+          />
+        </button>
+        <div class="relative">
           <button
-            v-if="store.currentFilter === 'readLater'"
-            data-testid="clear-read-later"
-            class="state-danger-hover text-text-secondary p-1 sm:p-1.5 rounded transition-colors"
-            :title="t('common.clearReadLater')"
-            :aria-label="t('common.clearReadLater')"
-            @click="clearReadLater"
+            data-testid="open-filter"
+            class="ui-icon-button ui-button--ghost"
+            :class="activeFilters.length > 0 ? 'ui-button--active filter-active' : ''"
+            :title="t('modal.filter.filter')"
+            :aria-label="t('modal.filter.filter')"
+            aria-haspopup="dialog"
+            :aria-expanded="showFilterModal"
+            @click="showFilterModal = true"
           >
-            <PhTrash :size="18" class="sm:w-5 sm:h-5" />
+            <PhFunnel :size="18" class="sm:w-5 sm:h-5" />
           </button>
-          <button
-            data-testid="mark-all-read"
-            class="text-text-secondary hover:text-text-primary hover:bg-bg-tertiary p-1 sm:p-1.5 rounded transition-colors"
-            :title="t('article.action.markAllRead')"
-            :aria-label="t('article.action.markAllRead')"
-            @click="markAllAsRead"
+          <div
+            v-if="activeFilters.length > 0"
+            class="absolute -top-1 -right-1 bg-accent on-accent text-[9px] sm:text-[10px] font-bold rounded-full min-w-[14px] sm:min-w-[16px] h-3.5 sm:h-4 px-0.5 sm:px-1 flex items-center justify-center"
           >
-            <PhCheckCircle :size="18" class="sm:w-5 sm:h-5" />
-          </button>
+            {{ activeFilters.length }}
+          </div>
+        </div>
+        <div class="relative" @mouseenter="onRefreshTooltipShow" @mouseleave="onRefreshTooltipHide">
           <button
-            data-testid="toggle-unread"
-            class="text-text-secondary hover:text-text-primary hover:bg-bg-tertiary p-1 sm:p-1.5 rounded transition-colors"
-            :class="store.showOnlyUnread ? 'text-accent' : ''"
-            :title="
-              store.showOnlyUnread
-                ? t('setting.reading.showAllArticles')
-                : t('setting.reading.showOnlyUnread')
-            "
-            :aria-label="t('setting.reading.showOnlyUnread')"
-            :aria-pressed="store.showOnlyUnread"
-            @click="store.toggleShowOnlyUnread()"
+            data-testid="refresh-articles"
+            class="ui-icon-button ui-button--ghost"
+            :title="t('article.action.refresh')"
+            :aria-label="t('article.action.refresh')"
+            @click="refreshArticles"
           >
-            <component
-              :is="store.showOnlyUnread ? PhEyeSlash : PhEye"
+            <PhArrowClockwise
               :size="18"
               class="sm:w-5 sm:h-5"
+              :class="store.refreshProgress.isRunning ? 'animate-spin' : ''"
             />
           </button>
-          <div class="relative">
-            <button
-              data-testid="open-filter"
-              class="text-text-secondary hover:text-text-primary hover:bg-bg-tertiary p-1 sm:p-1.5 rounded transition-colors"
-              :class="activeFilters.length > 0 ? 'filter-active' : ''"
-              :title="t('modal.filter.filter')"
-              :aria-label="t('modal.filter.filter')"
-              aria-haspopup="dialog"
-              :aria-expanded="showFilterModal"
-              @click="showFilterModal = true"
-            >
-              <PhFunnel :size="18" class="sm:w-5 sm:h-5" />
-            </button>
-            <div
-              v-if="activeFilters.length > 0"
-              class="absolute -top-1 -right-1 bg-accent on-accent text-[9px] sm:text-[10px] font-bold rounded-full min-w-[14px] sm:min-w-[16px] h-3.5 sm:h-4 px-0.5 sm:px-1 flex items-center justify-center"
-            >
-              {{ activeFilters.length }}
-            </div>
-          </div>
           <div
-            class="relative"
-            @mouseenter="onRefreshTooltipShow"
-            @mouseleave="onRefreshTooltipHide"
+            v-if="
+              store.refreshProgress.isRunning &&
+              (store.refreshProgress.queue_task_count || 0) +
+                (store.refreshProgress.pool_task_count || 0) >
+                0
+            "
+            class="absolute -top-1 -right-1 bg-accent on-accent text-[9px] sm:text-[10px] font-bold rounded-full min-w-[14px] sm:min-w-[16px] h-3.5 sm:h-4 px-0.5 sm:px-1 flex items-center justify-center"
           >
-            <button
-              data-testid="refresh-articles"
-              class="text-text-secondary hover:text-text-primary hover:bg-bg-tertiary p-1 sm:p-1.5 rounded transition-colors"
-              :title="t('article.action.refresh')"
-              :aria-label="t('article.action.refresh')"
-              @click="refreshArticles"
-            >
-              <PhArrowClockwise
-                :size="18"
-                class="sm:w-5 sm:h-5"
-                :class="store.refreshProgress.isRunning ? 'animate-spin' : ''"
-              />
-            </button>
+            {{
+              (store.refreshProgress.queue_task_count || 0) +
+              (store.refreshProgress.pool_task_count || 0)
+            }}
+          </div>
+
+          <!-- Task Pool Tooltip -->
+          <Transition
+            enter-active-class="transition ease-out duration-200"
+            enter-from-class="opacity-0 scale-95"
+            enter-to-class="opacity-100 scale-100"
+            leave-active-class="transition ease-in duration-150"
+            leave-from-class="opacity-100 scale-100"
+            leave-to-class="opacity-0 scale-95"
+          >
             <div
               v-if="
-                store.refreshProgress.isRunning &&
-                (store.refreshProgress.queue_task_count || 0) +
-                  (store.refreshProgress.pool_task_count || 0) >
-                  0
+                showRefreshTooltip &&
+                ((store.refreshProgress.pool_task_count || 0) > 0 ||
+                  (store.refreshProgress.queue_task_count || 0) > 0 ||
+                  (store.refreshProgress.article_click_count || 0) > 0)
               "
-              class="absolute -top-1 -right-1 bg-accent on-accent text-[9px] sm:text-[10px] font-bold rounded-full min-w-[14px] sm:min-w-[16px] h-3.5 sm:h-4 px-0.5 sm:px-1 flex items-center justify-center"
+              class="absolute right-0 top-full mt-2 z-50 w-72 bg-bg-secondary rounded-lg shadow-xl overflow-hidden"
             >
-              {{
-                (store.refreshProgress.queue_task_count || 0) +
-                (store.refreshProgress.pool_task_count || 0)
-              }}
-            </div>
+              <div class="px-3 py-2">
+                <div class="text-xs font-semibold text-text-primary mb-2 flex items-center gap-2">
+                  <PhArrowClockwise :size="12" class="animate-spin-slow" />
+                  {{ t('article.action.refreshing') }}
+                </div>
 
-            <!-- Task Pool Tooltip -->
-            <Transition
-              enter-active-class="transition ease-out duration-200"
-              enter-from-class="opacity-0 scale-95"
-              enter-to-class="opacity-100 scale-100"
-              leave-active-class="transition ease-in duration-150"
-              leave-from-class="opacity-100 scale-100"
-              leave-to-class="opacity-0 scale-95"
-            >
-              <div
-                v-if="
-                  showRefreshTooltip &&
-                  ((store.refreshProgress.pool_task_count || 0) > 0 ||
-                    (store.refreshProgress.queue_task_count || 0) > 0 ||
-                    (store.refreshProgress.article_click_count || 0) > 0)
-                "
-                class="absolute right-0 top-full mt-2 z-50 w-72 bg-bg-secondary rounded-lg shadow-xl overflow-hidden"
-              >
-                <div class="px-3 py-2">
-                  <div class="text-xs font-semibold text-text-primary mb-2 flex items-center gap-2">
-                    <PhArrowClockwise :size="12" class="animate-spin-slow" />
-                    {{ t('article.action.refreshing') }}
-                  </div>
-
-                  <!-- Pool Tasks - Show all tasks sorted alphabetically -->
-                  <div v-if="(store.refreshProgress.pool_task_count || 0) > 0" class="mb-2">
-                    <div
-                      class="text-[10px] text-text-secondary mb-1.5 font-medium flex items-center gap-1"
-                    >
-                      <PhCircle :size="10" class="text-accent" />
-                      {{ t('article.progress.activeTasks') }} ({{
-                        store.refreshProgress.pool_task_count || 0
-                      }})
-                    </div>
-                    <div class="space-y-0.5">
-                      <div
-                        v-for="(task, index) in store.refreshProgress.pool_tasks || []"
-                        :key="'pool-' + index"
-                        class="text-xs text-text-primary bg-accent/10 px-2.5 py-1.5 rounded truncate"
-                        :title="task.feed_title"
-                      >
-                        <div class="flex items-center gap-2">
-                          <PhCircle :size="10" class="text-accent animate-pulse flex-shrink-0" />
-                          <span class="truncate flex-1">{{ task.feed_title }}</span>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-
-                  <!-- Queue Tasks - Show first 3 -->
-                  <div v-if="(store.refreshProgress.queue_task_count || 0) > 0">
-                    <div
-                      class="text-[10px] text-text-secondary mb-1.5 font-medium flex items-center gap-1"
-                    >
-                      <PhClock :size="10" />
-                      {{ t('sidebar.activity.queuedTasks') }} ({{
-                        store.refreshProgress.queue_task_count || 0
-                      }})
-                    </div>
-                    <div class="space-y-0.5">
-                      <div
-                        v-for="(task, index) in store.refreshProgress.queue_tasks || []"
-                        :key="'queue-' + index"
-                        class="text-xs text-text-secondary bg-bg-tertiary/50 px-2.5 py-1.5 rounded truncate"
-                        :title="task.feed_title"
-                      >
-                        <div class="flex items-center gap-2">
-                          <PhClock :size="10" class="flex-shrink-0" />
-                          <span class="truncate flex-1">{{ task.feed_title }}</span>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-
-                  <!-- Article Click Tasks -->
+                <!-- Pool Tasks - Show all tasks sorted alphabetically -->
+                <div v-if="(store.refreshProgress.pool_task_count || 0) > 0" class="mb-2">
                   <div
-                    v-if="(store.refreshProgress.article_click_count || 0) > 0"
-                    class="mt-2 pt-2 border-t border-border/50"
+                    class="text-[10px] text-text-secondary mb-1.5 font-medium flex items-center gap-1"
                   >
+                    <PhCircle :size="10" class="text-accent" />
+                    {{ t('article.progress.activeTasks') }} ({{
+                      store.refreshProgress.pool_task_count || 0
+                    }})
+                  </div>
+                  <div class="space-y-0.5">
                     <div
-                      class="text-[10px] text-text-secondary mb-1.5 font-medium flex items-center gap-1"
+                      v-for="(task, index) in store.refreshProgress.pool_tasks || []"
+                      :key="'pool-' + index"
+                      class="text-xs text-text-primary bg-accent/10 px-2.5 py-1.5 rounded truncate"
+                      :title="task.feed_title"
                     >
-                      <PhLightning :size="10" class="text-accent" />
-                      {{ t('sidebar.activity.immediateTasks') }} ({{
-                        store.refreshProgress.article_click_count || 0
-                      }})
-                    </div>
-                    <div class="text-xs text-accent bg-accent/10 px-2.5 py-1.5 rounded truncate">
                       <div class="flex items-center gap-2">
-                        <PhLightning :size="10" class="flex-shrink-0" />
-                        <span class="truncate">{{
-                          t('article.content.fetchingArticleContent')
-                        }}</span>
+                        <PhCircle :size="10" class="text-accent animate-pulse flex-shrink-0" />
+                        <span class="truncate flex-1">{{ task.feed_title }}</span>
                       </div>
                     </div>
                   </div>
                 </div>
+
+                <!-- Queue Tasks - Show first 3 -->
+                <div v-if="(store.refreshProgress.queue_task_count || 0) > 0">
+                  <div
+                    class="text-[10px] text-text-secondary mb-1.5 font-medium flex items-center gap-1"
+                  >
+                    <PhClock :size="10" />
+                    {{ t('sidebar.activity.queuedTasks') }} ({{
+                      store.refreshProgress.queue_task_count || 0
+                    }})
+                  </div>
+                  <div class="space-y-0.5">
+                    <div
+                      v-for="(task, index) in store.refreshProgress.queue_tasks || []"
+                      :key="'queue-' + index"
+                      class="text-xs text-text-secondary bg-bg-tertiary/50 px-2.5 py-1.5 rounded truncate"
+                      :title="task.feed_title"
+                    >
+                      <div class="flex items-center gap-2">
+                        <PhClock :size="10" class="flex-shrink-0" />
+                        <span class="truncate flex-1">{{ task.feed_title }}</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Article Click Tasks -->
+                <div
+                  v-if="(store.refreshProgress.article_click_count || 0) > 0"
+                  class="mt-2 pt-2 border-t border-border/50"
+                >
+                  <div
+                    class="text-[10px] text-text-secondary mb-1.5 font-medium flex items-center gap-1"
+                  >
+                    <PhLightning :size="10" class="text-accent" />
+                    {{ t('sidebar.activity.immediateTasks') }} ({{
+                      store.refreshProgress.article_click_count || 0
+                    }})
+                  </div>
+                  <div class="text-xs text-accent bg-accent/10 px-2.5 py-1.5 rounded truncate">
+                    <div class="flex items-center gap-2">
+                      <PhLightning :size="10" class="flex-shrink-0" />
+                      <span class="truncate">{{
+                        t('article.content.fetchingArticleContent')
+                      }}</span>
+                    </div>
+                  </div>
+                </div>
               </div>
-            </Transition>
-          </div>
-          <button
-            data-responsive-nav-trigger
-            class="md:hidden text-xl sm:text-2xl min-w-[44px] min-h-[44px] p-1 inline-flex items-center justify-center rounded transition-colors hover:bg-bg-tertiary"
-            :title="t('shortcut.toggle.sidebar')"
-            :aria-label="t('shortcut.toggle.sidebar')"
-            :aria-expanded="isSidebarOpen"
-            @click="emit('toggleSidebar')"
-          >
-            <PhList :size="18" class="sm:w-5 sm:h-5" />
-          </button>
+            </div>
+          </Transition>
         </div>
+        <button
+          data-responsive-nav-trigger
+          class="ui-icon-button ui-button--ghost md:hidden"
+          :title="t('shortcut.toggle.sidebar')"
+          :aria-label="t('shortcut.toggle.sidebar')"
+          :aria-expanded="isSidebarOpen"
+          @click="emit('toggleSidebar')"
+        >
+          <PhList :size="18" class="sm:w-5 sm:h-5" />
+        </button>
       </div>
     </div>
 

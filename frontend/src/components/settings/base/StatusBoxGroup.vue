@@ -43,7 +43,8 @@ defineOptions({
     <div v-if="actionButton" class="flex flex-col sm:justify-between flex-1 gap-2">
       <div class="flex justify-center sm:justify-end">
         <button
-          class="btn-secondary"
+          type="button"
+          class="ui-button ui-button--secondary"
           :disabled="actionButton.disabled || actionButton.loading"
           @click="actionButton.onClick"
         >

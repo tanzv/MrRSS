@@ -95,8 +95,9 @@ function openGitHubRelease() {
 
     <div class="mt-4 sm:mt-6 mb-4 sm:mb-6 flex justify-center">
       <button
+        type="button"
         :disabled="checkingUpdates"
-        class="btn btn-secondary justify-center text-sm sm:text-base"
+        class="ui-button ui-button--secondary justify-center"
         @click="handleCheckUpdates"
       >
         <PhArrowsClockwise
@@ -139,8 +140,9 @@ function openGitHubRelease() {
           <!-- Download and Install Button -->
           <div v-if="updateInfo.has_update && updateInfo.download_url" class="mt-2 sm:mt-3">
             <button
+              type="button"
               :disabled="downloadingUpdate || installingUpdate"
-              class="btn btn-primary w-full justify-center text-sm sm:text-base"
+              class="ui-button ui-button--primary w-full justify-center"
               @click="handleDownloadInstall"
             >
               <PhCircleNotch
@@ -196,20 +198,6 @@ function openGitHubRelease() {
 </template>
 
 <style scoped>
-@reference "../../../../style.css";
-.btn {
-  @apply px-3 sm:px-4 py-1.5 sm:py-2 rounded-md cursor-pointer flex items-center gap-1.5 sm:gap-2 font-medium transition-colors;
-}
-.btn:disabled {
-  @apply opacity-50 cursor-not-allowed;
-}
-.btn-primary {
-  @apply bg-accent text-text-on-accent border-none hover:bg-accent-hover;
-}
-.btn-secondary {
-  @apply bg-bg-tertiary border border-border text-text-primary hover:bg-bg-secondary;
-}
-
 .animate-spin {
   animation: spin 1s linear infinite;
 }

@@ -45,6 +45,7 @@ const logicOptions: Array<{ value: 'and' | 'or'; labelKey: string }> = [
 .logic-btn {
   @apply px-3 py-1 text-xs font-bold rounded-full transition-all cursor-pointer;
   @apply text-text-secondary bg-transparent;
+  min-height: var(--ui-control-compact-height);
 }
 
 .logic-btn:hover {

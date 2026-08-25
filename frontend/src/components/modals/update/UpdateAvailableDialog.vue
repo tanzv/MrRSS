@@ -82,11 +82,11 @@ onUnmounted(() => {
   <BaseModal size="md" :closable="true" @close="handleClose">
     <!-- Custom Header -->
     <template #header>
-      <div class="flex items-center gap-3">
+      <div class="flex min-w-0 flex-1 items-center gap-3">
         <div class="state-success-surface rounded-full p-2">
           <PhArrowCircleUp :size="28" />
         </div>
-        <h3 class="text-lg sm:text-xl font-bold">{{ t('setting.update.updateAvailable') }}</h3>
+        <h3 class="ui-modal-title">{{ t('setting.update.updateAvailable') }}</h3>
       </div>
     </template>
 
@@ -134,7 +134,8 @@ onUnmounted(() => {
       >
         <template v-if="props.updateInfo.download_url" #right>
           <button
-            class="btn-primary"
+            type="button"
+            class="ui-button ui-button--primary gap-2"
             :disabled="props.downloadingUpdate || props.installingUpdate"
             @click="handleUpdate"
           >
@@ -150,14 +151,6 @@ onUnmounted(() => {
 </template>
 
 <style scoped>
-@reference "../../../style.css";
-.btn-primary {
-  @apply bg-accent text-text-on-accent border-none px-5 py-2.5 rounded-lg cursor-pointer font-semibold hover:bg-accent-hover transition-colors flex items-center gap-2;
-}
-.btn-primary:disabled {
-  @apply opacity-50 cursor-not-allowed;
-}
-
 .animate-spin {
   animation: spin 1s linear infinite;
 }

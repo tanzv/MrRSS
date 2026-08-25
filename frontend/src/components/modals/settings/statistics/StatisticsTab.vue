@@ -327,10 +327,7 @@ onMounted(async () => {
         </label>
         <input v-model="customEndDate" type="date" class="date-input" @change="fetchStatistics" />
       </div>
-      <button
-        class="px-4 py-2 bg-accent on-accent border-none rounded-md font-medium cursor-pointer transition-all hover:opacity-90 hover:-translate-y-px h-9"
-        @click="fetchStatistics"
-      >
+      <button type="button" class="ui-button ui-button--primary" @click="fetchStatistics">
         {{ t('common.form.apply') }}
       </button>
     </div>
@@ -341,7 +338,8 @@ onMounted(async () => {
       class="flex items-center justify-center gap-1.5 p-2 bg-bg-secondary rounded-lg"
     >
       <button
-        class="nav-btn"
+        type="button"
+        class="ui-icon-button ui-button--ghost ui-button--compact"
         :disabled="!stats?.has_previous || loading"
         @click="navigatePeriod(-1)"
       >
@@ -350,7 +348,12 @@ onMounted(async () => {
       <div class="text-xs font-semibold text-text-primary min-w-[180px] text-center">
         {{ displayLabel }}
       </div>
-      <button class="nav-btn" :disabled="!stats?.has_next || loading" @click="navigatePeriod(1)">
+      <button
+        type="button"
+        class="ui-icon-button ui-button--ghost ui-button--compact"
+        :disabled="!stats?.has_next || loading"
+        @click="navigatePeriod(1)"
+      >
         <PhCaretRight :size="20" />
       </button>
     </div>
@@ -383,6 +386,7 @@ onMounted(async () => {
 @reference "../../../../style.css";
 .period-btn {
   @apply flex items-center gap-1.5 px-3 py-2 border rounded-lg cursor-pointer text-xs font-medium transition-all;
+  min-height: var(--ui-control-height);
 }
 
 .period-btn-active {
@@ -395,10 +399,6 @@ onMounted(async () => {
 
 .date-input {
   @apply px-3 py-2 border border-border rounded-md bg-bg-primary text-text-primary text-xs transition-colors focus:outline-none focus:border-accent;
-}
-
-.nav-btn {
-  @apply flex items-center justify-center w-7 h-7 border border-border bg-bg-primary text-text-secondary rounded-md cursor-pointer transition-all hover:bg-accent hover:text-text-on-accent hover:border-accent disabled:opacity-40 disabled:cursor-not-allowed;
 }
 
 .stat-card {

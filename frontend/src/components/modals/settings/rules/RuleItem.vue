@@ -171,7 +171,8 @@ function formatActions(rule: Rule): string {
         <!-- Action buttons -->
         <div class="flex items-center gap-1 sm:gap-2 shrink-0">
           <button
-            class="action-btn"
+            type="button"
+            class="ui-icon-button ui-button--ghost"
             :disabled="isApplying"
             :title="t('setting.rule.applyRuleNow')"
             @click="emit('apply')"
@@ -179,11 +180,17 @@ function formatActions(rule: Rule): string {
             <PhPlay v-if="!isApplying" :size="18" class="sm:w-5 sm:h-5" />
             <span v-else class="animate-spin text-sm">⟳</span>
           </button>
-          <button class="action-btn" :title="t('modal.rule.editRule')" @click="emit('edit')">
+          <button
+            type="button"
+            class="ui-icon-button ui-button--ghost"
+            :title="t('modal.rule.editRule')"
+            @click="emit('edit')"
+          >
             <PhPencil :size="18" class="sm:w-5 sm:h-5" />
           </button>
           <button
-            class="action-btn danger"
+            type="button"
+            class="ui-icon-button ui-icon-button--danger"
             :title="t('modal.rule.deleteRule')"
             @click="emit('delete')"
           >
@@ -280,20 +287,6 @@ function formatActions(rule: Rule): string {
 .condition-badge,
 .action-badge {
   @apply inline-flex items-center gap-1 px-1.5 sm:px-2 py-0.5 sm:py-1 rounded text-[10px] sm:text-xs bg-bg-tertiary;
-}
-
-/* Action buttons */
-.action-btn {
-  @apply p-1.5 sm:p-2 rounded-lg bg-transparent border-none cursor-pointer text-text-secondary hover:bg-bg-tertiary hover:text-text-primary transition-all;
-}
-
-.action-btn.danger:hover {
-  color: var(--state-danger-color);
-  background-color: var(--state-danger-background);
-}
-
-.action-btn:disabled {
-  @apply opacity-50 cursor-not-allowed;
 }
 
 /* Loading spinner */

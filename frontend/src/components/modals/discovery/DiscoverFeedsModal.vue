@@ -61,15 +61,6 @@ const subscribeButtonText = computed(() => {
   return t('modal.feed.subscribeSelected');
 });
 
-// Computed subscribe button label with count
-const subscribeButtonLabel = computed(() => {
-  const baseText = subscribeButtonText.value;
-  if (hasSelection.value && !isSubscribing.value) {
-    return `${baseText} (${selectedFeeds.size})`;
-  }
-  return baseText;
-});
-
 // Auto-start discovery when component is mounted
 onMounted(() => {
   if (props.show) {
@@ -94,14 +85,12 @@ onUnmounted(() => {
 </script>
 
 <template>
-  <BaseModal v-if="show" size="4xl" :z-index="50" @close="close">
+  <BaseModal v-if="show" size="4xl" :z-index="50" :closable="false" @close="close">
     <!-- Custom Header with gradient background -->
     <template #header>
-      <div
-        class="flex justify-between items-center bg-gradient-to-r from-accent/5 to-transparent -m-3 sm:-m-5 p-3 sm:p-5 mb-3 sm:mb-0"
-      >
+      <div class="flex min-w-0 flex-1 items-center justify-between">
         <div class="min-w-0 flex-1">
-          <h2 class="text-base sm:text-xl font-bold text-text-primary">
+          <h2 class="ui-modal-title">
             {{ t('modal.discovery.discoverFeeds') }}
           </h2>
           <p class="text-xs sm:text-sm text-text-secondary mt-1 truncate">
@@ -109,7 +98,10 @@ onUnmounted(() => {
           </p>
         </div>
         <button
-          class="p-1.5 sm:p-2 hover:bg-bg-tertiary rounded-lg transition-colors shrink-0 ml-2"
+          type="button"
+          class="ui-icon-button ui-button--ghost ml-2 shrink-0"
+          :title="t('common.close')"
+          :aria-label="t('common.close')"
           @click="close"
         >
           <PhX :size="20" class="sm:w-6 sm:h-6 text-text-secondary" />
@@ -182,18 +174,13 @@ onUnmounted(() => {
           disabled: isSubscribing,
           onClick: close,
         }"
-        :primary-button="{
-          label: subscribeButtonLabel,
-          disabled: !hasSelection || isSubscribing,
-          loading: isSubscribing,
-          onClick: subscribeSelected,
-        }"
       >
         <template #right>
           <button
+            type="button"
             :disabled="!hasSelection || isSubscribing"
             :class="[
-              'btn-primary flex items-center justify-center gap-2 text-sm sm:text-base',
+              'ui-button ui-button--primary flex items-center gap-2',
               (!hasSelection || isSubscribing) && 'opacity-50 cursor-not-allowed',
             ]"
             @click="subscribeSelected"
@@ -214,10 +201,3 @@ onUnmounted(() => {
     </template>
   </BaseModal>
 </template>
-
-<style scoped>
-@reference "../../../style.css";
-.btn-primary {
-  @apply px-4 sm:px-6 py-2 sm:py-2.5 bg-accent text-text-on-accent rounded-lg hover:bg-accent-hover transition-all font-medium shadow-sm hover:shadow-md;
-}
-</style>

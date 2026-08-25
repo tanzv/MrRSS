@@ -153,7 +153,12 @@ async function testConnection() {
       :title="t('setting.rsshub.testConnection')"
       :description="t('setting.rsshub.testConnectionDesc')"
     >
-      <button class="btn-secondary" :disabled="isTesting" @click="testConnection">
+      <button
+        type="button"
+        class="ui-button ui-button--secondary"
+        :disabled="isTesting"
+        @click="testConnection"
+      >
         {{ isTesting ? t('setting.rsshub.testing') : t('setting.rsshub.testConnection') }}
       </button>
     </SubSettingItem>
@@ -175,12 +180,5 @@ async function testConnection() {
 
 .setting-item {
   @apply flex items-center sm:items-start justify-between gap-2 sm:gap-4 p-2 sm:p-3 rounded-lg bg-bg-secondary border border-border;
-}
-
-.btn-secondary {
-  @apply bg-bg-tertiary border border-border text-text-primary px-3 sm:px-4 py-1.5 sm:py-2 rounded-md cursor-pointer flex items-center gap-1.5 sm:gap-2 font-medium hover:bg-bg-secondary transition-colors;
-}
-.btn-secondary:disabled {
-  @apply cursor-not-allowed opacity-50;
 }
 </style>

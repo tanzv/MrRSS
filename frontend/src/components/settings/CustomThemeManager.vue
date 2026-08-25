@@ -879,11 +879,14 @@ async function importThemes(event: Event): Promise<void> {
 }
 
 .theme-icon-button {
-  @apply flex h-7 w-7 shrink-0 items-center justify-center rounded border border-border text-text-secondary transition-colors hover:bg-bg-tertiary hover:text-text-primary disabled:cursor-not-allowed disabled:opacity-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent;
+  @apply flex shrink-0 items-center justify-center rounded border border-border text-text-secondary transition-colors hover:bg-bg-tertiary hover:text-text-primary disabled:cursor-not-allowed disabled:opacity-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent;
+  width: var(--ui-control-compact-height);
+  height: var(--ui-control-compact-height);
 }
 
 .theme-primary-button {
-  @apply inline-flex items-center gap-1.5 rounded border border-accent bg-accent px-3 py-1.5 text-xs font-medium text-text-on-accent transition-colors hover:bg-accent-hover focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent;
+  @apply inline-flex items-center gap-1.5 rounded border border-accent bg-accent px-3 text-xs font-medium text-text-on-accent transition-colors hover:bg-accent-hover focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent;
+  min-height: var(--ui-control-height);
 }
 
 .custom-theme-empty {
@@ -904,6 +907,7 @@ async function importThemes(event: Event): Promise<void> {
 
 .custom-theme-profile-button {
   @apply flex w-full items-center gap-2 rounded border border-transparent px-2 py-1.5 text-left text-xs text-text-secondary transition-colors hover:bg-bg-tertiary;
+  min-height: var(--ui-control-compact-height);
 }
 
 .custom-theme-profile-button.is-selected {

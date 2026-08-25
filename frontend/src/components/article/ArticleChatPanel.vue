@@ -360,13 +360,12 @@ const currentSessionTitle = computed(() => {
         :class="{ 'select-none': isResizing }"
       >
         <!-- Header -->
-        <div
-          class="flex items-center justify-between p-3 border-b border-border bg-bg-secondary rounded-t-xl relative"
-        >
+        <div class="app-panel-header relative rounded-t-xl">
           <div class="flex items-center gap-2 flex-1">
             <PhChatCircleText :size="20" class="text-accent" />
             <button
-              class="flex items-center gap-1 text-sm font-medium hover:text-accent transition-colors"
+              type="button"
+              class="ui-button ui-button--ghost max-w-full gap-1"
               :title="t('article.chat.switchSession')"
               @click="showSessions = !showSessions"
             >
@@ -376,14 +375,16 @@ const currentSessionTitle = computed(() => {
           </div>
           <div class="flex items-center gap-1">
             <button
-              class="p-1 hover:bg-bg-tertiary rounded-lg transition-colors"
+              type="button"
+              class="ui-icon-button ui-button--ghost"
               :title="t('article.chat.newChat')"
               @click="createNewSession"
             >
               <PhPlus :size="18" class="text-text-secondary" />
             </button>
             <button
-              class="p-1 hover:bg-bg-tertiary rounded-lg transition-colors"
+              type="button"
+              class="ui-icon-button ui-button--ghost"
               :title="t('common.close')"
               @click="emit('close')"
             >
@@ -427,7 +428,8 @@ const currentSessionTitle = computed(() => {
                     @click.stop
                   />
                   <button
-                    class="p-1 hover:bg-bg-primary rounded"
+                    type="button"
+                    class="ui-icon-button ui-button--ghost ui-button--compact"
                     @click="saveSessionTitle(session.id)"
                   >
                     <PhPaperPlaneRight :size="14" />
@@ -436,13 +438,15 @@ const currentSessionTitle = computed(() => {
                 <span v-else class="flex-1 text-sm truncate">{{ session.title }}</span>
                 <div class="flex items-center gap-1 opacity-0 group-hover:opacity-100">
                   <button
-                    class="p-1 hover:bg-bg-primary rounded"
+                    type="button"
+                    class="ui-icon-button ui-button--ghost ui-button--compact"
                     @click="startEditSession(session, $event)"
                   >
                     <PhPencil :size="14" />
                   </button>
                   <button
-                    class="p-1 rounded state-danger-hover"
+                    type="button"
+                    class="ui-icon-button ui-icon-button--danger ui-button--compact"
                     @click="deleteSession(session.id, $event)"
                   >
                     <PhTrash :size="14" />
@@ -518,8 +522,9 @@ const currentSessionTitle = computed(() => {
               @keydown="handleKeydown"
             />
             <button
+              type="button"
               :disabled="isLoading || !inputMessage.trim()"
-              class="px-3 py-2 bg-accent on-accent rounded-lg hover:bg-accent-hover disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              class="ui-icon-button ui-button--primary"
               @click="sendMessage"
             >
               <PhPaperPlaneRight :size="18" />

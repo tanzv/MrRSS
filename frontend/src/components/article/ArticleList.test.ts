@@ -109,6 +109,14 @@ describe('ArticleList interaction feedback', () => {
     );
   });
 
+  it('uses the shared panel header and icon action primitives', () => {
+    const { wrapper: mountedList } = mountArticleList();
+
+    expect(mountedList.get('.app-panel-header').exists()).toBe(true);
+    expect(mountedList.get('[data-testid="mark-all-read"]').classes()).toContain('ui-icon-button');
+    expect(mountedList.get('[data-testid="toggle-unread"]').classes()).toContain('ui-icon-button');
+  });
+
   it('uses a named three-row skeleton while articles are loading', async () => {
     vi.stubGlobal(
       'fetch',

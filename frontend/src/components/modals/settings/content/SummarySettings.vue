@@ -178,7 +178,7 @@ const isClearingCache = ref(false);
         <button
           type="button"
           :disabled="isClearingCache"
-          class="btn-secondary"
+          class="ui-button ui-button--secondary"
           @click="clearSummaryCache"
         >
           <PhBroom :size="16" class="sm:w-5 sm:h-5" />

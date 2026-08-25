@@ -24,7 +24,7 @@ function mountSettings(customCssFile = '') {
 describe('CustomizationSettings mobile actions', () => {
   it('names the icon-only upload action for assistive technology', () => {
     const wrapper = mountSettings();
-    const upload = wrapper.get('button.btn-secondary');
+    const upload = wrapper.get('button.ui-button--secondary');
 
     expect(upload.attributes('aria-label')).toBe('Upload CSS');
     expect(upload.attributes('title')).toBe('Upload CSS');
@@ -32,7 +32,7 @@ describe('CustomizationSettings mobile actions', () => {
 
   it('names the icon-only delete action for assistive technology', () => {
     const wrapper = mountSettings('reader.css');
-    const remove = wrapper.get('button.btn-danger');
+    const remove = wrapper.get('button.ui-button--danger');
 
     expect(remove.attributes('aria-label')).toBe('Delete CSS');
     expect(remove.attributes('title')).toBe('Delete CSS');

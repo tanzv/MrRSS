@@ -104,7 +104,7 @@ function handleFilterKeydown(event: KeyboardEvent) {
     <div v-if="isEditMode" class="flex gap-1">
       <button
         type="button"
-        class="saved-filter-edit-button bg-transparent border-0 p-1 cursor-pointer text-text-secondary rounded transition-all duration-200 hover:text-accent-text min-h-11 min-w-11 md:min-h-8 md:min-w-8"
+        class="ui-icon-button ui-button--ghost"
         :title="t('common.edit')"
         :aria-label="t('common.edit')"
         @click="handleEdit"
@@ -113,7 +113,7 @@ function handleFilterKeydown(event: KeyboardEvent) {
       </button>
       <button
         type="button"
-        class="state-danger-hover bg-transparent border-0 p-1 cursor-pointer text-text-secondary rounded transition-all duration-200 min-h-11 min-w-11 md:min-h-8 md:min-w-8"
+        class="ui-icon-button ui-icon-button--danger"
         :title="t('common.delete')"
         :aria-label="t('common.delete')"
         @click="handleDelete"
@@ -141,9 +141,5 @@ function handleFilterKeydown(event: KeyboardEvent) {
 .saved-filter-item.is-active,
 .saved-filter-item.is-active:hover {
   background-color: var(--surface-selected);
-}
-
-.saved-filter-edit-button:hover {
-  background-color: var(--surface-hover);
 }
 </style>

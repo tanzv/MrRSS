@@ -50,30 +50,14 @@ const alignClasses = computed(() => {
 
 // Button type classes
 function getButtonClasses(type: 'primary' | 'secondary' | 'danger' | 'ghost' = 'primary') {
-  const baseClasses = [
-    'text-sm',
-    'sm:text-base',
-    'px-4',
-    'sm:px-5',
-    'py-2',
-    'sm:py-2.5',
-    'rounded-lg',
-    'cursor-pointer',
-    'font-semibold',
-    'transition-colors',
-    'disabled:opacity-70',
-    'disabled:cursor-not-allowed',
-  ];
-
   const typeClasses = {
-    primary: 'bg-accent on-accent border-none hover:bg-accent-hover',
-    secondary: 'bg-transparent border border-border text-text-primary hover:bg-bg-tertiary',
-    danger: 'bg-transparent border state-danger-button',
-    ghost:
-      'bg-transparent border-none text-text-primary hover:text-text-secondary hover:bg-bg-tertiary',
+    primary: 'ui-button--primary',
+    secondary: 'ui-button--secondary',
+    danger: 'ui-button--danger',
+    ghost: 'ui-button--ghost',
   };
 
-  return [...baseClasses, ...typeClasses[type].split(' ')];
+  return ['ui-button', typeClasses[type]];
 }
 
 // Handle button clicks
@@ -113,6 +97,7 @@ function handleDangerClick() {
     <!-- Secondary button (shown first on mobile, left on desktop) -->
     <button
       v-if="secondaryButton"
+      type="button"
       :class="getButtonClasses('secondary')"
       :disabled="secondaryButton.disabled || secondaryButton.loading"
       @click="handleSecondaryClick"
@@ -123,6 +108,7 @@ function handleDangerClick() {
     <!-- Danger button -->
     <button
       v-if="dangerButton"
+      type="button"
       :class="getButtonClasses('danger')"
       :disabled="dangerButton.disabled || dangerButton.loading"
       @click="handleDangerClick"
@@ -133,6 +119,7 @@ function handleDangerClick() {
     <!-- Primary button (shown last on mobile, right on desktop) -->
     <button
       v-if="primaryButton"
+      type="button"
       :class="getButtonClasses(primaryButton.type || 'primary')"
       :disabled="primaryButton.disabled || primaryButton.loading"
       @click="handlePrimaryClick"

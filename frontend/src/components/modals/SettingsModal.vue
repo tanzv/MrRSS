@@ -97,14 +97,14 @@ function handleDiscoverAll() {
     <div
       class="settings-modal-panel bg-bg-primary w-full max-w-5xl h-full sm:h-[800px] sm:max-h-[90vh] flex flex-col rounded-none sm:rounded-2xl shadow-2xl border border-border overflow-hidden animate-fade-in mx-2 sm:mx-4 my-2 sm:my-4"
     >
-      <div class="p-3 sm:p-5 border-b border-border flex justify-between items-center shrink-0">
-        <h3 class="text-text-secondary sm:text-lg font-semibold m-0 flex items-center gap-2">
+      <div class="app-modal-header">
+        <h3 class="ui-modal-title flex items-center gap-2">
           <PhGear :size="20" :weight="'fill'" class="sm:w-6 sm:h-6" />
           {{ t('setting.tab.settingsTitle') }}
         </h3>
         <button
           type="button"
-          class="text-xl sm:text-2xl p-1 text-text-secondary hover:text-text-primary"
+          class="ui-icon-button ui-button--ghost"
           :title="t('common.close')"
           :aria-label="t('common.close')"
           @click="emit('close')"
@@ -325,7 +325,8 @@ function handleDiscoverAll() {
 <style scoped>
 @reference "../../style.css";
 .sidebar-tab-btn {
-  @apply w-full flex items-center gap-3 px-3 py-2.5 rounded-lg bg-transparent text-text-secondary font-medium cursor-pointer transition-all relative;
+  @apply relative flex w-full items-center gap-3 rounded-lg bg-transparent px-3 text-text-secondary font-medium transition-all;
+  min-height: var(--ui-control-height);
 }
 
 @media (max-width: 39.9375rem) {
@@ -370,10 +371,6 @@ function handleDiscoverAll() {
   width: 3px;
   background: var(--accent-color);
   border-radius: 0 2px 2px 0;
-}
-
-.btn-primary {
-  @apply bg-accent text-text-on-accent border-none px-5 py-2.5 rounded-lg cursor-pointer font-semibold hover:bg-accent-hover transition-colors;
 }
 
 .animate-fade-in {

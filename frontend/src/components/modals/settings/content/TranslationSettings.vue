@@ -439,7 +439,7 @@ async function clearTranslationCache() {
             <div class="relative shrink-0">
               <button
                 type="button"
-                class="btn-secondary"
+                class="ui-button ui-button--secondary"
                 @click="showCustomTemplates = !showCustomTemplates"
               >
                 {{ t('setting.content.custom.selectTemplate') || 'Select Template' }}
@@ -649,7 +649,7 @@ async function clearTranslationCache() {
         <button
           type="button"
           :disabled="isClearingCache"
-          class="btn-secondary"
+          class="ui-button ui-button--secondary"
           @click="clearTranslationCache"
         >
           <PhBroom :size="16" class="sm:w-5 sm:h-5" />
